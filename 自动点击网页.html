@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页自动访问量增加器</title>
+    <!-- 引入 Tailwind CSS 以实现现代化界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义字体和一些微调 */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+        .control-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .control-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">网页自动访问量增加器</h1>
+            <p class="text-gray-500 mt-2">输入目标网址和参数，开始自动增加页面访问次数。</p>
+        </div>
+
+        <!-- 设置区域 -->
+        <div class="space-y-6">
+            <div>
+                <label for="urlInput" class="block text-sm font-medium text-gray-700 mb-1">目标网页 URL</label>
+                <input type="url" id="urlInput" placeholder="https://example.com" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <label for="visitCount" class="block text-sm font-medium text-gray-700 mb-1">目标访问次数</label>
+                    <input type="number" id="visitCount" value="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="intervalTime" class="block text-sm font-medium text-gray-700 mb-1">间隔时间 (毫秒)</label>
+                    <input type="number" id="intervalTime" value="3000" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="flex items-center justify-center space-x-4 mt-8">
+            <button id="startButton" class="control-btn w-32 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                开始
+            </button>
+            <button id="stopButton" class="control-btn w-32 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" disabled>
+                停止
+            </button>
+        </div>
+
+        <!-- 状态和日志 -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+             <h2 class="text-lg font-semibold text-gray-800 mb-2">状态监控</h2>
+             <div id="status" class="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
+                等待开始任务...
+             </div>
+        </div>
+        
+        <!-- 免责声明 -->
+        <div class="mt-8 text-xs text-gray-400 text-center">
+            <p>免责声明：本工具仅供学习和测试使用。请勿用于非法用途或恶意攻击网站。所有后果由使用者自行承担。</p>
+        </div>
+
+    </div>
+
+    <!-- 用于加载页面的 iframe，在界面上不可见 -->
+    <iframe id="visitFrame" class="hidden"></iframe>
+
+    <script>
+        // 获取 DOM 元素
+        const urlInput = document.getElementById('urlInput');
+        const visitCountInput = document.getElementById('visitCount');
+        const intervalTimeInput = document.getElementById('intervalTime');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusDiv = document.getElementById('status');
+        const visitFrame = document.getElementById('visitFrame');
+
+        let visitInterval = null; // 用于存储 setInterval 的 ID
+        let currentCount = 0;
+        let targetVisits = 0;
+        let targetUrl = '';
+
+        // 更新状态显示
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.classList.toggle('text-red-500', isError);
+            statusDiv.classList.toggle('text-gray-600', !isError);
+        }
+        
+        // 切换控件的可用状态
+        function toggleControls(isVisiting) {
+            startButton.disabled = isVisiting;
+            stopButton.disabled = !isVisiting;
+            urlInput.disabled = isVisiting;
+            visitCountInput.disabled = isVisiting;
+            intervalTimeInput.disabled = isVisiting;
+        }
+
+        // 执行单次访问
+        function performVisit() {
+            if (currentCount >= targetVisits) {
+                stopVisiting();
+                updateStatus(`任务完成！总计访问 ${currentCount} 次。`);
+                return;
+            }
+            
+            currentCount++;
+            // 添加一个随机查询参数以防止浏览器缓存
+            const urlToVisit = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}rand=${Math.random() * 100000}`;
+            visitFrame.src = urlToVisit;
+            
+            updateStatus(`正在进行第 ${currentCount} / ${targetVisits} 次访问...`);
+        }
+
+        // 开始访问
+        function startVisiting() {
+            targetUrl = urlInput.value.trim();
+            targetVisits = parseInt(visitCountInput.value, 10);
+            const intervalTime = parseInt(intervalTimeInput.value, 10);
+
+            // 输入验证
+            if (!targetUrl || !targetUrl.startsWith('http')) {
+                updateStatus('错误：请输入一个有效的 URL (以 http 或 https 开头)。', true);
+                return;
+            }
+            if (isNaN(targetVisits) || targetVisits <= 0) {
+                updateStatus('错误：目标访问次数必须是正数。', true);
+                return;
+            }
+            if (isNaN(intervalTime) || intervalTime < 500) {
+                updateStatus('错误：间隔时间建议不小于500毫秒，以避免对服务器造成过大压力。', true);
+                return;
+            }
+            
+            currentCount = 0;
+            toggleControls(true);
+            updateStatus('任务已开始...');
+            
+            // 立即执行第一次，然后设置定时器
+            performVisit();
+            visitInterval = setInterval(performVisit, intervalTime);
+        }
+
+        // 停止访问
+        function stopVisiting() {
+            if (visitInterval) {
+                clearInterval(visitInterval);
+                visitInterval = null;
+            }
+            toggleControls(false);
+            if (currentCount > 0 && currentCount < targetVisits) {
+                updateStatus(`任务已手动停止。已完成 ${currentCount} 次访问。`);
+            }
+        }
+        
+        // 绑定事件监听器
+        startButton.addEventListener('click', startVisiting);
+        stopButton.addEventListener('click', stopVisiting);
+
+    </script>
+
+</body>
+</html>

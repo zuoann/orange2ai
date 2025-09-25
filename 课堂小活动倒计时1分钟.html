@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1分钟课堂倒计时</title>
+    <!-- 引入Tailwind CSS框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Google字体'Orbitron'，具有科技感 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* 使用Orbitron字体 */
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0c001f; /* 深紫色背景 */
+        }
+        
+        /* 动态网格背景 */
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255, 0, 255, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 255, 0.2) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: pan-grid 20s linear infinite;
+        }
+
+        @keyframes pan-grid {
+            0% {
+                background-position: 0 0;
+            }
+            100% {
+                background-position: 50px 50px;
+            }
+        }
+
+        /* 为计时器数字添加脉冲发光动画 (洋红色主题) */
+        @keyframes pulseGlow {
+            0%, 100% {
+                text-shadow: 0 0 8px #f0f, 0 0 16px #f0f;
+            }
+            50% {
+                text-shadow: 0 0 16px #f0f, 0 0 32px #f0f, 0 0 48px #f0f;
+            }
+        }
+
+        .timer-display-text {
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+        
+        /* 环形进度条样式 */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            stroke: #ff00ff; /* 洋红色 */
+        }
+
+        /* 最后10秒的警告动画 */
+        @keyframes countdownWarning {
+            0%, 100% { stroke: #ff3b3b; }
+            50% { stroke: #ff8b8b; }
+        }
+        .warning .progress-ring__circle {
+            animation: countdownWarning 1s infinite;
+        }
+
+        /* 时间到时的闪烁警告动画 */
+        @keyframes timeUpFlash {
+            0%, 49%, 100% { color: #ff3b3b; text-shadow: 0 0 10px #ff3b3b; }
+            50%, 99% { color: #fff; text-shadow: none; }
+        }
+        .time-up-animation {
+            animation: timeUpFlash 1.5s infinite;
+        }
+
+        /* 自定义按钮样式，添加过渡效果 (洋红色主题) */
+        .control-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 5px rgba(255, 0, 255, 0.5), inset 0 0 5px rgba(255, 0, 255, 0.3);
+        }
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.8), inset 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+        .control-btn:active {
+            transform: translateY(0px);
+        }
+    </style>
+</head>
+<body class="text-white font-sans overflow-hidden">
+    <div class="grid-background"></div>
+    
+    <!-- 主内容容器 -->
+    <div class="relative min-h-screen flex flex-col items-center justify-center z-10 p-4">
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold tracking-widest" style="text-shadow: 0 0 10px #f0f;">课堂活动倒计时</h1>
+            <p class="text-pink-300 mt-2 text-sm md:text-base">1-MINUTE CLASS ACTIVITY TIMER</p>
+        </header>
+
+        <!-- 计时器显示区域 (包含环形进度条) -->
+        <div class="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center">
+             <svg class="absolute top-0 left-0 w-full h-full" id="progress-svg" viewBox="0 0 256 256">
+                <circle
+                    class="text-gray-700/50"
+                    stroke-width="8"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="120"
+                    cx="128"
+                    cy="128"
+                />
+                <circle
+                    id="progress-ring"
+                    class="progress-ring__circle"
+                    stroke-width="8"
+                    stroke-linecap="round"
+                    fill="transparent"
+                    r="120"
+                    cx="128"
+                    cy="128"
+                />
+            </svg>
+            <div id="timer-container" class="timer-display-text text-6xl sm:text-7xl font-bold flex items-center justify-center select-none">
+                <span id="minutes">01</span>
+                <span>:</span>
+                <span id="seconds">00</span>
+            </div>
+        </div>
+
+        <!-- 控制按钮区域 -->
+        <div class="flex space-x-4 md:space-x-8 mt-10 md:mt-16">
+            <button id="start-pause-btn" class="control-btn bg-pink-500/20 border border-pink-400 text-pink-300 rounded-lg px-8 py-4 text-2xl md:text-3xl font-bold">
+                开始
+            </button>
+            <button id="reset-btn" class="control-btn bg-gray-500/20 border border-gray-400 text-gray-300 rounded-lg px-8 py-4 text-2xl md:text-3xl font-bold">
+                重置
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- 倒计时器逻辑 ---
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+        const startPauseBtn = document.getElementById('start-pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const timerContainer = document.getElementById('timer-container');
+        const progressRing = document.getElementById('progress-ring');
+        const progressSvg = document.getElementById('progress-svg');
+        const radius = progressRing.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+
+        progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressRing.style.strokeDashoffset = circumference;
+        
+        function setProgress(percent) {
+            const offset = circumference - (percent / 100) * circumference;
+            progressRing.style.strokeDashoffset = offset;
+        }
+
+        const DURATION = 60; // 总时长为60秒
+        let timeRemaining = DURATION;
+        let timerId = null;
+        let isRunning = false;
+
+        // 更新显示
+        function updateDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            minutesEl.textContent = String(minutes).padStart(2, '0');
+            secondsEl.textContent = String(seconds).padStart(2, '0');
+            setProgress((timeRemaining / DURATION) * 100);
+
+            // 最后10秒警告
+            if (timeRemaining <= 10 && timeRemaining > 0) {
+                progressSvg.classList.add('warning');
+            } else {
+                progressSvg.classList.remove('warning');
+            }
+        }
+
+        // 开始或暂停计时器
+        function toggleTimer() {
+            if (isRunning) { // 暂停
+                clearInterval(timerId);
+                startPauseBtn.textContent = '继续';
+                isRunning = false;
+            } else { // 开始或继续
+                timerContainer.classList.remove('time-up-animation');
+                startPauseBtn.textContent = '暂停';
+                isRunning = true;
+                timerId = setInterval(() => {
+                    timeRemaining--;
+                    updateDisplay();
+                    if (timeRemaining < 0) {
+                        clearInterval(timerId);
+                        isRunning = false;
+                        timerContainer.classList.add('time-up-animation');
+                        minutesEl.textContent = '时间';
+                        secondsEl.textContent = '到!';
+                        startPauseBtn.textContent = '开始';
+                        timeRemaining = DURATION;
+                        updateDisplay(); // 重置进度条
+                    }
+                }, 1000);
+            }
+        }
+
+        // 重置计时器
+        function resetTimer() {
+            clearInterval(timerId);
+            timerContainer.classList.remove('time-up-animation');
+            progressSvg.classList.remove('warning');
+            timeRemaining = DURATION;
+            isRunning = false;
+            startPauseBtn.textContent = '开始';
+            updateDisplay();
+        }
+
+        // 绑定事件
+        startPauseBtn.addEventListener('click', toggleTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        // 初始显示
+        updateDisplay();
+    </script>
+</body>
+</html>
+
+
