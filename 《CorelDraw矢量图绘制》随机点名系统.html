@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《CorelDraw矢量图绘制》 -曲靖农业学校课堂随机点名系统</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --primary-color: #00ffff; /* 青色 */
+            --secondary-color: #ff00ff; /* 品红 */
+            --success-color: #00ff7f; /* 成功绿色 */
+            --error-color: #ff4d4d; /* 错误红色 */
+            --bg-color: #0b0c10;
+            --text-color: #c5c6c7;
+            --border-glow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color), 0 0 15px var(--primary-color);
+            --text-glow: 0 0 3px var(--primary-color);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            padding: 2rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 15px;
+            box-shadow: var(--border-glow), inset 0 0 10px var(--primary-color);
+            background: rgba(21, 26, 48, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-shadow: var(--text-glow);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .setup-area {
+            margin-bottom: 2rem;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+        }
+
+        .file-upload-label:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            box-shadow: var(--border-glow);
+        }
+        
+        #excel-input {
+            display: none;
+        }
+        
+        #status-message {
+            height: 20px;
+            margin-top: 10px;
+            transition: color 0.3s;
+        }
+
+
+        .controls button, .action-button {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+        }
+
+        .controls button:hover, .action-button:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            box-shadow: var(--border-glow);
+        }
+        
+        .action-button {
+            margin-top: 1rem;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .action-button:hover {
+            background-color: var(--secondary-color);
+            box-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-color), 0 0 15px var(--secondary-color);
+        }
+
+        .result-display {
+            margin-top: 2rem;
+            min-height: 100px;
+        }
+
+        #roller {
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--secondary-color);
+            text-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-color);
+            height: 60px;
+            line-height: 60px;
+            transition: transform 0.2s ease;
+        }
+
+        .final-result {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px;
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>《CorelDraw矢量图绘制》 -曲靖农业学校课堂随机点名系统</h1>
+        
+        <div class="setup-area">
+            <label for="excel-input" class="file-upload-label">导入 Excel 名单 (智能识别版)</label>
+            <input type="file" id="excel-input" accept=".xlsx, .xls, .csv">
+            <p id="status-message"></p>
+        </div>
+
+        <div class="controls">
+            <button onclick="setDrawCount(1)">抽取 1 人</button>
+            <button onclick="setDrawCount(2)">抽取 2 人</button>
+            <button onclick="setDrawCount(3)">抽取 3 人</button>
+            <button onclick="setDrawCount(5)">抽取 5 人</button>
+        </div>
+
+        <button class="action-button" id="start-draw-btn" onclick="startDraw()">[ 执行抽选 ]</button>
+        
+        <div class="result-display">
+            <div id="roller">-- 等待指令 --</div>
+            <div id="final-results-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let nameList = [];
+        let drawCount = 0;
+        let isDrawing = false;
+        let animationInterval;
+
+        const roller = document.getElementById('roller');
+        const finalResultsContainer = document.getElementById('final-results-container');
+        const startBtn = document.getElementById('start-draw-btn');
+        const fileInput = document.getElementById('excel-input');
+        const statusMessage = document.getElementById('status-message');
+
+        fileInput.addEventListener('change', handleFile);
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            statusMessage.style.color = 'var(--primary-color)';
+            statusMessage.innerText = '正在解析文件...';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // ================= 核心改动开始 =================
+                    
+                    // 1. 将工作表直接转换为对象数组，SheetJS会自动将第一行作为对象的键。
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) {
+                        throw new Error("Excel文件为空或格式不正确。");
+                    }
+
+                    // 2. 自动寻找'姓名'列
+                    const headers = Object.keys(jsonData[0]);
+                    const nameHeader = headers.find(h => h.trim() === '姓名');
+
+                    if (!nameHeader) {
+                        throw new Error("导入失败：未找到名为'姓名'的列。请检查Excel文件标题行。");
+                    }
+
+                    // 3. 提取'姓名'列的所有数据
+                    nameList = jsonData
+                        .map(row => row[nameHeader]) // 使用找到的表头提取数据
+                        .filter(name => name && String(name).trim() !== ''); // 过滤掉空值
+
+                    // ================= 核心改动结束 =================
+                    
+                    if (nameList.length > 0) {
+                        statusMessage.style.color = 'var(--success-color)';
+                        statusMessage.innerText = `名单导入成功！共 ${nameList.length} 人。`;
+                        console.log('导入的名单:', nameList);
+                    } else {
+                        throw new Error("在'姓名'列下未找到有效数据。");
+                    }
+                } catch (error) {
+                    nameList = []; // 清空名单
+                    statusMessage.style.color = 'var(--error-color)';
+                    statusMessage.innerText = error.message;
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function setDrawCount(count) {
+            drawCount = count;
+            startBtn.innerText = `[ 确认抽取 ${count} 人 ]`;
+        }
+
+        function startDraw() {
+            if (isDrawing) return;
+            
+            if (nameList.length === 0) {
+                alert("请先成功导入一个包含'姓名'列的Excel文件！");
+                return;
+            }
+            if (drawCount === 0) {
+                alert("请先选择要抽取的人数！");
+                return;
+            }
+            if (nameList.length < drawCount) {
+                alert("名单总人数不足以抽取所选人数！");
+                return;
+            }
+
+            isDrawing = true;
+            finalResultsContainer.innerHTML = '';
+            roller.style.transform = 'scale(1)';
+
+            animationInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * nameList.length);
+                roller.innerText = nameList[randomIndex];
+            }, 100);
+
+            setTimeout(stopDraw, 3000);
+        }
+
+        function stopDraw() {
+            clearInterval(animationInterval);
+
+            const shuffled = [...nameList].sort(() => 0.5 - Math.random());
+            const winners = shuffled.slice(0, drawCount);
+            
+            roller.innerText = '抽选完成！';
+            roller.style.transform = 'scale(1.2)';
+
+            winners.forEach(winner => {
+                const winnerElement = document.createElement('div');
+                winnerElement.className = 'final-result';
+                winnerElement.innerText = winner;
+                finalResultsContainer.appendChild(winnerElement);
+            });
+
+            isDrawing = false;
+            drawCount = 0;
+            startBtn.innerText = `[ 执行抽选 ]`;
+        }
+    </script>
+</body>
+</html>
