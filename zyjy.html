@@ -1,872 +1,892 @@
-import React, { useState, useMemo, createContext, useContext } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  GraduationCap,
-  BookOpen,
-  Factory,
-  Cpu,
-  Hammer,
-  Users,
-  Calendar,
-  Building2,
-  BadgeCheck,
-  Search,
-  Filter,
-  Mail,
-  Phone,
-  MapPinned,
-  Rocket,
-  Star,
-  ChevronDown,
-  ArrowRight
-} from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid
-} from "recharts";
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职教·Edu - 职业教育平台官网</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Libraries -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/framer-motion/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide-react/dist/umd/lucide-react.js"></script>
 
-// -----------------------------------------------------------------------------
-// UI Components (Simplified replacements for shadcn/ui to make this single-file runnable)
-// -----------------------------------------------------------------------------
+    <style>
+        /* 自定义滚动条平滑滚动 */
+        html { scroll-behavior: smooth; }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <div id="root"></div>
 
-const cn = (...classes) => classes.filter(Boolean).join(" ");
+    <script type="text/babel">
+        // --- 1. 导入依赖 (从全局变量中解构) ---
+        const { useState, useMemo, createContext, useContext, useEffect } = React;
+        
+        // Framer Motion
+        const { motion, AnimatePresence } = window.Motion;
 
-const Button = ({ className, variant = "default", size = "default", children, ...props }) => {
-  const variants = {
-    default: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm",
-    outline: "border border-slate-300 bg-transparent hover:bg-slate-50 text-slate-700",
-    ghost: "hover:bg-slate-100 text-slate-700",
-  };
-  const sizes = {
-    default: "h-10 px-4 py-2",
-    sm: "h-8 px-3 text-xs",
-    lg: "h-12 px-8 text-lg",
-  };
-  return (
-    <button
-      className={cn(
-        "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
-        variants[variant],
-        sizes[size],
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
+        // Lucide React Icons
+        const { 
+            GraduationCap, BookOpen, Factory, Cpu, Hammer, Users, Calendar, 
+            Building2, BadgeCheck, Search, Filter, Mail, Phone, MapPinned, 
+            Rocket, Star, ChevronDown, ArrowRight 
+        } = window.LucideReact;
 
-const Input = ({ className, ...props }) => (
-  <input
-    className={cn(
-      "flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50",
-      className
-    )}
-    {...props}
-  />
-);
+        // Recharts
+        const { 
+            ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid 
+        } = window.Recharts;
 
-const Badge = ({ className, variant = "default", children, ...props }) => {
-  const variants = {
-    default: "bg-indigo-600 text-white hover:bg-indigo-700",
-    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-  };
-  return (
-    <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none", variants[variant], className)} {...props}>
-      {children}
-    </div>
-  );
-};
+        // --- 2. 工具函数 & 基础组件 ---
 
-const Card = ({ className, children, ...props }) => (
-  <div className={cn("rounded-xl border bg-white text-slate-950 shadow-sm", className)} {...props}>
-    {children}
-  </div>
-);
-const CardHeader = ({ className, children }) => <div className={cn("flex flex-col space-y-1.5 p-6", className)}>{children}</div>;
-const CardTitle = ({ className, children }) => <h3 className={cn("font-semibold leading-none tracking-tight", className)}>{children}</h3>;
-const CardDescription = ({ className, children }) => <p className={cn("text-sm text-slate-500", className)}>{children}</p>;
-const CardContent = ({ className, children }) => <div className={cn("p-6 pt-0", className)}>{children}</div>;
+        const cn = (...classes) => classes.filter(Boolean).join(" ");
 
-// Custom Simplified Select (Native Wrapper)
-const NativeSelect = ({ value, onChange, options, placeholder }) => (
-  <div className="relative w-full">
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="flex h-10 w-full appearance-none items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-slate-500"
-    >
-      {options.map((opt) => (
-        <option key={opt} value={opt}>
-          {opt}
-        </option>
-      ))}
-    </select>
-    <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none text-slate-500" />
-  </div>
-);
+        const Button = ({ className, variant = "default", size = "default", children, ...props }) => {
+            const variants = {
+                default: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm",
+                outline: "border border-slate-300 bg-transparent hover:bg-slate-50 text-slate-700",
+                ghost: "hover:bg-slate-100 text-slate-700",
+            };
+            const sizes = {
+                default: "h-10 px-4 py-2",
+                sm: "h-8 px-3 text-xs",
+                lg: "h-12 px-8 text-lg",
+            };
+            return (
+                <button
+                    className={cn(
+                        "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+                        variants[variant],
+                        sizes[size],
+                        className
+                    )}
+                    {...props}
+                >
+                    {children}
+                </button>
+            );
+        };
 
-// Tabs Components
-const TabsContext = createContext();
-const Tabs = ({ defaultValue, className, children }) => {
-  const [activeTab, setActiveTab] = useState(defaultValue);
-  return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-      <div className={className}>{children}</div>
-    </TabsContext.Provider>
-  );
-};
-const TabsList = ({ className, children }) => (
-  <div className={cn("inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500", className)}>
-    {children}
-  </div>
-);
-const TabsTrigger = ({ value, children, className }) => {
-  const { activeTab, setActiveTab } = useContext(TabsContext);
-  return (
-    <button
-      onClick={() => setActiveTab(value)}
-      className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:pointer-events-none disabled:opacity-50",
-        activeTab === value ? "bg-white text-slate-950 shadow-sm" : "hover:bg-slate-200 hover:text-slate-700",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-};
-const TabsContent = ({ value, className, children }) => {
-  const { activeTab } = useContext(TabsContext);
-  if (activeTab !== value) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: 0.2 }}
-      className={cn("mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white", className)}
-    >
-      {children}
-    </motion.div>
-  );
-};
+        const Input = ({ className, ...props }) => (
+            <input
+                className={cn(
+                    "flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50",
+                    className
+                )}
+                {...props}
+            />
+        );
 
-// Accordion Components
-const AccordionContext = createContext();
-const Accordion = ({ type, collapsible, children, className }) => {
-  const [openItem, setOpenItem] = useState(null);
-  const toggleItem = (value) => {
-    setOpenItem(openItem === value ? (collapsible ? null : value) : value);
-  };
-  return (
-    <AccordionContext.Provider value={{ openItem, toggleItem }}>
-      <div className={cn("space-y-2", className)}>{children}</div>
-    </AccordionContext.Provider>
-  );
-};
-const AccordionItem = ({ value, children, className }) => {
-  return (
-    <div className={cn("border-b", className)}>
-      {React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child, { value });
+        const Badge = ({ className, variant = "default", children, ...props }) => {
+            const variants = {
+                default: "bg-indigo-600 text-white hover:bg-indigo-700",
+                secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
+            };
+            return (
+                <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none", variants[variant], className)} {...props}>
+                    {children}
+                </div>
+            );
+        };
+
+        const Card = ({ className, children, ...props }) => (
+            <div className={cn("rounded-xl border bg-white text-slate-950 shadow-sm", className)} {...props}>
+                {children}
+            </div>
+        );
+        const CardHeader = ({ className, children }) => <div className={cn("flex flex-col space-y-1.5 p-6", className)}>{children}</div>;
+        const CardTitle = ({ className, children }) => <h3 className={cn("font-semibold leading-none tracking-tight", className)}>{children}</h3>;
+        const CardDescription = ({ className, children }) => <p className={cn("text-sm text-slate-500", className)}>{children}</p>;
+        const CardContent = ({ className, children }) => <div className={cn("p-6 pt-0", className)}>{children}</div>;
+
+        // Native Select Wrapper
+        const NativeSelect = ({ value, onChange, options, placeholder }) => (
+            <div className="relative w-full">
+                <select
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="flex h-10 w-full appearance-none items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-slate-500"
+                >
+                    {options.map((opt) => (
+                        <option key={opt} value={opt}>
+                            {opt}
+                        </option>
+                    ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none text-slate-500" />
+            </div>
+        );
+
+        // Tabs Components
+        const TabsContext = createContext();
+        const Tabs = ({ defaultValue, className, children }) => {
+            const [activeTab, setActiveTab] = useState(defaultValue);
+            return (
+                <TabsContext.Provider value={{ activeTab, setActiveTab }}>
+                    <div className={className}>{children}</div>
+                </TabsContext.Provider>
+            );
+        };
+        const TabsList = ({ className, children }) => (
+            <div className={cn("inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500", className)}>
+                {children}
+            </div>
+        );
+        const TabsTrigger = ({ value, children, className }) => {
+            const { activeTab, setActiveTab } = useContext(TabsContext);
+            return (
+                <button
+                    onClick={() => setActiveTab(value)}
+                    className={cn(
+                        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:pointer-events-none disabled:opacity-50",
+                        activeTab === value ? "bg-white text-slate-950 shadow-sm" : "hover:bg-slate-200 hover:text-slate-700",
+                        className
+                    )}
+                >
+                    {children}
+                </button>
+            );
+        };
+        const TabsContent = ({ value, className, children }) => {
+            const { activeTab } = useContext(TabsContext);
+            if (activeTab !== value) return null;
+            return (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className={cn("mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white", className)}
+                >
+                    {children}
+                </motion.div>
+            );
+        };
+
+        // Accordion Components
+        const AccordionContext = createContext();
+        const Accordion = ({ type, collapsible, children, className }) => {
+            const [openItem, setOpenItem] = useState(null);
+            const toggleItem = (value) => {
+                setOpenItem(openItem === value ? (collapsible ? null : value) : value);
+            };
+            return (
+                <AccordionContext.Provider value={{ openItem, toggleItem }}>
+                    <div className={cn("space-y-2", className)}>{children}</div>
+                </AccordionContext.Provider>
+            );
+        };
+        const AccordionItem = ({ value, children, className }) => {
+            return (
+                <div className={cn("border-b", className)}>
+                    {React.Children.map(children, (child) => {
+                        if (React.isValidElement(child)) {
+                            return React.cloneElement(child, { value });
+                        }
+                        return child;
+                    })}
+                </div>
+            );
+        };
+        const AccordionTrigger = ({ value, children, className }) => {
+            const { openItem, toggleItem } = useContext(AccordionContext);
+            const isOpen = openItem === value;
+            return (
+                <button
+                    onClick={() => toggleItem(value)}
+                    className={cn(
+                        "flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-sm",
+                        isOpen ? "text-indigo-600" : "text-slate-900",
+                        className
+                    )}
+                >
+                    {children}
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", isOpen && "rotate-180")} />
+                </button>
+            );
+        };
+        const AccordionContent = ({ value, children, className }) => {
+            const { openItem } = useContext(AccordionContext);
+            const isOpen = openItem === value;
+            return (
+                <AnimatePresence initial={false}>
+                    {isOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="overflow-hidden text-sm"
+                        >
+                            <div className={cn("pb-4 pt-0", className)}>{children}</div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            );
+        };
+
+        // --- 3. 数据 ---
+
+        const programData = [
+            {
+                id: 1,
+                title: "智能制造技术",
+                type: "工程制造",
+                level: "中职",
+                duration: "3年",
+                icon: <Factory className="w-5 h-5" />,
+                desc: "以数控、工业机器人与MES为核心，校企共建实训线。",
+                skills: ["数控编程", "工业机器人", "CAD/CAM"],
+            },
+            {
+                id: 2,
+                title: "软件开发与测试",
+                type: "信息技术",
+                level: "高职",
+                duration: "3年",
+                icon: <Cpu className="w-5 h-5" />,
+                desc: "前后端一体化培养，企业真实项目驱动学习。",
+                skills: ["React", "Java", "自动化测试"],
+            },
+            {
+                id: 3,
+                title: "现代农业与智能牧场",
+                type: "农业与食品",
+                level: "高职",
+                duration: "3年",
+                icon: <Hammer className="w-5 h-5" />,
+                desc: "物联网监测、精准饲喂与畜产品质量追溯全链条。",
+                skills: ["物联网", "数据分析", "食品安全"],
+            },
+            {
+                id: 4,
+                title: "电商与新媒体运营",
+                type: "商贸与服务",
+                level: "中职",
+                duration: "3年",
+                icon: <BookOpen className="w-5 h-5" />,
+                desc: "直播、短视频与跨境电商融合，内容+供应链能力并重。",
+                skills: ["直播运营", "数据投放", "供应链"],
+            },
+            {
+                id: 5,
+                title: "护理与老年照护",
+                type: "健康与护理",
+                level: "中高职贯通",
+                duration: "5年",
+                icon: <BadgeCheck className="w-5 h-5" />,
+                desc: "临床基础+社区照护+康复训练，重视人文素养。",
+                skills: ["基础护理", "康复", "健康管理"],
+            },
+            {
+                id: 6,
+                title: "新能源汽车技术",
+                type: "工程制造",
+                level: "高职",
+                duration: "3年",
+                icon: <Rocket className="w-5 h-5" />,
+                desc: "聚焦三电系统检修与智能网联技术，对接行业前沿。",
+                skills: ["电池维护", "电机控制", "故障诊断"],
+            },
+        ];
+
+        const newsList = [
+            { id: 1, date: "2025-08-10", title: "校企联合发布《岗位能力标准（试行）》", tag: "产教融合" },
+            { id: 2, date: "2025-08-02", title: "2025级新生报到指南上线", tag: "通知" },
+            { id: 3, date: "2025-07-25", title: "智能制造产线实训中心投入使用", tag: "实训" },
+            { id: 4, date: "2025-07-15", title: "我校学子在全国职业技能大赛斩获金奖", tag: "荣誉" },
+        ];
+
+        const eventList = [
+            { id: 1, time: "2025-09-05", title: "企业导师开学第一课：行业趋势与岗位画像", place: "报告厅A301" },
+            { id: 2, time: "2025-09-18", title: "技能节：跨专业项目马拉松", place: "综合实训楼" },
+            { id: 3, time: "2025-10-12", title: "访企拓岗双选会（秋季）", place: "体育馆" },
+        ];
+
+        const chartData = [
+            { month: "3月", value: 120 },
+            { month: "4月", value: 180 },
+            { month: "5月", value: 240 },
+            { month: "6月", value: 320 },
+            { month: "7月", value: 420 },
+            { month: "8月", value: 560 },
+        ];
+
+        // --- 4. 业务组件 ---
+
+        function NewsIcon() {
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                    <path d="M18 14h-8" />
+                    <path d="M15 18h-5" />
+                    <path d="M10 6h8v4h-8V6Z" />
+                </svg>
+            );
         }
-        return child;
-      })}
-    </div>
-  );
-};
-const AccordionTrigger = ({ value, children, className }) => {
-  const { openItem, toggleItem } = useContext(AccordionContext);
-  const isOpen = openItem === value;
-  return (
-    <button
-      onClick={() => toggleItem(value)}
-      className={cn(
-        "flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-sm",
-        isOpen ? "text-indigo-600" : "text-slate-900",
-        className
-      )}
-    >
-      {children}
-      <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", isOpen && "rotate-180")} />
-    </button>
-  );
-};
-const AccordionContent = ({ value, children, className }) => {
-  const { openItem } = useContext(AccordionContext);
-  const isOpen = openItem === value;
-  return (
-    <AnimatePresence initial={false}>
-      {isOpen && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="overflow-hidden text-sm"
-        >
-          <div className={cn("pb-4 pt-0", className)}>{children}</div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
-// -----------------------------------------------------------------------------
-// Data & Content
-// -----------------------------------------------------------------------------
-
-const programData = [
-  {
-    id: 1,
-    title: "智能制造技术",
-    type: "工程制造",
-    level: "中职",
-    duration: "3年",
-    icon: <Factory className="w-5 h-5" />,
-    desc: "以数控、工业机器人与MES为核心，校企共建实训线。",
-    skills: ["数控编程", "工业机器人", "CAD/CAM"],
-  },
-  {
-    id: 2,
-    title: "软件开发与测试",
-    type: "信息技术",
-    level: "高职",
-    duration: "3年",
-    icon: <Cpu className="w-5 h-5" />,
-    desc: "前后端一体化培养，企业真实项目驱动学习。",
-    skills: ["React", "Java", "自动化测试"],
-  },
-  {
-    id: 3,
-    title: "现代农业与智能牧场",
-    type: "农业与食品",
-    level: "高职",
-    duration: "3年",
-    icon: <Hammer className="w-5 h-5" />,
-    desc: "物联网监测、精准饲喂与畜产品质量追溯全链条。",
-    skills: ["物联网", "数据分析", "食品安全"],
-  },
-  {
-    id: 4,
-    title: "电商与新媒体运营",
-    type: "商贸与服务",
-    level: "中职",
-    duration: "3年",
-    icon: <BookOpen className="w-5 h-5" />,
-    desc: "直播、短视频与跨境电商融合，内容+供应链能力并重。",
-    skills: ["直播运营", "数据投放", "供应链"],
-  },
-  {
-    id: 5,
-    title: "护理与老年照护",
-    type: "健康与护理",
-    level: "中高职贯通",
-    duration: "5年",
-    icon: <BadgeCheck className="w-5 h-5" />,
-    desc: "临床基础+社区照护+康复训练，重视人文素养。",
-    skills: ["基础护理", "康复", "健康管理"],
-  },
-  {
-    id: 6,
-    title: "新能源汽车技术",
-    type: "工程制造",
-    level: "高职",
-    duration: "3年",
-    icon: <Rocket className="w-5 h-5" />,
-    desc: "聚焦三电系统检修与智能网联技术，对接行业前沿。",
-    skills: ["电池维护", "电机控制", "故障诊断"],
-  },
-];
-
-const newsList = [
-  { id: 1, date: "2025-08-10", title: "校企联合发布《岗位能力标准（试行）》", tag: "产教融合" },
-  { id: 2, date: "2025-08-02", title: "2025级新生报到指南上线", tag: "通知" },
-  { id: 3, date: "2025-07-25", title: "智能制造产线实训中心投入使用", tag: "实训" },
-  { id: 4, date: "2025-07-15", title: "我校学子在全国职业技能大赛斩获金奖", tag: "荣誉" },
-];
-
-const eventList = [
-  { id: 1, time: "2025-09-05", title: "企业导师开学第一课：行业趋势与岗位画像", place: "报告厅A301" },
-  { id: 2, time: "2025-09-18", title: "技能节：跨专业项目马拉松", place: "综合实训楼" },
-  { id: 3, time: "2025-10-12", title: "访企拓岗双选会（秋季）", place: "体育馆" },
-];
-
-const chartData = [
-  { month: "3月", value: 120 },
-  { month: "4月", value: 180 },
-  { month: "5月", value: 240 },
-  { month: "6月", value: 320 },
-  { month: "7月", value: 420 },
-  { month: "8月", value: 560 },
-];
-
-const Section = ({ id, title, subtitle, children, className }) => (
-  <section id={id} className={cn("py-16 md:py-24 scroll-mt-20", className)} aria-labelledby={`${id}-title`}>
-    <div className="max-w-7xl mx-auto px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="mb-10 md:mb-14"
-      >
-        <h2 id={`${id}-title`} className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="mt-3 text-slate-500 text-lg max-w-3xl leading-relaxed">{subtitle}</p>
-        )}
-      </motion.div>
-      {children}
-    </div>
-  </section>
-);
-
-function NewsIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
-      <path d="M18 14h-8" />
-      <path d="M15 18h-5" />
-      <path d="M10 6h8v4h-8V6Z" />
-    </svg>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Main Application Component
-// -----------------------------------------------------------------------------
-
-export default function VocationalEducationSite() {
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState("全部");
-  const [level, setLevel] = useState("全部");
-
-  const filtered = useMemo(() => {
-    return programData.filter((p) => {
-      const q = query.trim();
-      const m1 = type === "全部" || p.type === type;
-      const m2 = level === "全部" || p.level === level;
-      const m3 = !q ||
-        p.title.includes(q) ||
-        p.desc.includes(q) ||
-        p.skills.some((s) => s.includes(q));
-      return m1 && m2 && m3;
-    });
-  }, [query, type, level]);
-
-  const scrollToSection = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-      {/* 顶部导航 */}
-      <header className="sticky top-0 z-50 border-b border-slate-200/60 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="p-2 bg-indigo-600 rounded-lg text-white">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <span className="font-bold text-xl tracking-tight text-slate-800">职教·Edu</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-            {['关于', '专业与课程', '产教融合', '新闻活动', '招生与服务'].map((item, idx) => {
-               const ids = ['about', 'programs', 'enterprise', 'news', 'admission'];
-               return (
-                 <button key={item} onClick={() => scrollToSection(ids[idx])} className="hover:text-indigo-600 transition-colors">
-                   {item}
-                 </button>
-               )
-            })}
-          </nav>
-          <div className="flex items-center gap-3">
-             <Button className="hidden md:flex ml-3 shadow-indigo-200 shadow-lg" size="sm">
-               立即咨询
-             </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* 首屏 */}
-      <section className="relative overflow-hidden pt-16 pb-20 md:pb-28">
-        {/* Background Gradients */}
-        <div className="absolute inset-0 -z-10 bg-white">
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-indigo-50 rounded-full blur-3xl opacity-60"></div>
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-60"></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-              </span>
-              2025年秋季招生火热进行中
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-slate-900 mb-6">
-              面向未来岗位的
-              <span className="block mt-2 bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
-                卓越职业教育
-              </span>
-            </h1>
-            <p className="text-lg text-slate-600 max-w-prose leading-relaxed mb-8">
-              深度产教融合，真实项目驱动。我们不仅仅传授技能，更致力于培养具备工匠精神与创新思维的高素质技术人才。
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="rounded-full px-8 text-base h-12">
-                <Rocket className="w-5 h-5 mr-2" /> 预约校园参观
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full px-8 text-base h-12 bg-white/50 backdrop-blur-sm border-slate-200">
-                <BookOpen className="w-5 h-5 mr-2" /> 下载招生简章
-              </Button>
-            </div>
-            
-            <div className="mt-12 pt-8 border-t border-slate-200 grid grid-cols-3 gap-4">
-              {[
-                { label: "就业落实率", val: "98%" },
-                { label: "合作企业", val: "300+" },
-                { label: "实训工位", val: "1.2k+" }
-              ].map((stat, i) => (
-                <div key={i}>
-                  <div className="text-3xl font-bold text-slate-900">{stat.val}</div>
-                  <div className="text-sm text-slate-500 font-medium mt-1">{stat.label}</div>
+        const Section = ({ id, title, subtitle, children, className }) => (
+            <section id={id} className={cn("py-16 md:py-24 scroll-mt-20", className)} aria-labelledby={`${id}-title`}>
+                <div className="max-w-7xl mx-auto px-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5 }}
+                        className="mb-10 md:mb-14"
+                    >
+                        <h2 id={`${id}-title`} className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+                            {title}
+                        </h2>
+                        {subtitle && (
+                            <p className="mt-3 text-slate-500 text-lg max-w-3xl leading-relaxed">{subtitle}</p>
+                        )}
+                    </motion.div>
+                    {children}
                 </div>
-              ))}
-            </div>
-          </motion.div>
+            </section>
+        );
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative"
-          >
-            {/* Decorative background for chart */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-teal-50 rounded-3xl transform rotate-3 scale-105 -z-10 opacity-70"></div>
-            
-            <Card className="shadow-xl border-slate-100/50 bg-white/90 backdrop-blur-sm overflow-hidden">
-              <CardHeader className="border-b border-slate-100 pb-4">
-                <CardTitle className="flex items-center justify-between">
-                    <span>就业与实习趋势</span>
-                    <Badge variant="secondary" className="font-normal text-indigo-600 bg-indigo-50">实时数据</Badge>
-                </CardTitle>
-                <CardDescription>2025年春季学期学生签约与岗位对接统计</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke="#4f46e5" 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorValue)" 
-                        activeDot={{ r: 6, strokeWidth: 0, fill: '#4338ca' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
+        // --- 5. 主应用组件 ---
 
-      {/* 关于 */}
-      <Section id="about" title="办学定位与育人目标" subtitle="坚持服务发展、促进就业，面向现代产业体系培养高素质技术技能人才。" className="bg-white">
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              icon: <Users className="w-6 h-6 text-indigo-600" />, 
-              title: "校企协同育人", 
-              desc: "打破传统围墙，企业导师进课堂，真实项目进课程，共建高水平产业学院。",
-              color: "bg-indigo-50"
-            },
-            {
-              icon: <Building2 className="w-6 h-6 text-teal-600" />, 
-              title: "产教深度融合", 
-              desc: "共建共享实训基地，前厂后校，积极参与行业标准制定，实现教学与生产无缝对接。",
-              color: "bg-teal-50"
-            },
-            {
-              icon: <Star className="w-6 h-6 text-orange-600" />, 
-              title: "以赛促学促教", 
-              desc: "全面对接世赛、国赛技能标准，打通教、学、做、赛闭环，培养拔尖技能人才。",
-              color: "bg-orange-50"
-            }
-          ].map((f, i) => (
-            <Card key={i} className="group hover:border-indigo-100 hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-8">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform", f.color)}>
-                    {f.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-slate-900">{f.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{f.desc}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </Section>
+        function VocationalEducationSite() {
+            const [query, setQuery] = useState("");
+            const [type, setType] = useState("全部");
+            const [level, setLevel] = useState("全部");
 
-      {/* 专业与课程 */}
-      <Section id="programs" title="专业与课程" subtitle="按产业链布局专业群，强化核心课程与关键技能。">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-10">
-          <div className="grid md:grid-cols-12 gap-4">
-            <div className="md:col-span-6 lg:col-span-5 relative">
-              <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-              <Input
-                placeholder="搜索专业 / 技能关键词..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-10 h-11"
-              />
-            </div>
-            <div className="md:col-span-3 lg:col-span-3">
-               <NativeSelect 
-                  value={type} 
-                  onChange={setType} 
-                  options={['全部','工程制造','信息技术','农业与食品','商贸与服务','健康与护理']} 
-               />
-            </div>
-            <div className="md:col-span-3 lg:col-span-2">
-               <NativeSelect 
-                  value={level} 
-                  onChange={setLevel} 
-                  options={['全部','中职','高职','中高职贯通']} 
-               />
-            </div>
-            <div className="md:col-span-12 lg:col-span-2 flex items-center justify-end text-sm text-slate-500">
-                共找到 <span className="font-bold text-indigo-600 mx-1">{filtered.length}</span> 个专业
-            </div>
-          </div>
-        </div>
+            const filtered = useMemo(() => {
+                return programData.filter((p) => {
+                    const q = query.trim();
+                    const m1 = type === "全部" || p.type === type;
+                    const m2 = level === "全部" || p.level === level;
+                    const m3 = !q ||
+                        p.title.includes(q) ||
+                        p.desc.includes(q) ||
+                        p.skills.some((s) => s.includes(q));
+                    return m1 && m2 && m3;
+                });
+            }, [query, type, level]);
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence>
-            {filtered.map((p) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                layout
-              >
-                <Card className="h-full flex flex-col hover:border-indigo-300 hover:shadow-md transition-all group overflow-hidden">
-                  <div className="h-2 bg-gradient-to-r from-indigo-500 to-teal-500 w-full" />
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2.5 rounded-xl bg-slate-50 text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                            {p.icon}
+            const scrollToSection = (id) => {
+                const el = document.getElementById(id);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+                    {/* 顶部导航 */}
+                    <header className="sticky top-0 z-50 border-b border-slate-200/60 backdrop-blur-xl bg-white/80">
+                        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                                <div className="p-2 bg-indigo-600 rounded-lg text-white">
+                                    <GraduationCap className="w-6 h-6" />
+                                </div>
+                                <span className="font-bold text-xl tracking-tight text-slate-800">职教·Edu</span>
+                            </div>
+                            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+                                {['关于', '专业与课程', '产教融合', '新闻活动', '招生与服务'].map((item, idx) => {
+                                    const ids = ['about', 'programs', 'enterprise', 'news', 'admission'];
+                                    return (
+                                        <button key={item} onClick={() => scrollToSection(ids[idx])} className="hover:text-indigo-600 transition-colors">
+                                            {item}
+                                        </button>
+                                    )
+                                })}
+                            </nav>
+                            <div className="flex items-center gap-3">
+                                <Button className="hidden md:flex ml-3 shadow-indigo-200 shadow-lg" size="sm">
+                                    立即咨询
+                                </Button>
+                            </div>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{p.level}</Badge>
-                    </div>
-                    <CardTitle className="text-xl mb-1">{p.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                        {p.type} <span className="w-1 h-1 rounded-full bg-slate-300"/> {p.duration}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex flex-col space-y-4">
-                    <p className="text-sm text-slate-600 line-clamp-2">{p.desc}</p>
-                    <div className="flex flex-wrap gap-2 mt-auto">
-                      {p.skills.map((s) => (
-                        <span key={s} className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                            {s}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-                  <div className="p-6 pt-0 mt-auto flex gap-3">
-                    <Button size="sm" variant="outline" className="w-full border-slate-200">课程大纲</Button>
-                    <Button size="sm" className="w-full bg-slate-900 hover:bg-slate-800">申请报名</Button>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {filtered.length === 0 && (
-            <div className="col-span-full py-12 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-              <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-              <p>未找到匹配的专业，试试更换关键词或筛选条件。</p>
-            </div>
-          )}
-        </div>
-      </Section>
+                    </header>
 
-      {/* 产教融合 */}
-      <Section id="enterprise" title="产教融合" subtitle="共建共享，协同育人：产业学院、现代学徒制、企业真实场景项目。" className="bg-slate-100/50">
-        <Tabs defaultValue="coops" className="w-full">
-          <div className="flex justify-center mb-8">
-            <TabsList className="bg-white border p-1 rounded-full shadow-sm">
-                <TabsTrigger value="coops" className="rounded-full px-6">合作企业</TabsTrigger>
-                <TabsTrigger value="projects" className="rounded-full px-6">典型项目</TabsTrigger>
-                <TabsTrigger value="policy" className="rounded-full px-6">制度保障</TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value="coops">
-             <div className="grid md:grid-cols-3 gap-6">
-                {["华芯半导体", "联创智造", "星链物流", "康宁健康", "农慧物联", "云商科技"].map((n, idx) => (
-                  <Card key={n} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-indigo-500" />
-                          {n}
-                      </CardTitle>
-                      <CardDescription>共建基地 · 订单班 · 企业导师</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex items-center gap-2 text-sm text-slate-500">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-green-600">
-                          <Users className="w-4 h-4" />
-                      </div>
-                      <span>每年提供 ≥ 50 个实习岗位</span>
-                    </CardContent>
-                  </Card>
-                ))}
-             </div>
-          </TabsContent>
-          
-          <TabsContent value="projects">
-            <Card className="border-0 shadow-none bg-transparent">
-              <Accordion type="single" collapsible className="space-y-4">
-                {[
-                  { k: "工业互联网产线改造实训", d: "学生与企业工程师共建边缘计算网关、设备上云、数据可视化看板。在真实生产环境中解决实际工程问题。" },
-                  { k: "智慧牧场数字孪生", d: "采集环境与个体数据，构建孪生场景，优化饲喂与健康管理。跨学科融合，涉及物联网、生物技术与大数据分析。" },
-                  { k: "跨境电商直播IP打造", d: "从选品、脚本到复盘，覆盖供应链协同与数据分析。学生团队独立运营账号，实战演练GMV突破。" }
-                ].map((it, idx) => (
-                  <AccordionItem key={it.k} value={it.k} className="bg-white border rounded-lg px-4 shadow-sm">
-                    <AccordionTrigger className="text-lg font-semibold hover:no-underline hover:text-indigo-600">
-                        <span className="flex items-center gap-3">
-                            <span className="flex items-center justify-center w-6 h-6 rounded bg-indigo-100 text-indigo-600 text-xs">{idx + 1}</span>
-                            {it.k}
-                        </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="text-slate-600 pl-9 pb-4 leading-relaxed">
-                      {it.d}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </Card>
-          </TabsContent>
+                    {/* 首屏 */}
+                    <section className="relative overflow-hidden pt-16 pb-20 md:pb-28">
+                        {/* Background Gradients */}
+                        <div className="absolute inset-0 -z-10 bg-white">
+                            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-indigo-50 rounded-full blur-3xl opacity-60"></div>
+                            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-60"></div>
+                        </div>
 
-          <TabsContent value="policy">
-              <div className="grid md:grid-cols-3 gap-6">
-                {[
-                    { t: "企业导师聘任机制", d: "签订三方协议，明确教学任务、考核与激励。企业专家与校内教师互聘互兼。" },
-                    { t: "项目式课程标准", d: "以真实任务为载体，成果可评价、可展示。课程内容紧随技术迭代更新。" },
-                    { t: "学分互认与弹性学制", d: "工作学习一体化，鼓励灵活学习路径。承认企业培训证书与工作实践成果。" }
-                ].map(p => (
-                    <Card key={p.t} className="bg-gradient-to-br from-white to-slate-50">
-                        <CardHeader>
-                            <CardTitle className="text-lg">{p.t}</CardTitle>
-                            <CardDescription className="mt-2">{p.d}</CardDescription>
-                        </CardHeader>
-                    </Card>
-                ))}
-              </div>
-          </TabsContent>
-        </Tabs>
-      </Section>
+                        <div className="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+                            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium mb-6">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                    </span>
+                                    2025年秋季招生火热进行中
+                                </div>
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-slate-900 mb-6">
+                                    面向未来岗位的
+                                    <span className="block mt-2 bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
+                                        卓越职业教育
+                                    </span>
+                                </h1>
+                                <p className="text-lg text-slate-600 max-w-prose leading-relaxed mb-8">
+                                    深度产教融合，真实项目驱动。我们不仅仅传授技能，更致力于培养具备工匠精神与创新思维的高素质技术人才。
+                                </p>
+                                <div className="flex flex-wrap gap-4">
+                                    <Button size="lg" className="rounded-full px-8 text-base h-12">
+                                        <Rocket className="w-5 h-5 mr-2" /> 预约校园参观
+                                    </Button>
+                                    <Button size="lg" variant="outline" className="rounded-full px-8 text-base h-12 bg-white/50 backdrop-blur-sm border-slate-200">
+                                        <BookOpen className="w-5 h-5 mr-2" /> 下载招生简章
+                                    </Button>
+                                </div>
+                                
+                                <div className="mt-12 pt-8 border-t border-slate-200 grid grid-cols-3 gap-4">
+                                    {[
+                                        { label: "就业落实率", val: "98%" },
+                                        { label: "合作企业", val: "300+" },
+                                        { label: "实训工位", val: "1.2k+" }
+                                    ].map((stat, i) => (
+                                        <div key={i}>
+                                            <div className="text-3xl font-bold text-slate-900">{stat.val}</div>
+                                            <div className="text-sm text-slate-500 font-medium mt-1">{stat.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
 
-      {/* 新闻与活动 */}
-      <Section id="news" title="新闻 · 通知 · 活动" className="bg-white">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-          <div>
-            <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900">
-                    <div className="p-1.5 bg-orange-100 text-orange-600 rounded-md"><Calendar className="w-5 h-5"/></div>
-                    近期活动
-                 </h3>
-                 <Button variant="ghost" size="sm" className="text-slate-500">查看更多</Button>
-            </div>
-            <div className="space-y-4">
-              {eventList.map((e) => (
-                <div key={e.id} className="flex group bg-slate-50 p-4 rounded-xl border border-transparent hover:border-orange-200 hover:bg-white hover:shadow-sm transition-all">
-                   <div className="flex-shrink-0 w-16 text-center bg-white rounded-lg p-2 shadow-sm border border-slate-100 mr-4">
-                        <div className="text-xs text-slate-400 uppercase font-semibold">{e.time.split('-')[1]}月</div>
-                        <div className="text-xl font-bold text-slate-800">{e.time.split('-')[2]}</div>
-                   </div>
-                   <div>
-                      <div className="font-semibold text-slate-800 group-hover:text-orange-600 transition-colors">{e.title}</div>
-                      <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                          <MapPinned className="w-3 h-3"/> {e.place}
-                      </div>
-                   </div>
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                transition={{ duration: 0.6, delay: 0.2 }}
+                                className="relative"
+                            >
+                                {/* Decorative background for chart */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-teal-50 rounded-3xl transform rotate-3 scale-105 -z-10 opacity-70"></div>
+                                
+                                <Card className="shadow-xl border-slate-100/50 bg-white/90 backdrop-blur-sm overflow-hidden">
+                                    <CardHeader className="border-b border-slate-100 pb-4">
+                                        <CardTitle className="flex items-center justify-between">
+                                            <span>就业与实习趋势</span>
+                                            <Badge variant="secondary" className="font-normal text-indigo-600 bg-indigo-50">实时数据</Badge>
+                                        </CardTitle>
+                                        <CardDescription>2025年春季学期学生签约与岗位对接统计</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="h-[300px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
+                                                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                                                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                                                    <Tooltip 
+                                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                        cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                                    />
+                                                    <Area 
+                                                        type="monotone" 
+                                                        dataKey="value" 
+                                                        stroke="#4f46e5" 
+                                                        strokeWidth={3}
+                                                        fillOpacity={1} 
+                                                        fill="url(#colorValue)" 
+                                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#4338ca' }}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </div>
+                    </section>
+
+                    {/* 关于 */}
+                    <Section id="about" title="办学定位与育人目标" subtitle="坚持服务发展、促进就业，面向现代产业体系培养高素质技术技能人才。" className="bg-white">
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {[
+                                {
+                                    icon: <Users className="w-6 h-6 text-indigo-600" />, 
+                                    title: "校企协同育人", 
+                                    desc: "打破传统围墙，企业导师进课堂，真实项目进课程，共建高水平产业学院。",
+                                    color: "bg-indigo-50"
+                                },
+                                {
+                                    icon: <Building2 className="w-6 h-6 text-teal-600" />, 
+                                    title: "产教深度融合", 
+                                    desc: "共建共享实训基地，前厂后校，积极参与行业标准制定，实现教学与生产无缝对接。",
+                                    color: "bg-teal-50"
+                                },
+                                {
+                                    icon: <Star className="w-6 h-6 text-orange-600" />, 
+                                    title: "以赛促学促教", 
+                                    desc: "全面对接世赛、国赛技能标准，打通教、学、做、赛闭环，培养拔尖技能人才。",
+                                    color: "bg-orange-50"
+                                }
+                            ].map((f, i) => (
+                                <Card key={i} className="group hover:border-indigo-100 hover:shadow-lg transition-all duration-300">
+                                    <CardContent className="p-8">
+                                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform", f.color)}>
+                                            {f.icon}
+                                        </div>
+                                        <h3 className="text-xl font-bold mb-3 text-slate-900">{f.title}</h3>
+                                        <p className="text-slate-600 leading-relaxed">{f.desc}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </Section>
+
+                    {/* 专业与课程 */}
+                    <Section id="programs" title="专业与课程" subtitle="按产业链布局专业群，强化核心课程与关键技能。">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-10">
+                            <div className="grid md:grid-cols-12 gap-4">
+                                <div className="md:col-span-6 lg:col-span-5 relative">
+                                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                                    <Input
+                                        placeholder="搜索专业 / 技能关键词..."
+                                        value={query}
+                                        onChange={(e) => setQuery(e.target.value)}
+                                        className="pl-10 h-11"
+                                    />
+                                </div>
+                                <div className="md:col-span-3 lg:col-span-3">
+                                    <NativeSelect 
+                                        value={type} 
+                                        onChange={setType} 
+                                        options={['全部','工程制造','信息技术','农业与食品','商贸与服务','健康与护理']} 
+                                    />
+                                </div>
+                                <div className="md:col-span-3 lg:col-span-2">
+                                    <NativeSelect 
+                                        value={level} 
+                                        onChange={setLevel} 
+                                        options={['全部','中职','高职','中高职贯通']} 
+                                    />
+                                </div>
+                                <div className="md:col-span-12 lg:col-span-2 flex items-center justify-end text-sm text-slate-500">
+                                    共找到 <span className="font-bold text-indigo-600 mx-1">{filtered.length}</span> 个专业
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <AnimatePresence>
+                                {filtered.map((p) => (
+                                    <motion.div
+                                        key={p.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        layout
+                                    >
+                                        <Card className="h-full flex flex-col hover:border-indigo-300 hover:shadow-md transition-all group overflow-hidden">
+                                            <div className="h-2 bg-gradient-to-r from-indigo-500 to-teal-500 w-full" />
+                                            <CardHeader className="pb-3">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="p-2.5 rounded-xl bg-slate-50 text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                                        {p.icon}
+                                                    </div>
+                                                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{p.level}</Badge>
+                                                </div>
+                                                <CardTitle className="text-xl mb-1">{p.title}</CardTitle>
+                                                <CardDescription className="flex items-center gap-2">
+                                                    {p.type} <span className="w-1 h-1 rounded-full bg-slate-300"/> {p.duration}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="flex-1 flex flex-col space-y-4">
+                                                <p className="text-sm text-slate-600 line-clamp-2">{p.desc}</p>
+                                                <div className="flex flex-wrap gap-2 mt-auto">
+                                                    {p.skills.map((s) => (
+                                                        <span key={s} className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                                            {s}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                            <div className="p-6 pt-0 mt-auto flex gap-3">
+                                                <Button size="sm" variant="outline" className="w-full border-slate-200">课程大纲</Button>
+                                                <Button size="sm" className="w-full bg-slate-900 hover:bg-slate-800">申请报名</Button>
+                                            </div>
+                                        </Card>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                            {filtered.length === 0 && (
+                                <div className="col-span-full py-12 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                    <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                                    <p>未找到匹配的专业，试试更换关键词或筛选条件。</p>
+                                </div>
+                            )}
+                        </div>
+                    </Section>
+
+                    {/* 产教融合 */}
+                    <Section id="enterprise" title="产教融合" subtitle="共建共享，协同育人：产业学院、现代学徒制、企业真实场景项目。" className="bg-slate-100/50">
+                        <Tabs defaultValue="coops" className="w-full">
+                            <div className="flex justify-center mb-8">
+                                <TabsList className="bg-white border p-1 rounded-full shadow-sm">
+                                    <TabsTrigger value="coops" className="rounded-full px-6">合作企业</TabsTrigger>
+                                    <TabsTrigger value="projects" className="rounded-full px-6">典型项目</TabsTrigger>
+                                    <TabsTrigger value="policy" className="rounded-full px-6">制度保障</TabsTrigger>
+                                </TabsList>
+                            </div>
+                            
+                            <TabsContent value="coops">
+                                <div className="grid md:grid-cols-3 gap-6">
+                                    {["华芯半导体", "联创智造", "星链物流", "康宁健康", "农慧物联", "云商科技"].map((n, idx) => (
+                                        <Card key={n} className="hover:shadow-md transition-shadow">
+                                            <CardHeader>
+                                                <CardTitle className="text-lg flex items-center gap-2">
+                                                    <Building2 className="w-4 h-4 text-indigo-500" />
+                                                    {n}
+                                                </CardTitle>
+                                                <CardDescription>共建基地 · 订单班 · 企业导师</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="flex items-center gap-2 text-sm text-slate-500">
+                                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-green-600">
+                                                    <Users className="w-4 h-4" />
+                                                </div>
+                                                <span>每年提供 ≥ 50 个实习岗位</span>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="projects">
+                                <Card className="border-0 shadow-none bg-transparent">
+                                    <Accordion type="single" collapsible className="space-y-4">
+                                        {[
+                                            { k: "工业互联网产线改造实训", d: "学生与企业工程师共建边缘计算网关、设备上云、数据可视化看板。在真实生产环境中解决实际工程问题。" },
+                                            { k: "智慧牧场数字孪生", d: "采集环境与个体数据，构建孪生场景，优化饲喂与健康管理。跨学科融合，涉及物联网、生物技术与大数据分析。" },
+                                            { k: "跨境电商直播IP打造", d: "从选品、脚本到复盘，覆盖供应链协同与数据分析。学生团队独立运营账号，实战演练GMV突破。" }
+                                        ].map((it, idx) => (
+                                            <AccordionItem key={it.k} value={it.k} className="bg-white border rounded-lg px-4 shadow-sm">
+                                                <AccordionTrigger className="text-lg font-semibold hover:no-underline hover:text-indigo-600">
+                                                    <span className="flex items-center gap-3">
+                                                        <span className="flex items-center justify-center w-6 h-6 rounded bg-indigo-100 text-indigo-600 text-xs">{idx + 1}</span>
+                                                        {it.k}
+                                                    </span>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="text-slate-600 pl-9 pb-4 leading-relaxed">
+                                                    {it.d}
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </Card>
+                            </TabsContent>
+
+                            <TabsContent value="policy">
+                                <div className="grid md:grid-cols-3 gap-6">
+                                    {[
+                                        { t: "企业导师聘任机制", d: "签订三方协议，明确教学任务、考核与激励。企业专家与校内教师互聘互兼。" },
+                                        { t: "项目式课程标准", d: "以真实任务为载体，成果可评价、可展示。课程内容紧随技术迭代更新。" },
+                                        { t: "学分互认与弹性学制", d: "工作学习一体化，鼓励灵活学习路径。承认企业培训证书与工作实践成果。" }
+                                    ].map(p => (
+                                        <Card key={p.t} className="bg-gradient-to-br from-white to-slate-50">
+                                            <CardHeader>
+                                                <CardTitle className="text-lg">{p.t}</CardTitle>
+                                                <CardDescription className="mt-2">{p.d}</CardDescription>
+                                            </CardHeader>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    </Section>
+
+                    {/* 新闻与活动 */}
+                    <Section id="news" title="新闻 · 通知 · 活动" className="bg-white">
+                        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900">
+                                        <div className="p-1.5 bg-orange-100 text-orange-600 rounded-md"><Calendar className="w-5 h-5"/></div>
+                                        近期活动
+                                    </h3>
+                                    <Button variant="ghost" size="sm" className="text-slate-500">查看更多</Button>
+                                </div>
+                                <div className="space-y-4">
+                                    {eventList.map((e) => (
+                                        <div key={e.id} className="flex group bg-slate-50 p-4 rounded-xl border border-transparent hover:border-orange-200 hover:bg-white hover:shadow-sm transition-all">
+                                            <div className="flex-shrink-0 w-16 text-center bg-white rounded-lg p-2 shadow-sm border border-slate-100 mr-4">
+                                                <div className="text-xs text-slate-400 uppercase font-semibold">{e.time.split('-')[1]}月</div>
+                                                <div className="text-xl font-bold text-slate-800">{e.time.split('-')[2]}</div>
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-slate-800 group-hover:text-orange-600 transition-colors">{e.title}</div>
+                                                <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                                                    <MapPinned className="w-3 h-3"/> {e.place}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900">
+                                        <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-md"><NewsIcon/></div>
+                                        新闻/通知
+                                    </h3>
+                                    <Button variant="ghost" size="sm" className="text-slate-500">全部动态</Button>
+                                </div>
+                                <div className="space-y-4">
+                                    {newsList.map((n) => (
+                                        <div key={n.id} className="flex items-start justify-between group border-b border-slate-100 pb-4 last:border-0 hover:pl-2 transition-all cursor-pointer">
+                                            <div>
+                                                <div className="font-medium text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">{n.title}</div>
+                                                <div className="text-xs text-slate-400 mt-1.5">{n.tag}</div>
+                                            </div>
+                                            <span className="text-xs text-slate-400 whitespace-nowrap ml-4 pt-1">{n.date}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </Section>
+
+                    {/* 招生与服务 */}
+                    <Section id="admission" title="招生与学生服务" subtitle="从报到到就业，全流程贴心服务体系。" className="bg-slate-50">
+                        <div className="grid lg:grid-cols-3 gap-8">
+                            <Card className="lg:col-span-2 border-0 shadow-md">
+                                <CardHeader className="bg-slate-900 text-white rounded-t-xl">
+                                    <CardTitle>常见问题 FAQ</CardTitle>
+                                    <CardDescription className="text-slate-400">报考条件、学费与奖助、宿舍与餐饮等</CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-6">
+                                    <Accordion type="single" collapsible>
+                                        <AccordionItem value="q1">
+                                            <AccordionTrigger>有哪些奖助学金政策？</AccordionTrigger>
+                                            <AccordionContent className="text-slate-600">设置国家奖学金（8000元/年）、国家励志奖学金（5000元/年）、校企合作专项奖学金以及勤工助学岗位，覆盖率达45%以上，确保不让一个学生因家庭经济困难而失学。</AccordionContent>
+                                        </AccordionItem>
+                                        <AccordionItem value="q2">
+                                            <AccordionTrigger>如何申请企业定向班？</AccordionTrigger>
+                                            <AccordionContent className="text-slate-600">在新生报到或第二学期初，通过教务系统报名。需参加企业与学校联合组织的面试与综合素质测评，通过后签订三方培养协议。</AccordionContent>
+                                        </AccordionItem>
+                                        <AccordionItem value="q3">
+                                            <AccordionTrigger>是否提供就业推荐？</AccordionTrigger>
+                                            <AccordionContent className="text-slate-600">就业指导中心提供"一对一"职业咨询、简历门诊与模拟面试。每年举办春秋两季大型双选会及每周专场招聘会，人均推荐岗位数&gt;5个。</AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </CardContent>
+                            </Card>
+
+                            <div className="space-y-6">
+                                <Card className="bg-indigo-600 text-white border-none shadow-lg relative overflow-hidden">
+                                    {/* Decoration */}
+                                    <div className="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+                                    <CardHeader>
+                                        <CardTitle>联系招生办</CardTitle>
+                                        <CardDescription className="text-indigo-100">我们将于工作日24小时内回复</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 relative z-10">
+                                        <div className="flex items-center gap-3 text-sm font-medium"><Phone className="w-4 h-4 opacity-80"/> 400-800-2025</div>
+                                        <div className="flex items-center gap-3 text-sm font-medium"><Mail className="w-4 h-4 opacity-80"/> zsb@vocation.edu</div>
+                                        <div className="flex items-center gap-3 text-sm font-medium"><MapPinned className="w-4 h-4 opacity-80"/> 教学楼一层102室</div>
+                                        <Button className="w-full mt-4 bg-white text-indigo-600 hover:bg-indigo-50">
+                                            在线咨询
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="shadow-sm">
+                                    <CardContent className="p-6">
+                                        <h4 className="font-semibold mb-3">相关下载</h4>
+                                        <ul className="space-y-2 text-sm">
+                                            <li className="flex items-center justify-between p-2 rounded hover:bg-slate-50 cursor-pointer group">
+                                                <span className="text-slate-600 group-hover:text-indigo-600">2025招生简章.pdf</span>
+                                                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600"/>
+                                            </li>
+                                            <li className="flex items-center justify-between p-2 rounded hover:bg-slate-50 cursor-pointer group">
+                                                <span className="text-slate-600 group-hover:text-indigo-600">专业介绍手册.pdf</span>
+                                                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600"/>
+                                            </li>
+                                        </ul>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </Section>
+
+                    {/* 页脚 */}
+                    <footer className="bg-slate-900 text-slate-300 border-t border-slate-800">
+                        <div className="max-w-7xl mx-auto px-4 py-12 grid md:grid-cols-4 gap-8 text-sm">
+                            <div className="col-span-1 md:col-span-1">
+                                <div className="flex items-center gap-2 font-bold text-white text-lg mb-4">
+                                    <GraduationCap className="w-6 h-6 text-indigo-400"/> 职教·Edu
+                                </div>
+                                <p className="text-slate-400 leading-relaxed mb-6">
+                                    为每一位学生打造通向职业世界的高速公路。连接梦想与现实，技能成就未来。
+                                </p>
+                                <div className="flex gap-4">
+                                    {/* Social Placeholders */}
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">WX</div>
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">DY</div>
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">B</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div className="font-semibold text-white mb-4">快速链接</div>
+                                <ul className="space-y-2">
+                                    <li><a href="#programs" className="hover:text-white transition-colors">专业与课程</a></li>
+                                    <li><a href="#enterprise" className="hover:text-white transition-colors">产教融合</a></li>
+                                    <li><a href="#news" className="hover:text-white transition-colors">新闻活动</a></li>
+                                    <li><a href="#admission" className="hover:text-white transition-colors">招生服务</a></li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <div className="font-semibold text-white mb-4">资源中心</div>
+                                <ul className="space-y-2">
+                                    <li className="hover:text-white cursor-pointer transition-colors">校历查询</li>
+                                    <li className="hover:text-white cursor-pointer transition-colors">图书馆</li>
+                                    <li className="hover:text-white cursor-pointer transition-colors">数字校园平台</li>
+                                    <li className="hover:text-white cursor-pointer transition-colors">企业合作入口</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <div className="font-semibold text-white mb-4">订阅我们</div>
+                                <p className="text-xs text-slate-500 mb-3">获取最新的招生资讯与校园动态。</p>
+                                <div className="flex gap-2">
+                                    <Input placeholder="您的邮箱地址" className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-9" />
+                                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 h-9">订阅</Button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-t border-slate-800 bg-slate-950">
+                            <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
+                                <div>© 2025 职教·Edu. All rights reserved. ICP备12345678号</div>
+                                <div className="flex gap-4 mt-2 md:mt-0">
+                                    <span className="hover:text-slate-300 cursor-pointer">隐私政策</span>
+                                    <span className="hover:text-slate-300 cursor-pointer">使用条款</span>
+                                    <span className="hover:text-slate-300 cursor-pointer">网站地图</span>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
                 </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900">
-                    <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-md"><NewsIcon/></div>
-                    新闻/通知
-                 </h3>
-                 <Button variant="ghost" size="sm" className="text-slate-500">全部动态</Button>
-            </div>
-            <div className="space-y-4">
-              {newsList.map((n) => (
-                <div key={n.id} className="flex items-start justify-between group border-b border-slate-100 pb-4 last:border-0 hover:pl-2 transition-all cursor-pointer">
-                  <div>
-                    <div className="font-medium text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">{n.title}</div>
-                    <div className="text-xs text-slate-400 mt-1.5">{n.tag}</div>
-                  </div>
-                  <span className="text-xs text-slate-400 whitespace-nowrap ml-4 pt-1">{n.date}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Section>
+            );
+        }
 
-      {/* 招生与服务 */}
-      <Section id="admission" title="招生与学生服务" subtitle="从报到到就业，全流程贴心服务体系。" className="bg-slate-50">
-        <div className="grid lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2 border-0 shadow-md">
-            <CardHeader className="bg-slate-900 text-white rounded-t-xl">
-              <CardTitle>常见问题 FAQ</CardTitle>
-              <CardDescription className="text-slate-400">报考条件、学费与奖助、宿舍与餐饮等</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <Accordion type="single" collapsible>
-                <AccordionItem value="q1">
-                  <AccordionTrigger>有哪些奖助学金政策？</AccordionTrigger>
-                  <AccordionContent className="text-slate-600">设置国家奖学金（8000元/年）、国家励志奖学金（5000元/年）、校企合作专项奖学金以及勤工助学岗位，覆盖率达45%以上，确保不让一个学生因家庭经济困难而失学。</AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="q2">
-                  <AccordionTrigger>如何申请企业定向班？</AccordionTrigger>
-                  <AccordionContent className="text-slate-600">在新生报到或第二学期初，通过教务系统报名。需参加企业与学校联合组织的面试与综合素质测评，通过后签订三方培养协议。</AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="q3">
-                  <AccordionTrigger>是否提供就业推荐？</AccordionTrigger>
-                  <AccordionContent className="text-slate-600">就业指导中心提供"一对一"职业咨询、简历门诊与模拟面试。每年举办春秋两季大型双选会及每周专场招聘会，人均推荐岗位数&gt;5个。</AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-6">
-            <Card className="bg-indigo-600 text-white border-none shadow-lg relative overflow-hidden">
-                {/* Decoration */}
-                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-                <CardHeader>
-                    <CardTitle>联系招生办</CardTitle>
-                    <CardDescription className="text-indigo-100">我们将于工作日24小时内回复</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 relative z-10">
-                    <div className="flex items-center gap-3 text-sm font-medium"><Phone className="w-4 h-4 opacity-80"/> 400-800-2025</div>
-                    <div className="flex items-center gap-3 text-sm font-medium"><Mail className="w-4 h-4 opacity-80"/> zsb@vocation.edu</div>
-                    <div className="flex items-center gap-3 text-sm font-medium"><MapPinned className="w-4 h-4 opacity-80"/> 教学楼一层102室</div>
-                    <Button className="w-full mt-4 bg-white text-indigo-600 hover:bg-indigo-50">
-                        在线咨询
-                    </Button>
-                </CardContent>
-            </Card>
-
-            <Card className="shadow-sm">
-                <CardContent className="p-6">
-                    <h4 className="font-semibold mb-3">相关下载</h4>
-                    <ul className="space-y-2 text-sm">
-                        <li className="flex items-center justify-between p-2 rounded hover:bg-slate-50 cursor-pointer group">
-                            <span className="text-slate-600 group-hover:text-indigo-600">2025招生简章.pdf</span>
-                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600"/>
-                        </li>
-                        <li className="flex items-center justify-between p-2 rounded hover:bg-slate-50 cursor-pointer group">
-                            <span className="text-slate-600 group-hover:text-indigo-600">专业介绍手册.pdf</span>
-                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600"/>
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
-          </div>
-        </div>
-      </Section>
-
-      {/* 页脚 */}
-      <footer className="bg-slate-900 text-slate-300 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-12 grid md:grid-cols-4 gap-8 text-sm">
-          <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-2 font-bold text-white text-lg mb-4">
-              <GraduationCap className="w-6 h-6 text-indigo-400"/> 职教·Edu
-            </div>
-            <p className="text-slate-400 leading-relaxed mb-6">
-              为每一位学生打造通向职业世界的高速公路。连接梦想与现实，技能成就未来。
-            </p>
-            <div className="flex gap-4">
-                {/* Social Placeholders */}
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">WX</div>
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">DY</div>
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">B</div>
-            </div>
-          </div>
-          
-          <div>
-            <div className="font-semibold text-white mb-4">快速链接</div>
-            <ul className="space-y-2">
-              <li><a href="#programs" className="hover:text-white transition-colors">专业与课程</a></li>
-              <li><a href="#enterprise" className="hover:text-white transition-colors">产教融合</a></li>
-              <li><a href="#news" className="hover:text-white transition-colors">新闻活动</a></li>
-              <li><a href="#admission" className="hover:text-white transition-colors">招生服务</a></li>
-            </ul>
-          </div>
-          
-          <div>
-            <div className="font-semibold text-white mb-4">资源中心</div>
-            <ul className="space-y-2">
-              <li className="hover:text-white cursor-pointer transition-colors">校历查询</li>
-              <li className="hover:text-white cursor-pointer transition-colors">图书馆</li>
-              <li className="hover:text-white cursor-pointer transition-colors">数字校园平台</li>
-              <li className="hover:text-white cursor-pointer transition-colors">企业合作入口</li>
-            </ul>
-          </div>
-          
-          <div>
-            <div className="font-semibold text-white mb-4">订阅我们</div>
-            <p className="text-xs text-slate-500 mb-3">获取最新的招生资讯与校园动态。</p>
-            <div className="flex gap-2">
-               <Input placeholder="您的邮箱地址" className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-9" />
-               <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 h-9">订阅</Button>
-            </div>
-          </div>
-        </div>
-        <div className="border-t border-slate-800 bg-slate-950">
-            <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
-                <div>© 2025 职教·Edu. All rights reserved. ICP备12345678号</div>
-                <div className="flex gap-4 mt-2 md:mt-0">
-                    <span className="hover:text-slate-300 cursor-pointer">隐私政策</span>
-                    <span className="hover:text-slate-300 cursor-pointer">使用条款</span>
-                    <span className="hover:text-slate-300 cursor-pointer">网站地图</span>
-                </div>
-            </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<VocationalEducationSite />);
+    </script>
+</body>
+</html>
