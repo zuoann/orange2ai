@@ -95,7 +95,7 @@ const CardDescription = ({ className, children }) => <p className={cn("text-sm t
 const CardContent = ({ className, children }) => <div className={cn("p-6 pt-0", className)}>{children}</div>;
 
 // Custom Simplified Select (Native Wrapper)
-const NativeSelect = ({ value, onChange, options, placeholder, icon: Icon }) => (
+const NativeSelect = ({ value, onChange, options, placeholder }) => (
   <div className="relative w-full">
     <select
       value={value}
