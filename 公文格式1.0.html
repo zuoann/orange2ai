@@ -9,15 +9,16 @@
         /* --- 核心排版样式 (CSS Variables) --- */
         :root {
             /* 字体定义 - 优先使用本地标准公文列字体 */
-            --font-title: "FangZheng XiaoBiaoSong_GBK", "方正小标宋简体", "SimSun", serif;
-            --font-h1: "FangZheng HeiTi_GBK", "SimHei", "黑体", sans-serif;
-            --font-h2: "FangZheng KaiTi_GBK", "KaiTi", "楷体", serif;
-            --font-body: "FangZheng FangSong_GBK", "FangSong", "仿宋", serif;
+            /* 核心修正：所有字体栈首位添加 "Times New Roman" 以符合 GB/T 9704 5.2.2 条款及用户西文修正要求 */
+            --font-title: "Times New Roman", "FangZheng XiaoBiaoSong_GBK", "方正小标宋简体", "SimSun", serif;
+            --font-h1: "Times New Roman", "FangZheng HeiTi_GBK", "SimHei", "黑体", sans-serif;
+            --font-h2: "Times New Roman", "FangZheng KaiTi_GBK", "KaiTi", "楷体", serif;
+            --font-body: "Times New Roman", "FangZheng FangSong_GBK", "FangSong", "仿宋", serif;
             
             /* 国标字号 */
             --font-size-2: 22pt;   /* 二号 - 标题 */
             --font-size-3: 16pt;   /* 三号 - 正文/一级/二级/附件 */
-            --font-size-4: 14pt;   /* 四号 - 版记 */
+            --font-size-4: 14pt;   /* 四号 - 版记/页码 */
             
             /* 行距与间距 */
             --line-height-fixed: 29pt; /* 标准行距约 28-30pt */
@@ -41,18 +42,16 @@
 
         /* --- 样式类定义 (完全对应公文标准) --- */
 
-        /* 0. 版头红线 (Separation Line) */
+        /* 0. 版头红线 */
         .gw-red-line {
             width: 100%;
-            height: 3px; /* 约 1mm */
-            border-top: 1px solid #ff0000; /* 文武线效果：上细下粗或单粗线，这里简化为红色实线 */
+            height: 3px; 
+            border-top: 1px solid #ff0000; 
             border-bottom: 2px solid #ff0000;
             margin-bottom: var(--line-height-fixed);
-            display: none; /* 默认隐藏，有版头内容时显示 */
+            display: none; 
         }
-        .gw-red-line.active {
-            display: block;
-        }
+        .gw-red-line.active { display: block; }
 
         /* 1. 公文标题：方正小标宋2号，居中 */
         .gw-title {
@@ -61,7 +60,7 @@
             line-height: var(--line-height-fixed);
             text-align: center;
             margin-top: 0;
-            margin-bottom: var(--line-height-fixed); /* 下空一行 */
+            margin-bottom: var(--line-height-fixed); 
             font-weight: normal;
         }
 
@@ -85,7 +84,7 @@
             text-indent: 2em;
         }
 
-        /* 4. 正文：仿宋3号，首行缩进2字符 */
+        /* 4. 正文：仿宋3号 */
         .gw-body {
             font-family: var(--font-body);
             font-size: var(--font-size-3);
@@ -95,37 +94,28 @@
             text-indent: 2em;
         }
 
-        /* 5. 附件 (GB标准严格对齐) */
-        
-        /* 附件第一行：包含“附件：” */
+        /* 5. 附件 */
         .gw-attachment-first {
             font-family: var(--font-body);
             font-size: var(--font-size-3);
             line-height: var(--line-height-fixed);
             margin: 0;
             text-align: justify;
-            
-            /* 计算逻辑：
-               左空2字 = 2em
-               "附件："占3em (2汉字+1标点)
-               内容起始位置 = 2em + 3em = 5em
-            */
             margin-left: 5em; 
-            text-indent: -3em; /* 悬挂缩进：把“附件：”拉回到 2em 的位置 */
+            text-indent: -3em; /* 悬挂缩进 */
         }
 
-        /* 附件后续行：纯内容，与第一行内容对齐 */
         .gw-attachment-following {
             font-family: var(--font-body);
             font-size: var(--font-size-3);
             line-height: var(--line-height-fixed);
             margin: 0;
             text-align: justify;
-            margin-left: 5em; /* 保持内容左边距一致 */
+            margin-left: 5em; 
             text-indent: 0;
         }
 
-        /* 6. 落款容器：右对齐，右空4字 */
+        /* 6. 落款容器 */
         .gw-sig-box {
             font-family: var(--font-body);
             font-size: var(--font-size-3);
@@ -133,7 +123,7 @@
             margin-top: calc(var(--line-height-fixed) * 2); 
             display: table; 
             margin-left: auto; 
-            margin-right: 4em; /* 右空4字 */
+            margin-right: 4em; 
             text-align: center;
         }
 
@@ -142,14 +132,14 @@
             white-space: nowrap;
         }
 
-        /* 7. 版记 (Banji) - 沉底 */
+        /* 7. 版记 - 沉底 */
         .gw-banji-container {
-            margin-top: auto; /* Flex 布局下自动推至底部 */
+            margin-top: auto; 
             width: 100%;
-            border-top: 1px solid #000; /* 版记分隔线 */
+            border-top: 1px solid #000; 
             padding-top: 5px;
             font-family: var(--font-body);
-            font-size: var(--font-size-4); /* 四号字 */
+            font-size: var(--font-size-4); 
             line-height: 1.5;
             display: flex;
             flex-wrap: wrap;
@@ -168,6 +158,18 @@
             text-align: left;
         }
         
+        /* 8. 预览页码 (仅视觉模拟) */
+        .gw-preview-pagenum {
+            position: absolute;
+            bottom: 25mm; /* 国标要求底边距35mm，页码在版心下边缘之下，约25-28mm处 */
+            width: 100%;
+            text-align: center;
+            left: 0;
+            font-family: "Times New Roman", "SimSun", serif;
+            font-size: var(--font-size-4);
+            pointer-events: none;
+        }
+
         /* 辅助空行 */
         .gw-empty-line {
             height: var(--line-height-fixed);
@@ -365,7 +367,7 @@
             checkPanel.classList.remove('hidden');
         }
 
-        // --- 核心逻辑：智能格式化 (国标 V2.1) ---
+        // --- 核心逻辑：智能格式化 (国标 V2.2) ---
         function autoFormat(showToast = false) {
             let text = editor.innerText;
             if (!text.trim()) return;
@@ -397,12 +399,10 @@
                 }
             }
 
-            // 如果找到版记，落款在版记之前找
             let searchLimit = banjiStartIndex !== -1 ? banjiStartIndex : lines.length;
             for (let i = searchLimit - 1; i >= 0; i--) {
                 if (dateRegex.test(lines[i])) {
                     dateLineIndex = i;
-                    // 通常日期上一行是单位
                     if (i > 0 && !lines[i-1].match(/^[一二三四五六七八九十]+、/) && lines[i-1].length < 20) {
                         sigLineIndex = i - 1;
                     }
@@ -421,19 +421,16 @@
                                 .replace(/([\u4e00-\u9fa5])\./g, '$1。');
                 }
 
-                // 处理版记 (Banji) - 剩余所有行视为版记内容
                 if (i === banjiStartIndex) {
                     html += `<div class="gw-banji-container">`;
-                    // 收集所有版记行
                     for (let j = i; j < lines.length; j++) {
                         let bLine = lines[j];
                         html += `<div class="gw-banji-row"><div class="gw-banji-content">${bLine}</div></div>`;
                     }
                     html += `</div>`;
-                    break; // 停止处理后续行
+                    break; 
                 }
 
-                // 处理落款 (Signature)
                 if (i === sigLineIndex && dateLineIndex !== -1) {
                     const sigText = lines[sigLineIndex];
                     const dateText = lines[dateLineIndex];
@@ -444,11 +441,10 @@
                         <div class="gw-sig-item">${sigText}</div>
                         <div class="gw-sig-item">${cleanDate}</div>
                     </div>`;
-                    i++; // 跳过下一行(日期行)
+                    i++; 
                     continue;
                 }
                 
-                // 孤立日期
                 if (i === dateLineIndex && sigLineIndex === -1) {
                      const cleanDate = line.match(dateRegex) ? line.match(dateRegex)[0] : line;
                      html += `
@@ -458,51 +454,46 @@
                     continue;
                 }
 
-                // 标题
                 if (i === 0) {
                     html += `<div class="gw-title">${line}</div>`;
                     continue;
                 }
 
-                // 附件处理
                 if (line.startsWith("附件：") || line.startsWith("附件:")) {
                     html += `<div class="gw-empty-line"></div>`; 
                     line = line.replace("附件:", "附件：");
-                    // 应用“附件第一行”样式 (hanging indent for label)
                     html += `<div class="gw-attachment-first">${line}</div>`;
                     isAttachmentBlock = true;
                     continue;
                 }
-                // 附件内容块 (后续行)
                 if (isAttachmentBlock && i < searchLimit) {
-                     // 应用“附件后续行”样式 (aligned indent)
                      html += `<div class="gw-attachment-following">${line}</div>`;
                      continue;
                 } else {
                     isAttachmentBlock = false;
                 }
 
-                // 一级标题 (一、)
                 if (/^[一二三四五六七八九十]+、/.test(line)) {
                     html += `<div class="gw-h1">${line}</div>`;
                     continue;
                 }
 
-                // 二级标题 ((一))
                 if (/^（[一二三四五六七八九十]+）/.test(line)) {
                     html += `<div class="gw-h2">${line}</div>`;
                     continue;
                 }
 
-                // 正文
                 html += `<div class="gw-body">${line}</div>`;
             }
+            
+            // 添加预览用的页码（仅作为第一页的示意）
+            html += `<div class="gw-preview-pagenum">— 1 —</div>`;
 
             preview.innerHTML = html;
             if (showToast) checkPanel.classList.add('hidden');
         }
 
-        // --- 核心逻辑：导出 Word (适配国标) ---
+        // --- 核心逻辑：导出 Word (适配国标页码) ---
         function exportToWord() {
             const contentHtml = preview.innerHTML;
             const titleDiv = preview.querySelector('.gw-title');
@@ -526,14 +517,18 @@
                             size: 210mm 297mm;
                             margin: 37mm 26mm 35mm 28mm;
                             mso-header-margin: 15mm;
-                            mso-footer-margin: 28mm;
+                            mso-footer-margin: 28mm; /* 页码位置 */
                             mso-title-page: yes; 
                             layout-grid: 15.6pt; 
+                            /* 关键：双面打印页码设置 */
+                            mso-even-footer: url("header_even.htm") ef1;
+                            mso-footer: url("header_odd.htm") f1;
                         }
                         div.Section1 { page: Section1; }
                         
+                        /* 全局西文字体修正 */
                         body { 
-                            font-family: "方正仿宋_GBK", "FangSong", "SimSun", serif; 
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong", "SimSun", serif; 
                             font-size: 16pt; 
                         }
                         
@@ -545,9 +540,9 @@
                             margin-bottom: 28pt;
                         }
 
-                        /* 标题 - 小标宋 2号 */
+                        /* 标题 */
                         .gw-title {
-                            font-family: "方正小标宋_GBK";
+                            font-family: "Times New Roman", "FangZheng XiaoBiaoSong_GBK", "SimSun";
                             font-size: 22.0pt;
                             text-align: center;
                             line-height: 29.0pt;
@@ -555,9 +550,9 @@
                             mso-line-height-rule: exactly;
                         }
 
-                        /* 一级标题 - 黑体 3号 */
+                        /* 一级标题 */
                         .gw-h1 {
-                            font-family: "方正黑体_GBK";
+                            font-family: "Times New Roman", "FangZheng HeiTi_GBK", "SimHei";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
@@ -565,9 +560,9 @@
                             mso-line-height-rule: exactly;
                         }
 
-                        /* 二级标题 - 楷体 3号 */
+                        /* 二级标题 */
                         .gw-h2 {
-                            font-family: "方正楷体_GBK";
+                            font-family: "Times New Roman", "FangZheng KaiTi_GBK", "KaiTi";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
@@ -575,9 +570,9 @@
                             mso-line-height-rule: exactly;
                         }
 
-                        /* 正文 - 仿宋 3号 */
+                        /* 正文 */
                         .gw-body {
-                            font-family: "方正仿宋_GBK";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
@@ -587,10 +582,9 @@
                             mso-line-height-rule: exactly;
                         }
 
-                        /* 附件 - 第一行 (包含“附件：”) */
-                        /* 左缩进 5字符(约80pt), 首行悬挂缩进 -3字符(约-48pt) */
+                        /* 附件 */
                         .gw-attachment-first {
-                            font-family: "方正仿宋_GBK";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             text-align: justify;
@@ -599,11 +593,8 @@
                             text-indent: -48.0pt; 
                             mso-line-height-rule: exactly;
                         }
-                        
-                        /* 附件 - 后续行 (纯内容) */
-                        /* 左缩进 5字符(约80pt), 首行不缩进 */
                         .gw-attachment-following {
-                            font-family: "方正仿宋_GBK";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             text-align: justify;
@@ -619,7 +610,7 @@
                         .gw-sig-box {
                             margin-top: 58.0pt; 
                             text-align: right; 
-                            font-family: "方正仿宋_GBK";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                         }
@@ -632,26 +623,31 @@
                         }
                         td.sig-cell {
                             text-align: center;
-                            font-family: "方正仿宋_GBK";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             border: none;
                         }
                         
-                        /* 版记 - 4号字, 顶部分隔线 */
+                        /* 版记 */
                         .gw-banji-container {
-                            margin-top: 50.0pt; /* 这里无法自动沉底，只能加间距 */
+                            margin-top: 50.0pt; 
                             border-top: 1px solid #000;
                             padding-top: 10.0pt;
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
                             font-size: 14.0pt;
                             line-height: 1.5;
                         }
                         .gw-banji-row { margin-bottom: 5pt; }
 
+                        /* 页码样式：4号 (14pt)，Times New Roman */
+                        /* 格式：— 1 — (GB/T 9704-2012) */
                         p.MsoFooter {
-                            font-family: 宋体;
+                            font-family: "Times New Roman", "SimSun", serif;
                             font-size: 14.0pt;
                             text-align: center;
+                            line-height: 14.0pt;
+                            mso-pagination: widow-orphan;
                         }
                     </style>
                     <xml>
@@ -669,6 +665,10 @@
             const div = document.createElement('div');
             div.innerHTML = contentHtml;
             
+            // 移除预览用的视觉页码，避免导出时重复
+            const previewPageNum = div.querySelector('.gw-preview-pagenum');
+            if (previewPageNum) previewPageNum.remove();
+            
             // 落款表格化
             const sigBox = div.querySelector('.gw-sig-box');
             if (sigBox) {
@@ -684,9 +684,11 @@
 
             const postHtml = `
                     </div>
+                    <!-- 偶数页页脚 (左对齐) -->
                     <div style='mso-element:footer' id=ef1>
                         <p class=MsoFooter align=left style='text-align:left'>— <span style='mso-field-code:" PAGE "'></span> —</p>
                     </div>
+                    <!-- 奇数页页脚 (右对齐) -->
                     <div style='mso-element:footer' id=f1>
                         <p class=MsoFooter align=right style='text-align:right'>— <span style='mso-field-code:" PAGE "'></span> —</p>
                     </div>
