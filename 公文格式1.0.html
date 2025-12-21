@@ -493,15 +493,15 @@
             if (showToast) checkPanel.classList.add('hidden');
         }
 
-        // --- 核心逻辑：导出 Word (适配国标页码) ---
+        // --- 核心逻辑：导出 Word (适配国标页码+修复Header错误+Docx后缀) ---
         function exportToWord() {
             const contentHtml = preview.innerHTML;
             const titleDiv = preview.querySelector('.gw-title');
-            let fileName = '标准公文.doc';
+            let fileName = '标准公文.docx'; // 修正后缀为 docx
 
             if (titleDiv && titleDiv.innerText.trim()) {
                 let rawTitle = titleDiv.innerText.trim();
-                fileName = rawTitle.replace(/[\n\r]/g, '').replace(/[\\/:*?"<>|]/g, '_').substring(0, 50) + '.doc';
+                fileName = rawTitle.replace(/[\n\r]/g, '').replace(/[\\/:*?"<>|]/g, '_').substring(0, 50) + '.docx';
             }
 
             const preHtml = `
@@ -520,9 +520,8 @@
                             mso-footer-margin: 28mm; /* 页码位置 */
                             mso-title-page: yes; 
                             layout-grid: 15.6pt; 
-                            /* 关键：双面打印页码设置 */
-                            mso-even-footer: url("header_even.htm") ef1;
-                            mso-footer: url("header_odd.htm") f1;
+                            /* 关键修正：移除导致报错的 header_even.htm 引用，使用通用页脚 */
+                            mso-footer: f1; 
                         }
                         div.Section1 { page: Section1; }
                         
@@ -682,15 +681,16 @@
 
             const cleanContent = div.innerHTML;
 
+            // 修正后的页脚定义：移除外部引用，使用内嵌 ID
             const postHtml = `
                     </div>
-                    <!-- 偶数页页脚 (左对齐) -->
-                    <div style='mso-element:footer' id=ef1>
-                        <p class=MsoFooter align=left style='text-align:left'>— <span style='mso-field-code:" PAGE "'></span> —</p>
-                    </div>
-                    <!-- 奇数页页脚 (右对齐) -->
+                    <!-- 通用页脚 (居中) -->
                     <div style='mso-element:footer' id=f1>
-                        <p class=MsoFooter align=right style='text-align:right'>— <span style='mso-field-code:" PAGE "'></span> —</p>
+                        <p class=MsoFooter align=center style='text-align:center'>
+                           <span style="font-family:'Times New Roman'; mso-bidi-font-family:'Times New Roman'">—</span>
+                           <span style='mso-field-code:" PAGE "'></span>
+                           <span style="font-family:'Times New Roman'; mso-bidi-font-family:'Times New Roman'">—</span>
+                        </p>
                     </div>
                 </body>
                 </html>
@@ -700,7 +700,7 @@
             const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = fileName; 
+            link.download = fileName; // 使用 .docx 后缀
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
