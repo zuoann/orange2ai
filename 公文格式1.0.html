@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公文格式生成器 & 导出工具 (国标合规版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- 核心排版样式 (CSS Variables) --- */
+        :root {
+            /* 字体定义 - 优先使用本地标准公文列字体 */
+            --font-title: "FangZheng XiaoBiaoSong_GBK", "方正小标宋简体", "SimSun", serif;
+            --font-h1: "FangZheng HeiTi_GBK", "SimHei", "黑体", sans-serif;
+            --font-h2: "FangZheng KaiTi_GBK", "KaiTi", "楷体", serif;
+            --font-body: "FangZheng FangSong_GBK", "FangSong", "仿宋", serif;
+            
+            /* 国标字号 */
+            --font-size-2: 22pt;   /* 二号 - 标题 */
+            --font-size-3: 16pt;   /* 三号 - 正文/一级/二级/附件 */
+            --font-size-4: 14pt;   /* 四号 - 版记 */
+            
+            /* 行距与间距 */
+            --line-height-fixed: 29pt; /* 标准行距约 28-30pt */
+        }
+
+        /* 模拟 A4 纸张 - GB/T 9704-2012 标准页边距 */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            margin: 0 auto;
+            /* 上37mm 下35mm 左28mm 右26mm */
+            padding: 37mm 26mm 35mm 28mm; 
+            position: relative;
+            color: black;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        /* --- 样式类定义 (完全对应公文标准) --- */
+
+        /* 0. 版头红线 (Separation Line) */
+        .gw-red-line {
+            width: 100%;
+            height: 3px; /* 约 1mm */
+            border-top: 1px solid #ff0000; /* 文武线效果：上细下粗或单粗线，这里简化为红色实线 */
+            border-bottom: 2px solid #ff0000;
+            margin-bottom: var(--line-height-fixed);
+            display: none; /* 默认隐藏，有版头内容时显示 */
+        }
+        .gw-red-line.active {
+            display: block;
+        }
+
+        /* 1. 公文标题：方正小标宋2号，居中 */
+        .gw-title {
+            font-family: var(--font-title);
+            font-size: var(--font-size-2);
+            line-height: var(--line-height-fixed);
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: var(--line-height-fixed); /* 下空一行 */
+            font-weight: normal;
+        }
+
+        /* 2. 一级标题：黑体3号 */
+        .gw-h1 {
+            font-family: var(--font-h1);
+            font-size: var(--font-size-3);
+            line-height: var(--line-height-fixed);
+            font-weight: normal;
+            margin: 0;
+            text-indent: 2em; 
+        }
+
+        /* 3. 二级标题：楷体3号 */
+        .gw-h2 {
+            font-family: var(--font-h2);
+            font-size: var(--font-size-3);
+            line-height: var(--line-height-fixed);
+            font-weight: normal;
+            margin: 0;
+            text-indent: 2em;
+        }
+
+        /* 4. 正文：仿宋3号，首行缩进2字符 */
+        .gw-body {
+            font-family: var(--font-body);
+            font-size: var(--font-size-3);
+            line-height: var(--line-height-fixed);
+            margin: 0;
+            text-align: justify;
+            text-indent: 2em;
+        }
+
+        /* 5. 附件 (GB标准严格对齐) */
+        
+        /* 附件第一行：包含“附件：” */
+        .gw-attachment-first {
+            font-family: var(--font-body);
+            font-size: var(--font-size-3);
+            line-height: var(--line-height-fixed);
+            margin: 0;
+            text-align: justify;
+            
+            /* 计算逻辑：
+               左空2字 = 2em
+               "附件："占3em (2汉字+1标点)
+               内容起始位置 = 2em + 3em = 5em
+            */
+            margin-left: 5em; 
+            text-indent: -3em; /* 悬挂缩进：把“附件：”拉回到 2em 的位置 */
+        }
+
+        /* 附件后续行：纯内容，与第一行内容对齐 */
+        .gw-attachment-following {
+            font-family: var(--font-body);
+            font-size: var(--font-size-3);
+            line-height: var(--line-height-fixed);
+            margin: 0;
+            text-align: justify;
+            margin-left: 5em; /* 保持内容左边距一致 */
+            text-indent: 0;
+        }
+
+        /* 6. 落款容器：右对齐，右空4字 */
+        .gw-sig-box {
+            font-family: var(--font-body);
+            font-size: var(--font-size-3);
+            line-height: var(--line-height-fixed);
+            margin-top: calc(var(--line-height-fixed) * 2); 
+            display: table; 
+            margin-left: auto; 
+            margin-right: 4em; /* 右空4字 */
+            text-align: center;
+        }
+
+        .gw-sig-item {
+            display: block;
+            white-space: nowrap;
+        }
+
+        /* 7. 版记 (Banji) - 沉底 */
+        .gw-banji-container {
+            margin-top: auto; /* Flex 布局下自动推至底部 */
+            width: 100%;
+            border-top: 1px solid #000; /* 版记分隔线 */
+            padding-top: 5px;
+            font-family: var(--font-body);
+            font-size: var(--font-size-4); /* 四号字 */
+            line-height: 1.5;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .gw-banji-row {
+            width: 100%;
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 5px;
+        }
+        
+        .gw-banji-content {
+            flex: 1;
+            text-align: left;
+        }
+        
+        /* 辅助空行 */
+        .gw-empty-line {
+            height: var(--line-height-fixed);
+        }
+
+        #editor {
+            white-space: pre-wrap; 
+        }
+
+        .check-panel.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 h-14 flex items-center justify-between px-6 shadow-sm z-20">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 bg-red-700 rounded flex items-center justify-center text-white font-serif font-bold text-lg">国</div>
+            <h1 class="text-lg font-bold text-gray-800 tracking-wide">公文格式生成器 <span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded ml-1 align-top border border-red-200">GB/T 9704—2012</span></h1>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="runComplianceCheck()" class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition border border-yellow-200 font-medium text-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                合规性检查
+            </button>
+            <button onclick="autoFormat(true)" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition border border-blue-200 font-medium text-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                智能排版 (国标)
+            </button>
+            <button onclick="exportToWord()" class="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition shadow-sm font-medium text-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                导出 Word
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- 左侧编辑区 -->
+        <section class="w-1/3 min-w-[420px] bg-white border-r border-gray-200 flex flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.05)] relative">
+            <div class="p-2 border-b border-gray-100 bg-gray-50 flex flex-wrap gap-2 items-center justify-between">
+                <div class="flex gap-2">
+                    <button onclick="insertSample()" class="text-xs px-2 py-1 bg-white border rounded hover:text-blue-600 hover:border-blue-300">载入范文</button>
+                    <button onclick="clearContent()" class="text-xs px-2 py-1 bg-white border rounded text-red-500 hover:bg-red-50 hover:border-red-300">清空</button>
+                </div>
+            </div>
+
+            <!-- 检查结果通知面板 -->
+            <div id="checkPanel" class="hidden absolute top-[45px] left-2 right-2 bg-white border border-yellow-200 shadow-lg rounded-md z-20 p-3 text-xs animate-fade-in">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-1">
+                        <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        合规性检查报告
+                    </h3>
+                    <button onclick="document.getElementById('checkPanel').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <ul id="checkList" class="space-y-1 text-gray-600 list-disc list-inside"></ul>
+            </div>
+            
+            <div class="px-4 py-2 bg-blue-50 text-blue-800 text-xs border-b border-blue-100 leading-5">
+                <strong>💡 操作指引：</strong><br>
+                1. <strong>版头</strong>：第一行默认为公文标题，自动居中。<br>
+                2. <strong>版记</strong>：若输入“抄送：...”，自动识别为版记并沉底。<br>
+                3. <strong>红线</strong>：导出时自动包含文头红线。<br>
+            </div>
+
+            <div id="editor" 
+                 contenteditable="true" 
+                 class="flex-1 p-6 overflow-y-auto outline-none text-gray-700 leading-relaxed font-mono text-sm border-b"
+                 oninput="handleInput()">
+关于做好公文格式排版工作的通知
+各部门、各单位：
+为了进一步规范公文处理工作，提高公文质量，根据《党政机关公文格式》国家标准，现将有关事项通知如下：
+一、页面设置要求
+公文用纸采用A4型纸。页边距设置为上37mm，下35mm，左28mm，右26mm。
+二、正文与标题
+正文首行缩进2字符，两端对齐。公文标题居中，下空一行。一级标题黑体，二级标题楷体。
+附件：1.公文排版规范细则
+2.机关公文格式参考模板
+特此通知。
+办公室
+2023年10月24日
+抄送：各科室，存档。
+印发机关：办公室  印发日期：2023年10月25日
+            </div>
+
+            <!-- 底部状态栏 -->
+            <footer class="h-8 bg-gray-50 border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500">
+                <div id="charCount">字数: 0</div>
+                <div id="pageEstimate">预计页数: 1 页</div>
+            </footer>
+        </section>
+
+        <!-- 右侧预览区 -->
+        <section class="flex-1 bg-gray-200 overflow-y-auto p-8 flex justify-center relative">
+            <div class="absolute top-4 right-8 bg-gray-800 text-white text-xs px-3 py-1.5 rounded shadow opacity-80 pointer-events-none z-10">
+                国标 A4 预览
+            </div>
+            
+            <!-- 预览页 -->
+            <div id="preview-page" class="a4-page">
+                <!-- 内容由 JS 生成 -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview-page');
+        const charCountEl = document.getElementById('charCount');
+        const pageEstimateEl = document.getElementById('pageEstimate');
+        const checkPanel = document.getElementById('checkPanel');
+        const checkList = document.getElementById('checkList');
+
+        let timeoutId;
+
+        // 初始化
+        window.onload = function() {
+            autoFormat(false); 
+            updateStats();
+        };
+
+        function handleInput() {
+            updateStats();
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => autoFormat(false), 800);
+        }
+
+        function updateStats() {
+            const text = editor.innerText.replace(/\n/g, '');
+            const count = text.length;
+            charCountEl.innerText = `字数: ${count}`;
+            // 国标大概估算：22行 x 28字 = 616
+            const estPages = Math.max(1, Math.ceil(count / 550));
+            pageEstimateEl.innerText = `预计页数: ${estPages} 页`;
+        }
+
+        function insertSample() {
+            editor.innerText = `关于进一步规范机关公文格式的通知
+各部门、各下属单位：
+为推进公文处理工作科学化、制度化、规范化，根据《党政机关公文格式》（GB/T 9704—2012）要求，现就有关事项通知如下：
+一、版面要求
+公文用纸采用A4型纸。页边距设置为上37mm，下35mm，左28mm，右26mm。行数每页22行，每行28字。
+二、字体要求
+（一）标题字体。公文标题使用方正小标宋体，二号字。
+（二）正文字体。正文使用方正仿宋体，三号字。一级标题使用黑体，二级标题使用楷体。
+附件：1.公文格式排版参数表
+2.常用公文模板（注意此行对齐效果）
+特此通知。
+行政办公室
+2023年11月15日
+抄送：各分管领导，存档。
+印发机关：行政办公室  印发日期：2023年11月15日`;
+            autoFormat(true);
+        }
+
+        function clearContent() {
+            editor.innerText = "";
+            preview.innerHTML = "";
+            updateStats();
+            checkPanel.classList.add('hidden');
+        }
+
+        // --- 功能：合规性检查 ---
+        function runComplianceCheck() {
+            const text = editor.innerText;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            const issues = [];
+
+            if (lines.length === 0) {
+                issues.push("文档内容为空。");
+            } 
+            
+            const dateRegex = /(20\d{2}|二〇[一二三四五六七八九十〇]+)年[0-9一二三四五六七八九十]+月[0-9一二三四五六七八九十]+日/;
+            if (!lines.some(line => dateRegex.test(line))) {
+                issues.push("未检测到标准的成文日期（如：2023年11月15日）。");
+            }
+            
+            const halfWidthPunctuation = /[\u4e00-\u9fa5]+[,.?!:;][\u4e00-\u9fa5]+/;
+            if (halfWidthPunctuation.test(text)) {
+                issues.push("中文段落中存在英文标点，建议使用“智能排版”纠正。");
+            }
+
+            checkList.innerHTML = "";
+            if (issues.length === 0) {
+                checkList.innerHTML = `<li class="text-green-600 font-bold">✓ 文档格式符合 GB/T 9704 基本要素。</li>`;
+            } else {
+                issues.forEach(issue => {
+                    checkList.innerHTML += `<li class="text-red-600">⚠ ${issue}</li>`;
+                });
+            }
+            checkPanel.classList.remove('hidden');
+        }
+
+        // --- 核心逻辑：智能格式化 (国标 V2.1) ---
+        function autoFormat(showToast = false) {
+            let text = editor.innerText;
+            if (!text.trim()) return;
+
+            // 1. 标点纠错
+            if (showToast) {
+                text = text.replace(/,/g, '，').replace(/\?/g, '？').replace(/!/g, '！').replace(/;/g, '；')
+                           .replace(/([^0-9]):([^0-9])/g, '$1：$2') 
+                           .replace(/([\u4e00-\u9fa5])\./g, '$1。');
+            }
+
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            let html = '';
+            
+            // 添加版头红线
+            html += `<div class="gw-red-line active"></div>`;
+
+            // 变量初始化
+            let dateLineIndex = -1;
+            let sigLineIndex = -1;
+            let banjiStartIndex = -1;
+            const dateRegex = /^(20\d{2}|二〇[一二三四五六七八九十〇]+)年[0-9一二三四五六七八九十]+月[0-9一二三四五六七八九十]+日/;
+
+            // 2. 预扫描：定位落款和版记
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].startsWith("抄送") || lines[i].startsWith("印发")) {
+                    banjiStartIndex = i;
+                    break;
+                }
+            }
+
+            // 如果找到版记，落款在版记之前找
+            let searchLimit = banjiStartIndex !== -1 ? banjiStartIndex : lines.length;
+            for (let i = searchLimit - 1; i >= 0; i--) {
+                if (dateRegex.test(lines[i])) {
+                    dateLineIndex = i;
+                    // 通常日期上一行是单位
+                    if (i > 0 && !lines[i-1].match(/^[一二三四五六七八九十]+、/) && lines[i-1].length < 20) {
+                        sigLineIndex = i - 1;
+                    }
+                    break;
+                }
+            }
+
+            // 3. 逐行生成 HTML
+            let isAttachmentBlock = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                if (showToast) {
+                     line = line.replace(/,/g, '，').replace(/\?/g, '？').replace(/!/g, '！').replace(/;/g, '；')
+                                .replace(/([\u4e00-\u9fa5]):/g, '$1：')
+                                .replace(/([\u4e00-\u9fa5])\./g, '$1。');
+                }
+
+                // 处理版记 (Banji) - 剩余所有行视为版记内容
+                if (i === banjiStartIndex) {
+                    html += `<div class="gw-banji-container">`;
+                    // 收集所有版记行
+                    for (let j = i; j < lines.length; j++) {
+                        let bLine = lines[j];
+                        html += `<div class="gw-banji-row"><div class="gw-banji-content">${bLine}</div></div>`;
+                    }
+                    html += `</div>`;
+                    break; // 停止处理后续行
+                }
+
+                // 处理落款 (Signature)
+                if (i === sigLineIndex && dateLineIndex !== -1) {
+                    const sigText = lines[sigLineIndex];
+                    const dateText = lines[dateLineIndex];
+                    const cleanDate = dateText.match(dateRegex) ? dateText.match(dateRegex)[0] : dateText;
+
+                    html += `
+                    <div class="gw-sig-box">
+                        <div class="gw-sig-item">${sigText}</div>
+                        <div class="gw-sig-item">${cleanDate}</div>
+                    </div>`;
+                    i++; // 跳过下一行(日期行)
+                    continue;
+                }
+                
+                // 孤立日期
+                if (i === dateLineIndex && sigLineIndex === -1) {
+                     const cleanDate = line.match(dateRegex) ? line.match(dateRegex)[0] : line;
+                     html += `
+                    <div class="gw-sig-box">
+                        <div class="gw-sig-item">${cleanDate}</div>
+                    </div>`;
+                    continue;
+                }
+
+                // 标题
+                if (i === 0) {
+                    html += `<div class="gw-title">${line}</div>`;
+                    continue;
+                }
+
+                // 附件处理
+                if (line.startsWith("附件：") || line.startsWith("附件:")) {
+                    html += `<div class="gw-empty-line"></div>`; 
+                    line = line.replace("附件:", "附件：");
+                    // 应用“附件第一行”样式 (hanging indent for label)
+                    html += `<div class="gw-attachment-first">${line}</div>`;
+                    isAttachmentBlock = true;
+                    continue;
+                }
+                // 附件内容块 (后续行)
+                if (isAttachmentBlock && i < searchLimit) {
+                     // 应用“附件后续行”样式 (aligned indent)
+                     html += `<div class="gw-attachment-following">${line}</div>`;
+                     continue;
+                } else {
+                    isAttachmentBlock = false;
+                }
+
+                // 一级标题 (一、)
+                if (/^[一二三四五六七八九十]+、/.test(line)) {
+                    html += `<div class="gw-h1">${line}</div>`;
+                    continue;
+                }
+
+                // 二级标题 ((一))
+                if (/^（[一二三四五六七八九十]+）/.test(line)) {
+                    html += `<div class="gw-h2">${line}</div>`;
+                    continue;
+                }
+
+                // 正文
+                html += `<div class="gw-body">${line}</div>`;
+            }
+
+            preview.innerHTML = html;
+            if (showToast) checkPanel.classList.add('hidden');
+        }
+
+        // --- 核心逻辑：导出 Word (适配国标) ---
+        function exportToWord() {
+            const contentHtml = preview.innerHTML;
+            const titleDiv = preview.querySelector('.gw-title');
+            let fileName = '标准公文.doc';
+
+            if (titleDiv && titleDiv.innerText.trim()) {
+                let rawTitle = titleDiv.innerText.trim();
+                fileName = rawTitle.replace(/[\n\r]/g, '').replace(/[\\/:*?"<>|]/g, '_').substring(0, 50) + '.doc';
+            }
+
+            const preHtml = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                      xmlns:w='urn:schemas-microsoft-com:office:word' 
+                      xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset="utf-8">
+                    <title>公文导出</title>
+                    <style>
+                        /* Word 页面设置 - 国标: 上37 下35 左28 右26 */
+                        @page Section1 {
+                            size: 210mm 297mm;
+                            margin: 37mm 26mm 35mm 28mm;
+                            mso-header-margin: 15mm;
+                            mso-footer-margin: 28mm;
+                            mso-title-page: yes; 
+                            layout-grid: 15.6pt; 
+                        }
+                        div.Section1 { page: Section1; }
+                        
+                        body { 
+                            font-family: "方正仿宋_GBK", "FangSong", "SimSun", serif; 
+                            font-size: 16pt; 
+                        }
+                        
+                        /* 红线 */
+                        .gw-red-line {
+                            border-top: 1px solid red;
+                            border-bottom: 2px solid red;
+                            height: 4px;
+                            margin-bottom: 28pt;
+                        }
+
+                        /* 标题 - 小标宋 2号 */
+                        .gw-title {
+                            font-family: "方正小标宋_GBK";
+                            font-size: 22.0pt;
+                            text-align: center;
+                            line-height: 29.0pt;
+                            margin-bottom: 29.0pt; 
+                            mso-line-height-rule: exactly;
+                        }
+
+                        /* 一级标题 - 黑体 3号 */
+                        .gw-h1 {
+                            font-family: "方正黑体_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                            margin: 0;
+                            text-indent: 32.0pt;
+                            mso-line-height-rule: exactly;
+                        }
+
+                        /* 二级标题 - 楷体 3号 */
+                        .gw-h2 {
+                            font-family: "方正楷体_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                            margin: 0;
+                            text-indent: 32.0pt;
+                            mso-line-height-rule: exactly;
+                        }
+
+                        /* 正文 - 仿宋 3号 */
+                        .gw-body {
+                            font-family: "方正仿宋_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                            margin: 0;
+                            text-align: justify;
+                            text-justify: inter-ideograph;
+                            text-indent: 32.0pt;
+                            mso-line-height-rule: exactly;
+                        }
+
+                        /* 附件 - 第一行 (包含“附件：”) */
+                        /* 左缩进 5字符(约80pt), 首行悬挂缩进 -3字符(约-48pt) */
+                        .gw-attachment-first {
+                            font-family: "方正仿宋_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                            text-align: justify;
+                            margin: 0;
+                            margin-left: 80.0pt; 
+                            text-indent: -48.0pt; 
+                            mso-line-height-rule: exactly;
+                        }
+                        
+                        /* 附件 - 后续行 (纯内容) */
+                        /* 左缩进 5字符(约80pt), 首行不缩进 */
+                        .gw-attachment-following {
+                            font-family: "方正仿宋_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                            text-align: justify;
+                            margin: 0;
+                            margin-left: 80.0pt; 
+                            text-indent: 0;
+                            mso-line-height-rule: exactly;
+                        }
+                        
+                        .gw-empty-line { font-size: 16.0pt; line-height: 29.0pt; }
+
+                        /* 落款 */
+                        .gw-sig-box {
+                            margin-top: 58.0pt; 
+                            text-align: right; 
+                            font-family: "方正仿宋_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                        }
+                        
+                        table.sig-table {
+                            mso-table-layout-alt: fixed;
+                            float: right;
+                            margin-right: 64.0pt; 
+                            border: none;
+                        }
+                        td.sig-cell {
+                            text-align: center;
+                            font-family: "方正仿宋_GBK";
+                            font-size: 16.0pt;
+                            line-height: 29.0pt;
+                            border: none;
+                        }
+                        
+                        /* 版记 - 4号字, 顶部分隔线 */
+                        .gw-banji-container {
+                            margin-top: 50.0pt; /* 这里无法自动沉底，只能加间距 */
+                            border-top: 1px solid #000;
+                            padding-top: 10.0pt;
+                            font-size: 14.0pt;
+                            line-height: 1.5;
+                        }
+                        .gw-banji-row { margin-bottom: 5pt; }
+
+                        p.MsoFooter {
+                            font-family: 宋体;
+                            font-size: 14.0pt;
+                            text-align: center;
+                        }
+                    </style>
+                    <xml>
+                        <w:WordDocument>
+                            <w:View>Print</w:View>
+                            <w:DoNotOptimizeForBrowser/>
+                        </w:WordDocument>
+                    </xml>
+                </head>
+                <body>
+                    <div class="Section1">
+            `;
+
+            // HTML 处理
+            const div = document.createElement('div');
+            div.innerHTML = contentHtml;
+            
+            // 落款表格化
+            const sigBox = div.querySelector('.gw-sig-box');
+            if (sigBox) {
+                const items = sigBox.querySelectorAll('.gw-sig-item');
+                let rows = '';
+                items.forEach(item => {
+                    rows += `<tr><td class="sig-cell">${item.innerText}</td></tr>`;
+                });
+                sigBox.outerHTML = `<div style="margin-top: 58pt; overflow: hidden;"><table class="sig-table" border="0" cellspacing="0" cellpadding="0">${rows}</table></div>`;
+            }
+
+            const cleanContent = div.innerHTML;
+
+            const postHtml = `
+                    </div>
+                    <div style='mso-element:footer' id=ef1>
+                        <p class=MsoFooter align=left style='text-align:left'>— <span style='mso-field-code:" PAGE "'></span> —</p>
+                    </div>
+                    <div style='mso-element:footer' id=f1>
+                        <p class=MsoFooter align=right style='text-align:right'>— <span style='mso-field-code:" PAGE "'></span> —</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const fullHtml = preHtml + cleanContent + postHtml;
+            const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName; 
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
