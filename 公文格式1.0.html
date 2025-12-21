@@ -41,6 +41,8 @@
             color: black;
             display: flex;
             flex-direction: column;
+            /* 移除 overflow: hidden 以允许内容在 PDF 生成时完整流出，但在浏览器预览时可能会溢出 */
+            /* 恢复 overflow: hidden 以保持预览整洁，PDF 生成时会自动处理高度 */
             overflow: hidden; 
         }
 
@@ -56,6 +58,11 @@
             display: none; 
         }
         .gw-red-line.active { display: block; }
+
+        /* 通用防分页截断设置 */
+        .gw-title, .gw-h1, .gw-h2, .gw-body, .gw-attachment-first, .gw-attachment-following, .gw-sig-box {
+            page-break-inside: avoid;
+        }
 
         /* 1. 公文标题：方正小标宋2号，居中 */
         .gw-title {
@@ -120,15 +127,23 @@
         }
 
         /* 6. 落款容器 */
+        /* 国标要求：发文机关署名在上方，成文日期在下方，居中排列。
+           成文日期右空 4 字。
+           实现逻辑：容器整体 margin-right: 4em (右空4字)，内部文本居中。
+        */
         .gw-sig-box {
             font-family: var(--font-body);
             font-size: var(--font-size-3);
             line-height: var(--line-height-fixed);
             margin-top: calc(var(--line-height-fixed) * 2); 
+            
+            /* 使用 inline-block 或 table 让宽度自适应内容，从而使右侧对齐生效 */
             display: table; 
-            margin-left: auto; 
-            margin-right: 4em; 
-            text-align: center;
+            margin-left: auto; /* 左侧自动，推到右边 */
+            margin-right: 4em; /* 右侧固定空4字 */
+            
+            text-align: center; /* 内部文字（署名和日期）居中 */
+            min-width: 12em; /* 保证一定的最小宽度，避免过窄 */
         }
 
         .gw-sig-item {
@@ -148,6 +163,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
+            page-break-inside: avoid; /* 防止版记被切断 */
         }
         
         .gw-banji-row {
@@ -162,18 +178,6 @@
             text-align: left;
         }
         
-        /* 8. 预览页码 (仅视觉模拟) */
-        .gw-preview-pagenum {
-            position: absolute;
-            bottom: 25mm; /* 国标要求底边距35mm，页码在版心下边缘之下，约25-28mm处 */
-            width: 100%;
-            text-align: center;
-            left: 0;
-            font-family: var(--font-num); /* 预览时使用 Times */
-            font-size: var(--font-size-4);
-            pointer-events: none;
-        }
-
         /* 辅助空行 */
         .gw-empty-line {
             height: var(--line-height-fixed);
@@ -488,8 +492,7 @@
                 html += `<div class="gw-body">${line}</div>`;
             }
             
-            html += `<div class="gw-preview-pagenum">— 1 —</div>`;
-
+            // 预览不再添加静态页码，以免PDF导出时位置错乱
             preview.innerHTML = html;
             if (showToast) checkPanel.classList.add('hidden');
         }
@@ -499,7 +502,6 @@
             const contentHtml = preview.innerHTML;
             const titleDiv = preview.querySelector('.gw-title');
             // 回归到 .doc 格式，因为我们生成的是 MHTML/HTML 伪装格式
-            // 存为 .docx 会导致 Word 无法解压而报错
             let fileName = '标准公文.doc';
 
             if (titleDiv && titleDiv.innerText.trim()) {
@@ -630,6 +632,9 @@
                         /* 落款 */
                         .gw-sig-box {
                             margin-top: 58.0pt; 
+                            /* Word CSS 技巧：使用 float: right 和 margin-right: 64pt 来模拟右空4字 */
+                            /* 注意：这里通过 JS 替换为 table，CSS 依然重要 */
+                            margin-right: 64.0pt; 
                             text-align: right; 
                             font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
@@ -639,14 +644,15 @@
                             line-height: 29.0pt;
                         }
                         
+                        /* 使用表格布局落款，确保在Word中不乱跑 */
                         table.sig-table {
                             mso-table-layout-alt: fixed;
                             float: right;
-                            margin-right: 64.0pt; 
+                            margin-right: 64.0pt; /* 右空4字 */
                             border: none;
                         }
                         td.sig-cell {
-                            text-align: center;
+                            text-align: center; /* 单元格内居中 */
                             font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
@@ -743,7 +749,7 @@
             document.body.removeChild(link);
         }
 
-        // --- 新增：导出 PDF (自动命名) ---
+        // --- 核心逻辑：导出 PDF (自动分页+页码+防截断) ---
         function exportToPDF() {
             const element = document.getElementById('preview-page');
             const titleDiv = element.querySelector('.gw-title');
@@ -754,16 +760,36 @@
                 fileName = rawTitle.replace(/[\n\r]/g, '').replace(/[\\/:*?"<>|]/g, '_').substring(0, 50) + '.pdf';
             }
 
-            // html2pdf 配置
             const opt = {
-                margin:       0, // 使用 0 边距，因为内容本身已有 padding
+                margin:       [37, 26, 35, 28], // 国标页边距：上右下左 (mm)
                 filename:     fileName,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 }, // 提高清晰度
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                // 防止内容被强行截断，自动识别 CSS break-inside: avoid
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
-            html2pdf().set(opt).from(element).save();
+            // 使用回调添加页码
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
+                var totalPages = pdf.internal.getNumberOfPages();
+                for (var i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(14); // 4号字
+                    pdf.setFont('Times-Roman'); // 使用标准 PDF 字体
+                    
+                    // 绘制页码：— x —
+                    // 页面高度 297mm，下边距 35mm，页码在版心下边缘之下，大约在底部 28mm 左右
+                    var pageWidth = pdf.internal.pageSize.getWidth();
+                    var pageHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // 注意：标准 PDF 字体不支持中文字符（如全角破折号），这里使用 -- 模拟，
+                    // 或直接使用 Times 字体支持的字符。对于严格中文支持，通常需要嵌入字体文件，
+                    // 但纯前端 html2pdf 难以携带大字体文件。
+                    // 这里使用长横线或类似符号。
+                    pdf.text('— ' + i + ' —', pageWidth / 2, pageHeight - 28, { align: 'center' });
+                }
+            }).save();
         }
     </script>
 </body>
