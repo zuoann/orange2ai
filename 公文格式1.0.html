@@ -4,16 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>公文格式生成器 & 导出工具 (国标合规版)</title>
+    <!-- 引入 TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 html2pdf.js 用于导出 PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* --- 核心排版样式 (CSS Variables) --- */
         :root {
-            /* 字体定义 - 优先使用本地标准公文列字体 */
+            /* 字体定义 - 优先使用本地标准公文列字体 (GBK版) */
             /* 浏览器预览用字体栈 */
-            --font-title: "FangZheng XiaoBiaoSong_GBK", "方正小标宋简体", "方正小标宋", "SimSun", serif;
-            --font-h1: "FangZheng HeiTi_GBK", "SimHei", "黑体", sans-serif;
-            --font-h2: "FangZheng KaiTi_GBK", "KaiTi", "楷体", serif;
-            --font-body: "FangZheng FangSong_GBK", "FangSong", "仿宋", serif;
+            --font-title: "FangZheng XiaoBiaoSong_GBK", "方正小标宋_GBK", "方正小标宋简体", "SimSun", serif;
+            --font-h1: "FangZheng HeiTi_GBK", "方正黑体_GBK", "SimHei", "黑体", sans-serif;
+            --font-h2: "FangZheng KaiTi_GBK", "方正楷体_GBK", "KaiTi", "楷体", serif;
+            --font-body: "FangZheng FangSong_GBK", "方正仿宋_GBK", "FangSong", "仿宋", serif;
             --font-num: "Times New Roman", serif;
             
             /* 国标字号 */
@@ -206,6 +209,10 @@
             <button onclick="exportToWord()" class="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition shadow-sm font-medium text-xs">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 导出 Word
+            </button>
+            <button onclick="exportToPDF()" class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 transition shadow-sm font-medium text-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                导出 PDF
             </button>
         </div>
     </header>
@@ -522,19 +529,19 @@
                         
                         /* 全局样式 - 强制中西文分开 */
                         body { 
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "FangSong";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 16pt; 
                         }
                         
-                        /* 标题：方正小标宋 */
+                        /* 标题：方正小标宋_GBK */
                         .gw-title {
-                            font-family: "Times New Roman", "方正小标宋简体", "SimSun";
+                            font-family: "Times New Roman", "FangZheng XiaoBiaoSong_GBK", "方正小标宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "方正小标宋简体";
+                            mso-fareast-font-family: "方正小标宋_GBK";
                             font-size: 22.0pt;
                             text-align: center;
                             line-height: 29.0pt;
@@ -543,12 +550,12 @@
                             font-weight: normal;
                         }
 
-                        /* 一级标题：黑体 */
+                        /* 一级标题：方正黑体_GBK */
                         .gw-h1 {
-                            font-family: "Times New Roman", "SimHei", "黑体";
+                            font-family: "Times New Roman", "FangZheng HeiTi_GBK", "方正黑体_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "黑体";
+                            mso-fareast-font-family: "方正黑体_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
@@ -558,12 +565,12 @@
                             font-weight: normal;
                         }
 
-                        /* 二级标题：楷体 */
+                        /* 二级标题：方正楷体_GBK */
                         .gw-h2 {
-                            font-family: "Times New Roman", "KaiTi", "楷体";
+                            font-family: "Times New Roman", "FangZheng KaiTi_GBK", "方正楷体_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "楷体";
+                            mso-fareast-font-family: "方正楷体_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
@@ -573,12 +580,12 @@
                             font-weight: normal;
                         }
 
-                        /* 正文：仿宋 */
+                        /* 正文：方正仿宋_GBK */
                         .gw-body {
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "仿宋";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
@@ -591,10 +598,10 @@
 
                         /* 附件 - 首行 */
                         .gw-attachment-first {
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "仿宋";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             text-align: justify;
@@ -605,10 +612,10 @@
                         }
                         /* 附件 - 后续 */
                         .gw-attachment-following {
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "仿宋";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             text-align: justify;
@@ -624,10 +631,10 @@
                         .gw-sig-box {
                             margin-top: 58.0pt; 
                             text-align: right; 
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "仿宋";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                         }
@@ -640,10 +647,10 @@
                         }
                         td.sig-cell {
                             text-align: center;
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "仿宋";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             border: none;
@@ -654,10 +661,10 @@
                             margin-top: 50.0pt; 
                             border-top: 1px solid #000;
                             padding-top: 10.0pt;
-                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "方正仿宋_GBK";
                             mso-ascii-font-family: "Times New Roman";
                             mso-hansi-font-family: "Times New Roman";
-                            mso-fareast-font-family: "仿宋";
+                            mso-fareast-font-family: "方正仿宋_GBK";
                             font-size: 14.0pt;
                             line-height: 1.5;
                         }
@@ -734,6 +741,29 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        // --- 新增：导出 PDF (自动命名) ---
+        function exportToPDF() {
+            const element = document.getElementById('preview-page');
+            const titleDiv = element.querySelector('.gw-title');
+            let fileName = '标准公文.pdf';
+
+            if (titleDiv && titleDiv.innerText.trim()) {
+                let rawTitle = titleDiv.innerText.trim();
+                fileName = rawTitle.replace(/[\n\r]/g, '').replace(/[\\/:*?"<>|]/g, '_').substring(0, 50) + '.pdf';
+            }
+
+            // html2pdf 配置
+            const opt = {
+                margin:       0, // 使用 0 边距，因为内容本身已有 padding
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 }, // 提高清晰度
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
