@@ -9,11 +9,12 @@
         /* --- 核心排版样式 (CSS Variables) --- */
         :root {
             /* 字体定义 - 优先使用本地标准公文列字体 */
-            /* 核心修正：所有字体栈首位添加 "Times New Roman" 以符合 GB/T 9704 5.2.2 条款及用户西文修正要求 */
-            --font-title: "Times New Roman", "FangZheng XiaoBiaoSong_GBK", "方正小标宋简体", "SimSun", serif;
-            --font-h1: "Times New Roman", "FangZheng HeiTi_GBK", "SimHei", "黑体", sans-serif;
-            --font-h2: "Times New Roman", "FangZheng KaiTi_GBK", "KaiTi", "楷体", serif;
-            --font-body: "Times New Roman", "FangZheng FangSong_GBK", "FangSong", "仿宋", serif;
+            /* 浏览器预览用字体栈 */
+            --font-title: "FangZheng XiaoBiaoSong_GBK", "方正小标宋简体", "方正小标宋", "SimSun", serif;
+            --font-h1: "FangZheng HeiTi_GBK", "SimHei", "黑体", sans-serif;
+            --font-h2: "FangZheng KaiTi_GBK", "KaiTi", "楷体", serif;
+            --font-body: "FangZheng FangSong_GBK", "FangSong", "仿宋", serif;
+            --font-num: "Times New Roman", serif;
             
             /* 国标字号 */
             --font-size-2: 22pt;   /* 二号 - 标题 */
@@ -165,7 +166,7 @@
             width: 100%;
             text-align: center;
             left: 0;
-            font-family: "Times New Roman", "SimSun", serif;
+            font-family: var(--font-num); /* 预览时使用 Times */
             font-size: var(--font-size-4);
             pointer-events: none;
         }
@@ -305,7 +306,6 @@
             const text = editor.innerText.replace(/\n/g, '');
             const count = text.length;
             charCountEl.innerText = `字数: ${count}`;
-            // 国标大概估算：22行 x 28字 = 616
             const estPages = Math.max(1, Math.ceil(count / 550));
             pageEstimateEl.innerText = `预计页数: ${estPages} 页`;
         }
@@ -372,7 +372,6 @@
             let text = editor.innerText;
             if (!text.trim()) return;
 
-            // 1. 标点纠错
             if (showToast) {
                 text = text.replace(/,/g, '，').replace(/\?/g, '？').replace(/!/g, '！').replace(/;/g, '；')
                            .replace(/([^0-9]):([^0-9])/g, '$1：$2') 
@@ -382,16 +381,13 @@
             const lines = text.split('\n').map(l => l.trim()).filter(l => l);
             let html = '';
             
-            // 添加版头红线
             html += `<div class="gw-red-line active"></div>`;
 
-            // 变量初始化
             let dateLineIndex = -1;
             let sigLineIndex = -1;
             let banjiStartIndex = -1;
             const dateRegex = /^(20\d{2}|二〇[一二三四五六七八九十〇]+)年[0-9一二三四五六七八九十]+月[0-9一二三四五六七八九十]+日/;
 
-            // 2. 预扫描：定位落款和版记
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].startsWith("抄送") || lines[i].startsWith("印发")) {
                     banjiStartIndex = i;
@@ -410,7 +406,6 @@
                 }
             }
 
-            // 3. 逐行生成 HTML
             let isAttachmentBlock = false;
 
             for (let i = 0; i < lines.length; i++) {
@@ -486,19 +481,19 @@
                 html += `<div class="gw-body">${line}</div>`;
             }
             
-            // 添加预览用的页码（仅作为第一页的示意）
             html += `<div class="gw-preview-pagenum">— 1 —</div>`;
 
             preview.innerHTML = html;
             if (showToast) checkPanel.classList.add('hidden');
         }
 
-        // --- 核心逻辑：导出 Word (适配国标页码+修复Header错误+修正docx兼容性问题) ---
+        // --- 核心逻辑：导出 Word (完美修复版) ---
         function exportToWord() {
             const contentHtml = preview.innerHTML;
             const titleDiv = preview.querySelector('.gw-title');
-            // 修正：将后缀改回 .doc，避免 HTML/MHTML 内容被误认为无效的 ZIP 压缩包 (docx)
-            let fileName = '标准公文.doc'; 
+            // 回归到 .doc 格式，因为我们生成的是 MHTML/HTML 伪装格式
+            // 存为 .docx 会导致 Word 无法解压而报错
+            let fileName = '标准公文.doc';
 
             if (titleDiv && titleDiv.innerText.trim()) {
                 let rawTitle = titleDiv.innerText.trim();
@@ -518,72 +513,88 @@
                             size: 210mm 297mm;
                             margin: 37mm 26mm 35mm 28mm;
                             mso-header-margin: 15mm;
-                            mso-footer-margin: 28mm; /* 页码位置 */
+                            mso-footer-margin: 28mm;
                             mso-title-page: yes; 
                             layout-grid: 15.6pt; 
                             mso-footer: f1; 
                         }
                         div.Section1 { page: Section1; }
                         
-                        /* 全局西文字体修正 */
+                        /* 全局样式 - 强制中西文分开 */
                         body { 
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong", "SimSun", serif; 
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "FangSong";
                             font-size: 16pt; 
                         }
                         
-                        /* 红线 */
-                        .gw-red-line {
-                            border-top: 1px solid red;
-                            border-bottom: 2px solid red;
-                            height: 4px;
-                            margin-bottom: 28pt;
-                        }
-
-                        /* 标题 */
+                        /* 标题：方正小标宋 */
                         .gw-title {
-                            font-family: "Times New Roman", "FangZheng XiaoBiaoSong_GBK", "SimSun";
+                            font-family: "Times New Roman", "方正小标宋简体", "SimSun";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "方正小标宋简体";
                             font-size: 22.0pt;
                             text-align: center;
                             line-height: 29.0pt;
                             margin-bottom: 29.0pt; 
                             mso-line-height-rule: exactly;
+                            font-weight: normal;
                         }
 
-                        /* 一级标题 */
+                        /* 一级标题：黑体 */
                         .gw-h1 {
-                            font-family: "Times New Roman", "FangZheng HeiTi_GBK", "SimHei";
+                            font-family: "Times New Roman", "SimHei", "黑体";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "黑体";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
                             text-indent: 32.0pt;
+                            mso-char-indent-count: 2.0;
                             mso-line-height-rule: exactly;
+                            font-weight: normal;
                         }
 
-                        /* 二级标题 */
+                        /* 二级标题：楷体 */
                         .gw-h2 {
-                            font-family: "Times New Roman", "FangZheng KaiTi_GBK", "KaiTi";
+                            font-family: "Times New Roman", "KaiTi", "楷体";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "楷体";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
                             text-indent: 32.0pt;
+                            mso-char-indent-count: 2.0;
                             mso-line-height-rule: exactly;
+                            font-weight: normal;
                         }
 
-                        /* 正文 */
+                        /* 正文：仿宋 */
                         .gw-body {
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "仿宋";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             margin: 0;
                             text-align: justify;
                             text-justify: inter-ideograph;
                             text-indent: 32.0pt;
+                            mso-char-indent-count: 2.0;
                             mso-line-height-rule: exactly;
                         }
 
-                        /* 附件 */
+                        /* 附件 - 首行 */
                         .gw-attachment-first {
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "仿宋";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             text-align: justify;
@@ -592,8 +603,12 @@
                             text-indent: -48.0pt; 
                             mso-line-height-rule: exactly;
                         }
+                        /* 附件 - 后续 */
                         .gw-attachment-following {
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "仿宋";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             text-align: justify;
@@ -609,7 +624,10 @@
                         .gw-sig-box {
                             margin-top: 58.0pt; 
                             text-align: right; 
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "仿宋";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                         }
@@ -622,7 +640,10 @@
                         }
                         td.sig-cell {
                             text-align: center;
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "仿宋";
                             font-size: 16.0pt;
                             line-height: 29.0pt;
                             border: none;
@@ -633,16 +654,29 @@
                             margin-top: 50.0pt; 
                             border-top: 1px solid #000;
                             padding-top: 10.0pt;
-                            font-family: "Times New Roman", "FangZheng FangSong_GBK", "FangSong";
+                            font-family: "Times New Roman", "FangSong", "仿宋";
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "仿宋";
                             font-size: 14.0pt;
                             line-height: 1.5;
                         }
                         .gw-banji-row { margin-bottom: 5pt; }
 
-                        /* 页码样式：4号 (14pt)，Times New Roman */
-                        /* 格式：— 1 — (GB/T 9704-2012) */
+                        /* 红线 */
+                        .gw-red-line {
+                            border-top: 1px solid red;
+                            border-bottom: 2px solid red;
+                            height: 4px;
+                            margin-bottom: 28pt;
+                        }
+
+                        /* 页码 */
                         p.MsoFooter {
                             font-family: "Times New Roman", "SimSun", serif;
+                            mso-ascii-font-family: "Times New Roman";
+                            mso-hansi-font-family: "Times New Roman";
+                            mso-fareast-font-family: "SimSun";
                             font-size: 14.0pt;
                             text-align: center;
                             line-height: 14.0pt;
@@ -660,15 +694,12 @@
                     <div class="Section1">
             `;
 
-            // HTML 处理
             const div = document.createElement('div');
             div.innerHTML = contentHtml;
             
-            // 移除预览用的视觉页码，避免导出时重复
             const previewPageNum = div.querySelector('.gw-preview-pagenum');
             if (previewPageNum) previewPageNum.remove();
             
-            // 落款表格化
             const sigBox = div.querySelector('.gw-sig-box');
             if (sigBox) {
                 const items = sigBox.querySelectorAll('.gw-sig-item');
@@ -681,7 +712,6 @@
 
             const cleanContent = div.innerHTML;
 
-            // 修正后的页脚定义：移除外部引用，使用内嵌 ID
             const postHtml = `
                     </div>
                     <!-- 通用页脚 (居中) -->
@@ -700,7 +730,7 @@
             const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = fileName; // 使用 .doc 后缀
+            link.download = fileName; 
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
