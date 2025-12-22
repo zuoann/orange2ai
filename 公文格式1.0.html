@@ -180,7 +180,7 @@
             width: 100%;
             text-align: center;
             left: 0;
-            font-family: "Times New Roman", serif; /* 强制使用 Times New Roman */
+            font-family: "SimSun", "宋体", serif; /* 修正为宋体 */
             font-size: var(--font-size-4);
             pointer-events: none;
         }
@@ -386,7 +386,7 @@
             checkPanel.classList.remove('hidden');
         }
 
-        // --- 核心逻辑：智能格式化 (国标 V3.0) ---
+        // --- 核心逻辑：智能格式化 (国标 V3.1) ---
         function autoFormat(showToast = false) {
             let text = editor.innerText;
             if (!text.trim()) return;
@@ -434,17 +434,16 @@
                 
                 // --- 自动规范结构层次序数 ---
                 if (showToast) {
-                    // Level 1: 1、 -> 一、 (如果有需要可以转换，但这里主要修正标点)
-                    // 修正 "一." -> "一、"
+                    // Level 1: "一 " or "一." -> "一、"
                     line = line.replace(/^([一二三四五六七八九十]+)[\.．\s]+/, '$1、');
                     
-                    // Level 2: (一) -> （一） (修正括号)
-                    line = line.replace(/^[\(（]([一二三四五六七八九十]+)[\)）]/, '（$1）');
+                    // Level 2: "(一)" or "(一)." -> "（一）" (去除尾部标点)
+                    line = line.replace(/^[\(（]([一二三四五六七八九十]+)[\)）][\.\s、．]?/, '（$1）');
                     
-                    // Level 3: 1、 -> 1. (修正为黑点)
+                    // Level 3: "1、" -> "1."
                     line = line.replace(/^(\d+)[、．]/, '$1.');
                     
-                    // Level 4: (1) -> （1） (修正括号)
+                    // Level 4: "(1)" -> "（1）"
                     line = line.replace(/^[\(（](\d+)[\)）]/, '（$1）');
                 }
 
@@ -505,20 +504,19 @@
                     isAttachmentBlock = false;
                 }
 
-                // 识别标题级别
-                // 一级标题
+                // 识别标题级别并应用字体样式
+                // 一级标题: SimHei
                 if (/^[一二三四五六七八九十]+、/.test(line)) {
                     html += `<div class="gw-h1">${line}</div>`;
                     continue;
                 }
-                // 二级标题
+                // 二级标题: KaiTi
                 if (/^（[一二三四五六七八九十]+）/.test(line)) {
                     html += `<div class="gw-h2">${line}</div>`;
                     continue;
                 }
-                // 三级标题 (1. ) - 国标中通常同正文，但为了区分，可不加特殊类或加 bold
-                // 这里按正文处理，因为三级标题通常不改变字体，只加黑，或者就是仿宋
-                // 暂按正文处理
+                // 三级标题 (1. ) - 正常仿宋 (gw-body)
+                // 四级标题 (（1）) - 正常仿宋 (gw-body)
 
                 html += `<div class="gw-body">${line}</div>`;
             }
@@ -704,9 +702,9 @@
 
                         /* 页码 */
                         p.MsoFooter {
-                            font-family: "Times New Roman", "SimSun", serif;
-                            mso-ascii-font-family: "Times New Roman";
-                            mso-hansi-font-family: "Times New Roman";
+                            font-family: "SimSun", "宋体", serif;
+                            mso-ascii-font-family: "SimSun";
+                            mso-hansi-font-family: "SimSun";
                             mso-fareast-font-family: "SimSun";
                             font-size: 14.0pt;
                             text-align: center;
@@ -748,9 +746,9 @@
                     <!-- 通用页脚 (居中) -->
                     <div style='mso-element:footer' id="f1">
                         <p class=MsoFooter align=center style='text-align:center'>
-                           <span style="font-family:'Times New Roman'; mso-bidi-font-family:'Times New Roman'">—</span>
+                           <span style="font-family:'SimSun'; mso-bidi-font-family:'SimSun'">—</span>
                            <span style='mso-field-code:" PAGE "'></span>
-                           <span style="font-family:'Times New Roman'; mso-bidi-font-family:'Times New Roman'">—</span>
+                           <span style="font-family:'SimSun'; mso-bidi-font-family:'SimSun'">—</span>
                         </p>
                     </div>
                 </body>
