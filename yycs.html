@@ -1,385 +1,191 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Volume2, BookOpen, History, Layers, CheckCircle, 
-  GraduationCap, ArrowRight, PlayCircle, Star, 
-  Compass, Link, Info, HelpCircle, FastForward
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yield - 交互式英语学习</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
 
-const App = () => {
-  const [activeTab, setActiveTab] = useState('meanings');
-  const [learnedCount, setLearnedCount] = useState(0);
-  const [quizResult, setQuizResult] = useState(null);
-  const [progress, setProgress] = useState({
-    meaning: false,
-    analysis: false,
-    usage: false,
-    story: false,
-    quiz: false
-  });
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        // 模拟 lucide-react 图标，因为 CDN 环境下用法略有不同
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
 
-  const wordData = {
-    word: "Yield",
-    phonetic: "/jiːld/",
-    definitions: [
-      { type: "v.", chinese: "产生；产出", english: "to produce or provide something, for example a profit, amount or result" },
-      { type: "v.", chinese: "屈服；让步；投降", english: "to stop resisting sth/sb; to agree to do sth that you did not want to do" },
-      { type: "v.", chinese: "（交通）让行", english: "to allow other vehicles to go past before you drive onto a main road" },
-      { type: "n.", chinese: "产量；收益；利润", english: "the total amount of crops, profits, etc. that are produced" }
-    ],
-    examples: [
-      { en: "The factory can yield a large number of shoes every day.", zh: "工厂每天能生产大量的鞋子。" },
-      { en: "The defender finally yielded the game to the competitor.", zh: "最终，防守者向竞争者屈服了。" },
-      { en: "All cars must yield to pedestrians at the crosswalk.", zh: "所有车辆在人行道上必须让行。" }
-    ],
-    etymology: {
-      root: "gieldan (古英语)",
-      origin: "最初意为“偿还”、“支付”或“给予”。",
-      evolution: "该词经历了有趣的演变：从最初的‘支付/给予’，演变为战斗中的‘给予（自己）’即‘投降’；后来又引申为土地‘给予’果实，即‘产量’。"
-    },
-    affix: "无明显前缀或后缀。它是一个原始的英语单词，保留了核心的词根形式。",
-    forms: [
-      { label: "第三人称单数", value: "yields" },
-      { label: "现在分词", value: "yielding" },
-      { label: "过去式", value: "yielded" },
-      { label: "过去分词", value: "yielded" }
-    ],
-    phrases: [
-      { phrase: "yield to temptation", trans: "经不起诱惑" },
-      { phrase: "high yield", trans: "高产量；高收益" },
-      { phrase: "yield the right of way", trans: "让出先行权" },
-      { phrase: "yield results", trans: "出成果" }
-    ],
-    synonyms: ["produce", "surrender", "concede", "output", "profit", "give in"],
-    antonyms: ["resist", "withstand", "refuse"],
-    culture: "在现代英语中，'yield' 是一个极具跨学科色彩的词：在农业中它是‘产量’，在金融中它是‘收益率’，在交通规则中它是‘让路’，在心理学中它是‘屈服’。它体现了英语单词从具体的物理动作（支付/给予）向抽象概念演变的典型路径。"
-  };
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('meanings');
+            const [quizResult, setQuizResult] = useState(null);
+            const [progress, setProgress] = useState({
+                meaning: false, analysis: false, usage: false, story: false, quiz: false
+            });
 
-  const speak = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      window.speechSynthesis.speak(utterance);
-    }
-  };
+            const wordData = {
+                word: "Yield",
+                phonetic: "/jiːld/",
+                definitions: [
+                    { type: "v.", chinese: "产生；产出", english: "to produce or provide something" },
+                    { type: "v.", chinese: "屈服；让步", english: "to stop resisting; to agree" },
+                    { type: "v.", chinese: "（交通）让行", english: "to allow other vehicles to go past" },
+                    { type: "n.", chinese: "产量；收益", english: "total amount produced" }
+                ],
+                examples: [
+                    { en: "The factory can yield a large number of shoes every day.", zh: "工厂每天能生产大量的鞋子。" },
+                    { en: "All cars must yield to pedestrians at the crosswalk.", zh: "所有车辆在人行道上必须让行。" }
+                ],
+                forms: ["yields", "yielding", "yielded"],
+                phrases: [
+                    { p: "yield to temptation", t: "经不起诱惑" },
+                    { p: "high yield", t: "高产量；高收益" }
+                ]
+            };
 
-  const markProgress = (key) => {
-    if (!progress[key]) {
-      setProgress(prev => ({ ...prev, [key]: true }));
-    }
-  };
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-US';
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
 
-  const handleQuiz = (index) => {
-    if (index === 1) { // 核心含义测试：产生
-      setQuizResult('correct');
-      markProgress('quiz');
-    } else {
-      setQuizResult('wrong');
-    }
-  };
+            const markProgress = (key) => {
+                if (!progress[key]) setProgress(prev => ({ ...prev, [key]: true }));
+            };
 
-  const progressPercent = (Object.values(progress).filter(Boolean).length / Object.keys(progress).length) * 100;
+            const progressPercent = (Object.values(progress).filter(Boolean).length / 5) * 100;
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
-      <div className="max-w-3xl mx-auto">
-        {/* Top Header Card */}
-        <header className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 mb-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4">
-             <div className="flex items-center space-x-1 text-amber-500 bg-amber-50 px-3 py-1 rounded-full">
-                <Star className="fill-current w-4 h-4" />
-                <span className="font-bold text-xs uppercase">Core Vocabulary</span>
-             </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row md:items-end space-y-2 md:space-y-0 md:space-x-6">
-            <h1 className="text-6xl font-black text-indigo-600 tracking-tight">{wordData.word}</h1>
-            <div className="flex items-center space-x-3 mb-1">
-              <span className="text-2xl text-slate-400 font-mono italic">{wordData.phonetic}</span>
-              <button 
-                onClick={() => speak(wordData.word)}
-                className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-              >
-                <Volume2 size={24} />
-              </button>
-            </div>
-          </div>
-          
-          <div className="mt-8">
-            <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-              <span>Mastery Level</span>
-              <span>{Math.round(progressPercent)}%</span>
-            </div>
-            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000 ease-out" 
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-          </div>
-        </header>
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <div className="max-w-2xl mx-auto">
+                        <header className="bg-white rounded-3xl shadow-sm p-8 mb-6 border border-slate-100">
+                            <div className="flex items-end space-x-4 mb-6">
+                                <h1 className="text-5xl font-black text-indigo-600">{wordData.word}</h1>
+                                <span className="text-xl text-slate-400 font-mono mb-1">{wordData.phonetic}</span>
+                                <button onClick={() => speak(wordData.word)} className="p-2 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors">
+                                    <Icon name="volume-2" />
+                                </button>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
+                            </div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 mt-2 tracking-widest">学习进度: {Math.round(progressPercent)}%</p>
+                        </header>
 
-        {/* Navigation Tabs - Updated for all content */}
-        <nav className="flex flex-wrap gap-2 mb-6">
-          {[
-            { id: 'meanings', icon: BookOpen, label: '释义 & 例句' },
-            { id: 'analysis', icon: Compass, label: '深度分析' },
-            { id: 'usage', icon: Link, label: '短语 & 近反' },
-            { id: 'story', icon: Info, label: '文化背景' },
-            { id: 'quiz', icon: GraduationCap, label: '实战挑战' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                if (tab.id !== 'quiz') markProgress(tab.id);
-              }}
-              className={`flex items-center px-5 py-3 rounded-2xl transition-all font-bold text-sm ${
-                activeTab === tab.id 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 scale-105' 
-                : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-100'
-              }`}
-            >
-              <tab.icon size={18} className="mr-2" />
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+                        <nav className="flex space-x-2 mb-6 overflow-x-auto pb-2">
+                            {[
+                                { id: 'meanings', icon: 'book-open', label: '释义' },
+                                { id: 'analysis', icon: 'compass', label: '分析' },
+                                { id: 'usage', icon: 'link', label: '用法' },
+                                { id: 'quiz', icon: 'graduation-cap', label: '测试' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => { setActiveTab(tab.id); markProgress(tab.id); }}
+                                    className={`flex items-center px-5 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                                        activeTab === tab.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-100'
+                                    }`}
+                                >
+                                    <Icon name={tab.icon} size={16} className="mr-2" />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
 
-        {/* Dynamic Content Panel */}
-        <main className="bg-white rounded-3xl shadow-sm border border-slate-100 min-h-[500px] mb-8">
-          {activeTab === 'meanings' && (
-            <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <section className="mb-10">
-                <h3 className="text-xl font-bold mb-6 flex items-center text-indigo-900">
-                  <BookOpen className="mr-3 text-indigo-500" /> 多维释义
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {wordData.definitions.map((def, i) => (
-                    <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-colors">
-                      <div className="flex items-center mb-2">
-                        <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-black rounded uppercase mr-2">{def.type}</span>
-                        <span className="font-bold text-slate-800 text-lg">{def.chinese}</span>
-                      </div>
-                      <p className="text-slate-400 text-sm leading-relaxed italic">{def.english}</p>
+                        <main className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 min-h-[300px]">
+                            {activeTab === 'meanings' && (
+                                <div className="space-y-6">
+                                    {wordData.definitions.map((def, i) => (
+                                        <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                            <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded mr-2">{def.type}</span>
+                                            <span className="font-bold">{def.chinese}</span>
+                                            <p className="text-slate-400 text-sm mt-1">{def.english}</p>
+                                        </div>
+                                    ))}
+                                    <div className="pt-4 border-t border-slate-50">
+                                        <h4 className="text-sm font-bold text-slate-400 mb-4 uppercase tracking-widest">例句播报</h4>
+                                        {wordData.examples.map((ex, i) => (
+                                            <div key={i} className="mb-4 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => speak(ex.en)}>
+                                                <p className="font-bold">🔊 {ex.en}</p>
+                                                <p className="text-slate-400 text-sm">{ex.zh}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'analysis' && (
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100">
+                                        <h4 className="font-bold text-amber-900 mb-2">词源追踪</h4>
+                                        <p className="text-amber-800 text-sm italic">源自古英语 'gieldan'，意为“给予”或“支付”。</p>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {wordData.forms.map(f => (
+                                            <div key={f} className="p-3 bg-purple-50 text-purple-700 rounded-xl text-center text-sm font-bold">{f}</div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'usage' && (
+                                <div className="space-y-3">
+                                    {wordData.phrases.map((p, i) => (
+                                        <div key={i} className="flex justify-between p-4 bg-pink-50 rounded-xl text-pink-700 font-bold border border-pink-100">
+                                            <span>{p.p}</span>
+                                            <span className="opacity-60">{p.t}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {activeTab === 'quiz' && (
+                                <div className="text-center">
+                                    <h3 className="text-xl font-bold mb-6">"Yield results" 的意思是什么？</h3>
+                                    <div className="space-y-3">
+                                        {['放弃结果', '出成果', '拒绝结果'].map((opt, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => { if(i===1) { setQuizResult('win'); markProgress('quiz'); } else setQuizResult('lose'); }}
+                                                className={`w-full p-4 rounded-xl border-2 font-bold transition-all ${
+                                                    quizResult === 'win' && i === 1 ? 'border-emerald-500 bg-emerald-50 text-emerald-700' :
+                                                    quizResult === 'lose' && i !== 1 ? 'border-red-200 opacity-50' : 'border-slate-100 hover:border-indigo-500'
+                                                }`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {quizResult === 'win' && <p className="mt-4 text-emerald-600 font-bold animate-bounce">🎉 正确！你真棒！</p>}
+                                </div>
+                            )}
+                        </main>
                     </div>
-                  ))}
                 </div>
-              </section>
+            );
+        };
 
-              <section>
-                <h3 className="text-xl font-bold mb-6 flex items-center text-emerald-900">
-                  <PlayCircle className="mr-3 text-emerald-500" /> 情境例句
-                </h3>
-                <div className="space-y-4">
-                  {wordData.examples.map((ex, i) => (
-                    <div 
-                      key={i} 
-                      className="group p-5 hover:bg-emerald-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all cursor-pointer"
-                      onClick={() => speak(ex.en)}
-                    >
-                      <div className="flex items-start">
-                        <div className="mt-1 mr-4 bg-emerald-100 text-emerald-600 p-1.5 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                          <Volume2 size={16} />
-                        </div>
-                        <div>
-                          <p className="text-slate-700 font-bold text-lg leading-snug">{ex.en}</p>
-                          <p className="text-slate-400 mt-2 font-medium">{ex.zh}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-          )}
-
-          {activeTab === 'analysis' && (
-            <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-8">
-                <section>
-                  <h3 className="text-xl font-bold mb-4 flex items-center text-amber-900">
-                    <History className="mr-3 text-amber-500" /> 词根追踪 (Root Analysis)
-                  </h3>
-                  <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-amber-800 font-black px-3 py-1 bg-white rounded-full shadow-sm">{wordData.etymology.root}</span>
-                      <span className="text-amber-600 font-bold">→</span>
-                      <span className="text-amber-600 font-medium">{wordData.etymology.origin}</span>
-                    </div>
-                    <p className="text-slate-600 leading-relaxed italic text-sm border-t border-amber-200/50 pt-4">
-                      {wordData.etymology.evolution}
-                    </p>
-                  </div>
-                </section>
-
-                <section>
-                  <h3 className="text-xl font-bold mb-4 flex items-center text-blue-900">
-                    <HelpCircle className="mr-3 text-blue-500" /> 词缀分析 (Affix)
-                  </h3>
-                  <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 text-blue-700 font-medium italic">
-                    {wordData.affix}
-                  </div>
-                </section>
-
-                <section>
-                  <h3 className="text-xl font-bold mb-4 flex items-center text-purple-900">
-                    <Layers className="mr-3 text-purple-500" /> 单词变形 (Morphology)
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {wordData.forms.map((form, i) => (
-                      <div key={i} className="p-4 bg-purple-50 border border-purple-100 rounded-2xl text-center hover:scale-105 transition-transform">
-                        <div className="text-[10px] uppercase font-black text-purple-400 mb-1">{form.label}</div>
-                        <div className="text-purple-700 font-bold font-mono">{form.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'usage' && (
-            <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <section>
-                  <h3 className="text-xl font-bold mb-6 flex items-center text-pink-900">
-                    <Link className="mr-3 text-pink-500" /> 常用短语
-                  </h3>
-                  <div className="space-y-3">
-                    {wordData.phrases.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-pink-50 rounded-2xl group cursor-help">
-                        <span className="font-bold text-pink-700 group-hover:underline">{p.phrase}</span>
-                        <span className="text-slate-400 text-sm">{p.trans}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section>
-                  <h3 className="text-xl font-bold mb-6 flex items-center text-slate-900">
-                    <FastForward className="mr-3 text-slate-500" /> 近反义词
-                  </h3>
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Synonyms (近义词)</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {wordData.synonyms.map(s => (
-                          <span key={s} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg font-bold text-sm border border-emerald-100 uppercase tracking-tighter">{s}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Antonyms (反义词)</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {wordData.antonyms.map(a => (
-                          <span key={a} className="px-3 py-1.5 bg-rose-50 text-rose-700 rounded-lg font-bold text-sm border border-rose-100 uppercase tracking-tighter">{a}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'story' && (
-            <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h3 className="text-xl font-bold mb-6 flex items-center text-indigo-900">
-                <Info className="mr-3 text-indigo-500" /> 发展历史 & 文化背景
-              </h3>
-              <div className="relative">
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-indigo-100 hidden md:block"></div>
-                <div className="space-y-8 relative">
-                  <div className="md:ml-12 p-6 bg-white border border-slate-100 shadow-sm rounded-3xl italic text-slate-600 leading-relaxed text-lg">
-                    "{wordData.culture}"
-                  </div>
-                  <div className="md:ml-12 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-800 text-white rounded-2xl">
-                      <p className="text-xs text-slate-400 font-bold uppercase mb-2">Historical Fact</p>
-                      <p className="text-sm">在14世纪，该词主要用于描述债务的偿还。直到16世纪才广泛用于农业产量。</p>
-                    </div>
-                    <div className="p-4 bg-indigo-50 text-indigo-700 rounded-2xl border border-indigo-100">
-                      <p className="text-xs text-indigo-400 font-bold uppercase mb-2">Language Note</p>
-                      <p className="text-sm">在英式英语和美式英语中，yield 作为路标（让路）的使用频率略有不同。</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'quiz' && (
-            <div className="p-8 animate-in zoom-in duration-300">
-              <div className="text-center mb-10">
-                <div className="inline-flex p-5 bg-indigo-50 text-indigo-600 rounded-full mb-4 shadow-inner">
-                  <GraduationCap size={48} />
-                </div>
-                <h3 className="text-3xl font-black">词汇达人挑战</h3>
-                <p className="text-slate-400 mt-2">测试你对 "Yield" 核心含义的理解</p>
-              </div>
-
-              <div className="bg-slate-900 text-white p-8 rounded-3xl mb-8 relative group">
-                <div className="absolute top-0 left-0 p-4 opacity-20"><HelpCircle /></div>
-                <p className="text-xl font-mono leading-relaxed text-center">
-                  "The breakthrough in technology will <span className="text-indigo-400 font-bold underline decoration-wavy">yield</span> immense benefits for humanity."
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                {[
-                  { label: "让路 (Give way)", val: "让路给别人" },
-                  { label: "产生/产出 (Produce)", val: "带来巨大好处" },
-                  { label: "屈服 (Surrender)", val: "向科技投降" }
-                ].map((opt, i) => (
-                  <button
-                    key={i}
-                    disabled={quizResult !== null}
-                    onClick={() => handleQuiz(i)}
-                    className={`p-6 rounded-2xl border-2 text-left transition-all flex justify-between items-center group ${
-                      quizResult === null ? 'border-slate-100 hover:border-indigo-500 hover:bg-indigo-50' : 
-                      i === 1 ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 
-                      quizResult === 'wrong' && i !== 1 ? 'border-red-100 opacity-40 scale-95' : 'border-slate-100 opacity-40'
-                    }`}
-                  >
-                    <div>
-                      <span className="block font-black text-lg">{opt.label}</span>
-                      <span className="text-sm opacity-60 font-medium">{opt.val}</span>
-                    </div>
-                    {quizResult !== null && i === 1 ? (
-                      <CheckCircle className="text-emerald-500" size={24} />
-                    ) : (
-                      <ArrowRight className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-400" />
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {quizResult === 'correct' && (
-                <div className="mt-8 p-6 bg-emerald-500 text-white rounded-2xl text-center font-bold shadow-lg shadow-emerald-100 animate-bounce">
-                  🎊 恭喜！你已经掌握了 Yield 的核心！
-                </div>
-              )}
-            </div>
-          )}
-        </main>
-
-        <footer className="flex flex-col md:flex-row items-center justify-between text-slate-400 text-sm gap-4">
-          <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
-             <div className="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse"></div>
-             <span>数据来源：核心英语教学语料库</span>
-          </div>
-          <div className="flex space-x-4">
-            <button className="hover:text-indigo-600 transition-colors font-bold">收藏本词</button>
-            <span className="opacity-20">|</span>
-            <button className="hover:text-indigo-600 transition-colors font-bold flex items-center">
-              学习报告 <ArrowRight size={14} className="ml-1" />
-            </button>
-          </div>
-        </footer>
-      </div>
-    </div>
-  );
-};
-
-export default App;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
