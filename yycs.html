@@ -11,7 +11,8 @@
         body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #f0f4f8; }
         .review-ping { animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
         @keyframes ping { 75%, 100% { transform: scale(1.5); opacity: 0; } }
-        /* 保持之前的闪卡和打印样式... */
+        .no-print { display: block; }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
 <body class="pb-20">
@@ -42,10 +43,10 @@
     </nav>
 
     <div class="max-w-6xl mx-auto px-4 mt-8">
-        <div class="flex bg-slate-200/50 p-1.5 rounded-2xl mb-8 max-w-xl mx-auto backdrop-blur-sm nav-tabs">
+        <div class="flex bg-slate-200/50 p-1.5 rounded-2xl mb-8 max-w-xl mx-auto backdrop-blur-sm no-print">
             <button onclick="switchMode('explore')" id="btn-explore" class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm">词海探索</button>
             <button onclick="switchMode('stats')" id="btn-stats" class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all text-slate-500">维度分析</button>
-            <button onclick="generateWeeklyReport()" class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all text-slate-500">生成周报</button>
+            <button onclick="window.print()" class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all text-slate-500">打印报告</button>
         </div>
 
         <div id="mode-stats" class="hidden">
@@ -57,77 +58,133 @@
                     </div>
                 </div>
                 <div class="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <h4 class="text-sm font-black text-slate-800 mb-4">学习成长轨迹</h4>
+                    <h4 class="text-sm font-black text-slate-800 mb-4">学习成长轨迹 (7日)</h4>
                     <div class="h-64 w-full">
                         <canvas id="learningChart"></canvas>
                     </div>
                 </div>
             </div>
+            <div class="bg-indigo-900 text-white p-8 rounded-[2.5rem] shadow-xl mb-8">
+                <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Coach Comment / 教务点评</h4>
+                <p id="repComment" class="text-lg font-medium italic">“ 系统正在分析您的学习行为数据... ”</p>
+            </div>
         </div>
 
-        <div id="mainApp">
+        <div id="mainApp" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             </div>
     </div>
 
     <script>
-        // --- 核心变量 ---
-        let posChart = null;
-        let learningChart = null;
+        // --- 1. 数据定义与初始化 ---
+        const words = [
+            { word: "curriculum", content: "n. 课程；全部课程", level: "Core" },
+            { word: "pedagogy", content: "n. 教育学；教学法", level: "Expert" },
+            { word: "assessment", content: "n. 评估；评价", level: "Daily" },
+            { word: "facilitate", content: "v. 促进；帮助", level: "Action" },
+            { word: "synergy", content: "n. 协同作用", level: "Admin" },
+            { word: "implement", content: "v. 实施；执行", level: "Action" },
+            { word: "comprehensive", content: "adj. 全面的；综合的", level: "Core" }
+        ];
 
-        // --- 智能词性分析逻辑 ---
-        function analyzePOS() {
-            const stats = { "名词(n.)": 0, "动词(v.)": 0, "形容词(adj.)": 0, "副词(adv.)": 0, "其他": 0 };
+        let masteredWords = new Set(JSON.parse(localStorage.getItem('masteredWords')) || []);
+        let masteryHistory = JSON.parse(localStorage.getItem('masteryHistory')) || {}; 
+        let dailyGoal = 5;
+        let posChart, learningChart;
+
+        // --- 2. 页面管理 ---
+        function switchMode(mode) {
+            document.getElementById('mainApp').classList.toggle('hidden', mode !== 'explore');
+            document.getElementById('mode-stats').classList.toggle('hidden', mode !== 'stats');
             
+            // 更新按钮状态
+            document.getElementById('btn-explore').className = mode === 'explore' ? 
+                "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm" : 
+                "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all text-slate-500";
+            
+            document.getElementById('btn-stats').className = mode === 'stats' ? 
+                "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm" : 
+                "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all text-slate-500";
+
+            if (mode === 'explore') renderWords();
+            if (mode === 'stats') renderStatsCharts();
+        }
+
+        // --- 3. 词库渲染与交互 ---
+        function renderWords(filterWords = words) {
+            const container = document.getElementById('mainApp');
+            container.innerHTML = filterWords.map(w => `
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 hover:shadow-xl transition-all group">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-wider">${w.level}</span>
+                        ${masteredWords.has(w.word) ? '<span class="text-green-500 text-[10px] font-black italic">MASTERED</span>' : ''}
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2">${w.word}</h3>
+                    <p class="text-slate-500 text-sm mb-6">${w.content}</p>
+                    <button onclick="markAsMastered('${w.word}')" 
+                        class="${masteredWords.has(w.word) ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white'} w-full py-3 rounded-xl font-bold text-xs transition-transform active:scale-95">
+                        ${masteredWords.has(w.word) ? 'RE-LEARN' : 'MARK AS MASTERED'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function markAsMastered(word) {
+            const today = new Date().toISOString().split('T')[0];
+            if (masteredWords.has(word)) {
+                masteredWords.delete(word);
+            } else {
+                masteredWords.add(word);
+                if (!masteryHistory[today]) masteryHistory[today] = [];
+                if (!masteryHistory[today].includes(word)) masteryHistory[today].push(word);
+            }
+            localStorage.setItem('masteredWords', JSON.stringify([...masteredWords]));
+            localStorage.setItem('masteryHistory', JSON.stringify(masteryHistory));
+            renderWords();
+            checkMemoryDecay();
+        }
+
+        // --- 4. 核心逻辑：词性分析与记忆扫描 ---
+        function analyzePOS() {
+            const stats = { "名词(n.)": 0, "动词(v.)": 0, "形容词(adj.)": 0, "其他": 0 };
             masteredWords.forEach(wordStr => {
                 const wordObj = words.find(w => w.word === wordStr);
-                if (wordObj && wordObj.content) {
-                    const content = wordObj.content.toLowerCase();
-                    if (content.includes("n.") || content.includes("名词")) stats["名词(n.)"]++;
-                    else if (content.includes("v.") || content.includes("动词")) stats["动词(v.)"]++;
-                    else if (content.includes("adj.") || content.includes("形容词")) stats["形容词(adj.)"]++;
-                    else if (content.includes("adv.") || content.includes("副词")) stats["副词(adv.)"]++;
+                if (wordObj) {
+                    const c = wordObj.content.toLowerCase();
+                    if (c.includes("n.")) stats["名词(n.)"]++;
+                    else if (c.includes("v.")) stats["动词(v.)"]++;
+                    else if (c.includes("adj.")) stats["形容词(adj.)"]++;
                     else stats["其他"]++;
                 }
             });
             return stats;
         }
 
-        // --- 遗忘曲线扫描器 ---
         function checkMemoryDecay() {
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             const dateStr = sevenDaysAgo.toISOString().split('T')[0];
-            
             const wordsToReview = masteryHistory[dateStr] || [];
             
-            if (wordsToReview.length > 0) {
-                document.getElementById('reviewAlert').classList.remove('hidden');
-                document.getElementById('reviewBtn').classList.remove('hidden');
-                document.getElementById('memoryHealth').textContent = "85% (下降)";
-                document.getElementById('memoryHealth').className = "text-sm font-black text-red-500";
-                return wordsToReview;
-            } else {
-                document.getElementById('reviewAlert').classList.add('hidden');
-                document.getElementById('reviewBtn').classList.add('hidden');
-                document.getElementById('memoryHealth').textContent = "100%";
-                document.getElementById('memoryHealth').className = "text-sm font-black text-green-600";
-                return [];
-            }
+            const isHealthy = wordsToReview.length === 0;
+            document.getElementById('reviewAlert').classList.toggle('hidden', isHealthy);
+            document.getElementById('reviewBtn').classList.toggle('hidden', isHealthy);
+            document.getElementById('memoryHealth').textContent = isHealthy ? "100%" : "85% (下降)";
+            document.getElementById('memoryHealth').className = isHealthy ? "text-sm font-black text-green-600" : "text-sm font-black text-red-500";
+            return wordsToReview;
         }
 
-        // --- 进入复习模式 ---
         function startReviewMode() {
             const wordsToReview = checkMemoryDecay();
             if (wordsToReview.length > 0) {
-                filteredWords = words.filter(w => wordsToReview.includes(w.word));
-                switchMode('cards');
-                showToast(`正在复习 7 天前掌握的 ${wordsToReview.length} 个单词`, "🧠");
+                const filtered = words.filter(w => wordsToReview.includes(w.word));
+                renderWords(filtered);
+                alert(`正在复习 7 天前掌握的 ${wordsToReview.length} 个单词`);
             }
         }
 
-        // --- 渲染维度分析图表 ---
+        // --- 5. 图表渲染 ---
         function renderStatsCharts() {
-            // 1. 词性环形图
+            // 词性环形图
             const posData = analyzePOS();
             const posCtx = document.getElementById('posChart').getContext('2d');
             if (posChart) posChart.destroy();
@@ -137,50 +194,55 @@
                     labels: Object.keys(posData),
                     datasets: [{
                         data: Object.values(posData),
-                        backgroundColor: ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#94a3b8'],
+                        backgroundColor: ['#6366f1', '#ec4899', '#f59e0b', '#94a3b8'],
                         borderWidth: 0
                     }]
                 },
-                options: {
-                    cutout: '70%',
-                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, font: { size: 10 } } } }
-                }
+                options: { cutout: '70%', plugins: { legend: { position: 'bottom' } } }
             });
 
-            // 2. 学习曲线图 (同前，略...)
-            renderLearningChart(); 
+            // 学习轨迹图
+            const learningCtx = document.getElementById('learningChart').getContext('2d');
+            const labels = [];
+            const data = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const ds = d.toISOString().split('T')[0];
+                labels.push(ds.split('-').slice(1).join('/'));
+                data.push(masteryHistory[ds] ? masteryHistory[ds].length : 0);
+            }
+            if (learningChart) learningChart.destroy();
+            learningChart = new Chart(learningCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: '掌握数', data: data, borderColor: '#6366f1', tension: 0.4, fill: true, backgroundColor: 'rgba(99,102,241,0.1)' }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+
+            // 生成点评
+            generateCoachComment(data.reduce((a, b) => a + b, 0));
         }
 
-        // --- 增强版周报点评逻辑 ---
-        function generateCoachComment(count, acc) {
+        function generateCoachComment(weeklyCount) {
             const pos = analyzePOS();
-            let comment = "";
             const total = masteredWords.size;
+            let comment = weeklyCount > 5 ? "本周表现卓越！教务系统显示您保持了高频的学习输出。" : "节奏较平稳。";
             
-            // 词性偏科分析
-            const verbRatio = pos["动词(v.)"] / total;
-            
-            if (count >= dailyGoal * 5) {
-                comment = "本周学习力爆发！教务数据分析显示你已进入深度学习阶段。";
+            if (total > 0 && (pos["动词(v.)"] / total) < 0.2) {
+                comment += " 注意：动词比例较低。在职场沟通中，准确使用动词（Action Verbs）能大幅提升表达的专业度。";
             } else {
-                comment = "学习节奏平稳。";
+                comment += " 词汇维度分布均衡，非常适合职场综合应用场景。";
             }
-
-            if (verbRatio < 0.1 && total > 20) {
-                comment += " 值得注意的是，你的动词掌握比例偏低。在职场英语中，动词是句子的灵魂，建议下周针对性加强行动类词汇的积累。";
-            } else {
-                comment += " 词汇维度分布均匀，这有利于你构建平衡的语言体系。";
-            }
-            
             document.getElementById('repComment').textContent = `“ ${comment} ”`;
         }
 
-        // 修改初始化逻辑
-        function initApp() {
+        // --- 初始化 ---
+        window.onload = () => {
+            renderWords();
             checkMemoryDecay();
-            // 每小时自动检查一次记忆状态
-            setInterval(checkMemoryDecay, 3600000);
-        }
+        };
     </script>
 </body>
 </html>
