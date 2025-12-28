@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语学习单词本 - Interactive</title>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- 引入 Babel 用于解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 图标 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0fdfa; /* Teal-50 */
+        }
+        .blur-text {
+            filter: blur(4px);
+            user-select: none;
+            transition: filter 0.3s ease;
+            cursor: pointer;
+        }
+        .blur-text:hover, .blur-text.revealed {
+            filter: blur(0);
+        }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Volume2, BookOpen, History, Layers, GraduationCap, ChevronRight, ChevronLeft, Eye, EyeOff, Info } = lucide;
+
+        // 模拟原文件数据，这里将原HTML内容结构化为JSON数据
+        // 如果有更多单词，只需按此格式添加到数组中
+        const vocabData = [
+            {
+                word: "Yield",
+                phonetic: "/jiːld/",
+                meanings: [
+                    { type: "v.", text: "产出 (Produce/Provide)" },
+                    { type: "v.", text: "屈服，让步 (Surrender/Give way)" },
+                    { type: "n.", text: "收益，产量 (Earnings/Crop output)" }
+                ],
+                definitionDetail: "‘Yield’是一个多义词。首先，它常用于指‘产出’或‘提供’（如农作物、结果、利润等）。其次，它指‘屈服’或‘放弃抵抗’，常与介词‘to’连用。在交通规则中，它特指‘让行’。作为名词时，意为投资收益或农作物产量。",
+                examples: [
+                    { en: "The factory can yield a large number of shoes every day.", cn: "工厂每天能生产大量的鞋子。" },
+                    { en: "The defender finally yielded the game to the competitor.", cn: "最终，防守者向竞争者屈服了。" },
+                    { en: "All cars must yield to pedestrians at the crosswalk.", cn: "所有车辆在人行道上必须让行。" }
+                ],
+                roots: {
+                    root: "来自古英语 'gieldan'，意为“偿还”或“给予”。",
+                    affix: "无前后缀，原始英语单词。"
+                },
+                history: "‘Yield’ 这个词源于古英语的 ‘gieldan’，最早是指在战斗中向对手屈服或投降。到了中世纪，它的含义扩展到了农业，指土地或农作物的产量。在现代英语中，‘yield’ 的意义更广，可以指任何事物或行动的结果。",
+                forms: [
+                    { label: "名词形式", text: "yield" },
+                    { label: "动词形式", text: "yield (yields, yielding, yielded)" }
+                ],
+                collocations: [
+                    { phrase: "yield up", text: "放手，交出" },
+                    { phrase: "yield to", text: "向...屈服/让步" }
+                ]
+            }
+        ];
+
+        const App = () => {
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [studyMode, setStudyMode] = useState(false);
+            const [activeTab, setActiveTab] = useState('examples'); // examples, history, forms
+
+            const currentWord = vocabData[currentIndex];
+
+            // 朗读功能
+            const speak = (text) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+            };
+
+            // 创建图标组件
+            const Icon = ({ name, size = 20, className }) => {
+                const LucideIcon = lucide[name];
+                return LucideIcon ? <LucideIcon size={size} className={className} /> : null;
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center py-8 px-4 sm:px-6">
+                    {/* Header */}
+                    <header className="w-full max-w-3xl flex justify-between items-center mb-8">
+                        <div className="flex items-center gap-2 text-teal-800">
+                            <Icon name="BookOpen" className="text-teal-600" size={32} />
+                            <h1 className="text-2xl font-bold tracking-tight">英语单词本</h1>
+                        </div>
+                        <div className="flex items-center gap-3">
+                             <span className="text-sm text-teal-700 font-medium hidden sm:block">
+                                {studyMode ? "学习模式开启" : "学习模式关闭"}
+                            </span>
+                            <button 
+                                onClick={() => setStudyMode(!studyMode)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
+                                    studyMode 
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-200" 
+                                    : "bg-white text-teal-600 border border-teal-200"
+                                }`}
+                            >
+                                <Icon name={studyMode ? "EyeOff" : "Eye"} size={18} />
+                                <span className="text-sm font-semibold">{studyMode ? "遮挡答案" : "显示全部"}</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Main Card */}
+                    <main className="w-full max-w-3xl bg-white rounded-3xl shadow-xl overflow-hidden border border-teal-50">
+                        {/* Word Hero Section */}
+                        <div className="bg-gradient-to-br from-teal-500 to-emerald-700 text-white p-8 relative overflow-hidden">
+                            {/* Decorative Background Text */}
+                            <div className="absolute -right-4 -bottom-10 text-9xl font-bold opacity-10 select-none pointer-events-none font-serif">
+                                {currentWord.word}
+                            </div>
+
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-5xl font-bold mb-2 tracking-wide">{currentWord.word}</h2>
+                                        <div className="flex items-center gap-3 text-teal-100 text-lg mb-6">
+                                            <span className="font-mono bg-teal-800/30 px-2 py-1 rounded">{currentWord.phonetic}</span>
+                                            <button 
+                                                onClick={() => speak(currentWord.word)}
+                                                className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+                                                title="Play Audio"
+                                            >
+                                                <Icon name="Volume2" size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    {currentWord.meanings.map((m, idx) => (
+                                        <div key={idx} className="bg-white/90 text-teal-900 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm backdrop-blur-sm">
+                                            <span className="opacity-60 mr-1 italic">{m.type}</span>
+                                            {m.text}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Interactive Content Section */}
+                        <div className="p-6 sm:p-8">
+                            
+                            {/* Detailed Explanation */}
+                            <div className="mb-8 p-4 bg-teal-50 rounded-xl border-l-4 border-teal-500 text-teal-900 leading-relaxed">
+                                <h3 className="font-bold text-teal-800 mb-2 flex items-center gap-2">
+                                    <Icon name="Info" size={18} /> 
+                                    词义解析
+                                </h3>
+                                <p className="text-sm sm:text-base opacity-90">{currentWord.definitionDetail}</p>
+                            </div>
+
+                            {/* Tabs Navigation */}
+                            <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
+                                {[
+                                    { id: 'examples', label: '例句场景', icon: 'GraduationCap' },
+                                    { id: 'history', label: '词源与历史', icon: 'History' },
+                                    { id: 'forms', label: '变形与搭配', icon: 'Layers' }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-2 px-6 py-3 font-medium text-sm transition-all relative whitespace-nowrap ${
+                                            activeTab === tab.id 
+                                            ? "text-teal-600" 
+                                            : "text-gray-400 hover:text-gray-600"
+                                        }`}
+                                    >
+                                        <Icon name={tab.icon} size={18} />
+                                        {tab.label}
+                                        {activeTab === tab.id && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-600 rounded-t-full"></div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Tab Content Area */}
+                            <div className="min-h-[300px]">
+                                {/* Examples Tab */}
+                                {activeTab === 'examples' && (
+                                    <div className="space-y-4 animate-fadeIn">
+                                        {currentWord.examples.map((ex, idx) => (
+                                            <div key={idx} className="group p-4 rounded-xl border border-gray-100 hover:border-teal-100 hover:bg-teal-50/50 transition-all">
+                                                <div className="flex justify-between items-start gap-4">
+                                                    <div className="flex-1">
+                                                        <p className="text-lg text-slate-800 font-medium mb-2 leading-relaxed">
+                                                            {ex.en.split(new RegExp(`(${currentWord.word})`, 'gi')).map((part, i) => 
+                                                                part.toLowerCase() === currentWord.word.toLowerCase() 
+                                                                ? <span key={i} className="text-teal-600 font-bold bg-teal-100 px-1 rounded mx-0.5">{part}</span> 
+                                                                : part
+                                                            )}
+                                                        </p>
+                                                        <p 
+                                                            className={`text-slate-500 text-sm transition-all duration-300 ${studyMode ? 'blur-text bg-gray-100 inline-block px-2 rounded select-none text-transparent' : ''}`}
+                                                            onClick={(e) => {
+                                                                if(studyMode) e.target.classList.toggle('revealed');
+                                                            }}
+                                                        >
+                                                            {ex.cn}
+                                                        </p>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => speak(ex.en)}
+                                                        className="p-2 text-gray-300 hover:text-teal-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Icon name="Volume2" size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {studyMode && (
+                                            <div className="text-center text-xs text-gray-400 mt-4">
+                                                * 点击模糊区域可查看翻译
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* History Tab */}
+                                {activeTab === 'history' && (
+                                    <div className="animate-fadeIn space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="p-5 bg-orange-50 rounded-xl border border-orange-100">
+                                                <h4 className="font-bold text-orange-800 mb-2 text-sm uppercase tracking-wider">词根 Root</h4>
+                                                <p className="text-orange-900">{currentWord.roots.root}</p>
+                                            </div>
+                                            <div className="p-5 bg-blue-50 rounded-xl border border-blue-100">
+                                                <h4 className="font-bold text-blue-800 mb-2 text-sm uppercase tracking-wider">词缀 Affix</h4>
+                                                <p className="text-blue-900">{currentWord.roots.affix}</p>
+                                            </div>
+                                        </div>
+                                        <div className="prose prose-sm prose-teal text-slate-600">
+                                            <h4 className="font-bold text-slate-800 mb-2">发展历史与文化背景</h4>
+                                            <p className="leading-relaxed">{currentWord.history}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Forms & Collocations Tab */}
+                                {activeTab === 'forms' && (
+                                    <div className="animate-fadeIn space-y-6">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">单词变形 Forms</h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {currentWord.forms.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                        <span className="w-20 text-xs font-bold text-gray-500 uppercase">{item.label}</span>
+                                                        <span className="font-mono text-teal-700 font-medium">{item.text}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="border-t border-gray-100 pt-6">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">常用搭配 Collocations</h4>
+                                            <div className="space-y-2">
+                                                {currentWord.collocations.map((col, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-3 hover:bg-teal-50 rounded-lg transition-colors group cursor-default">
+                                                        <span className="font-bold text-slate-700 group-hover:text-teal-700">{col.phrase}</span>
+                                                        <span className="text-slate-500 text-sm">{col.text}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer / Pagination (Ready for more words) */}
+                        <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center text-sm text-gray-500">
+                            <button 
+                                disabled={currentIndex === 0}
+                                onClick={() => setCurrentIndex(c => c - 1)}
+                                className="flex items-center gap-1 hover:text-teal-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <Icon name="ChevronLeft" size={16} /> 上一个
+                            </button>
+                            <span>{currentIndex + 1} / {vocabData.length}</span>
+                            <button 
+                                disabled={currentIndex === vocabData.length - 1}
+                                onClick={() => setCurrentIndex(c => c + 1)}
+                                className="flex items-center gap-1 hover:text-teal-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                下一个 <Icon name="ChevronRight" size={16} />
+                            </button>
+                        </div>
+                    </main>
+                    
+                    <footer className="mt-8 text-slate-400 text-sm">
+                        © English Vocabulary Notebook
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
