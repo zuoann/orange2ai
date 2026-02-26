@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VERI · 职业教育研究</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon-cyan: #00f5ff;
+    --neon-blue: #0080ff;
+    --neon-violet: #7b2fff;
+    --gold: #ffd700;
+    --bg-void: #020510;
+    --bg-deep: #030818;
+    --bg-panel: rgba(0, 20, 60, 0.6);
+    --text-primary: #e8f4ff;
+    --text-dim: rgba(200, 220, 255, 0.55);
+    --grid-line: rgba(0, 180, 255, 0.08);
+    --border-glow: rgba(0, 245, 255, 0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg-void);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .cursor-dot {
+    width: 6px; height: 6px;
+    background: var(--neon-cyan);
+    border-radius: 50%;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s;
+    box-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid rgba(0,245,255,0.5);
+    border-radius: 50%;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease-out, width 0.2s, height 0.2s, border-color 0.2s;
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+    animation: gridShift 20s linear infinite;
+  }
+  @keyframes gridShift {
+    0% { transform: perspective(600px) rotateX(0deg) translateY(0); }
+    100% { transform: perspective(600px) rotateX(0deg) translateY(60px); }
+  }
+
+  /* Ambient glow blobs */
+  .ambient {
+    position: fixed; border-radius: 50%;
+    filter: blur(120px); opacity: 0.12; z-index: 0; pointer-events: none;
+  }
+  .ambient-1 { width: 600px; height: 600px; background: var(--neon-blue); top: -200px; left: -100px; animation: float1 12s ease-in-out infinite; }
+  .ambient-2 { width: 500px; height: 500px; background: var(--neon-violet); bottom: 10%; right: -150px; animation: float2 15s ease-in-out infinite; }
+  .ambient-3 { width: 400px; height: 400px; background: var(--neon-cyan); top: 50%; left: 40%; animation: float3 10s ease-in-out infinite; }
+  @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,60px)} }
+  @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-40px)} }
+  @keyframes float3 { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-48%,-52%)} }
+
+  /* Noise texture overlay */
+  .noise {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+
+  /* Scanlines */
+  .scanlines {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 0, 0, 0.04) 3px,
+      rgba(0, 0, 0, 0.04) 4px
+    );
+  }
+
+  /* NAVIGATION */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 0 60px;
+    height: 72px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(2, 5, 16, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-glow);
+  }
+  .nav-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px; font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px rgba(0,245,255,0.6);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-bracket { color: rgba(0,245,255,0.4); font-size: 28px; }
+  .nav-links { display: flex; gap: 40px; align-items: center; }
+  .nav-links a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.1em;
+    color: var(--text-dim); text-decoration: none;
+    text-transform: uppercase;
+    position: relative;
+    transition: color 0.3s;
+  }
+  .nav-links a::before {
+    content: '//'; margin-right: 6px;
+    color: rgba(0,245,255,0.3);
+    font-size: 10px;
+  }
+  .nav-links a:hover { color: var(--neon-cyan); }
+  .nav-links a:hover::after {
+    content: ''; position: absolute;
+    bottom: -4px; left: 0; right: 0; height: 1px;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--neon-cyan);
+  }
+  .nav-cta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em;
+    color: var(--bg-void); background: var(--neon-cyan);
+    padding: 8px 20px; text-transform: uppercase;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: all 0.3s; cursor: none;
+  }
+  .nav-cta:hover { background: white; box-shadow: 0 0 20px var(--neon-cyan); }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 10;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 100px 60px 60px;
+    overflow: hidden;
+  }
+
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--neon-cyan); opacity: 0.8;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 32px;
+    animation: fadeInUp 0.8s 0.2s both;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 40px; height: 1px;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 6px var(--neon-cyan);
+  }
+  .blink { animation: blink 1.2s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(42px, 7vw, 100px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+    animation: fadeInUp 0.8s 0.35s both;
+  }
+  .hero-title .line1 { display: block; color: var(--text-primary); }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue), var(--neon-violet));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px rgba(0,245,255,0.3));
+  }
+  .hero-subtitle-zh {
+    font-size: clamp(16px, 2vw, 22px);
+    color: var(--text-dim); font-weight: 300;
+    letter-spacing: 0.35em;
+    margin-bottom: 40px;
+    animation: fadeInUp 0.8s 0.5s both;
+  }
+  .hero-desc {
+    max-width: 540px;
+    font-size: 15px; line-height: 1.8;
+    color: var(--text-dim); font-weight: 300;
+    margin-bottom: 52px;
+    animation: fadeInUp 0.8s 0.65s both;
+    border-left: 2px solid rgba(0,245,255,0.3);
+    padding-left: 20px;
+  }
+
+  .hero-actions {
+    display: flex; gap: 20px; align-items: center;
+    animation: fadeInUp 0.8s 0.8s both;
+  }
+  .btn-primary {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px; letter-spacing: 0.15em; font-weight: 600;
+    color: var(--bg-void); background: var(--neon-cyan);
+    padding: 16px 36px; text-transform: uppercase;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    cursor: none; transition: all 0.3s; border: none;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary::after {
+    content: ''; position: absolute; inset: 0;
+    background: white; transform: translateX(-100%) skewX(-10deg);
+    transition: transform 0.3s;
+  }
+  .btn-primary:hover::after { transform: translateX(100%) skewX(-10deg); }
+  .btn-primary:hover { box-shadow: 0 0 40px rgba(0,245,255,0.6); }
+
+  .btn-secondary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.15em;
+    color: var(--neon-cyan); background: transparent;
+    padding: 14px 28px; text-transform: uppercase;
+    border: 1px solid var(--border-glow);
+    cursor: none; transition: all 0.3s;
+  }
+  .btn-secondary:hover { border-color: var(--neon-cyan); background: rgba(0,245,255,0.06); box-shadow: 0 0 20px rgba(0,245,255,0.1) inset; }
+
+  /* Hero 3D visual */
+  .hero-visual {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 52%; height: 80vh;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeInUp 1s 0.4s both;
+  }
+
+  .orbit-system {
+    position: relative;
+    width: 440px; height: 440px;
+  }
+  .orbit-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 100px; height: 100px;
+    background: radial-gradient(circle, rgba(0,245,255,0.3), rgba(0,128,255,0.1));
+    border-radius: 50%;
+    border: 1px solid rgba(0,245,255,0.5);
+    box-shadow: 0 0 60px rgba(0,245,255,0.2), 0 0 120px rgba(0,128,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; color: var(--neon-cyan);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 60px rgba(0,245,255,0.2), 0 0 120px rgba(0,128,255,0.1)} 50%{box-shadow:0 0 80px rgba(0,245,255,0.4), 0 0 160px rgba(0,128,255,0.2)} }
+
+  .orbit-ring {
+    position: absolute; top: 50%; left: 50%;
+    border-radius: 50%;
+    border: 1px solid;
+    transform-origin: 0 0;
+  }
+  .ring-1 {
+    width: 180px; height: 180px;
+    margin: -90px 0 0 -90px;
+    border-color: rgba(0,245,255,0.2);
+    animation: spin 8s linear infinite;
+  }
+  .ring-2 {
+    width: 280px; height: 280px;
+    margin: -140px 0 0 -140px;
+    border-color: rgba(0,128,255,0.15);
+    animation: spin 14s linear infinite reverse;
+    border-style: dashed;
+  }
+  .ring-3 {
+    width: 380px; height: 380px;
+    margin: -190px 0 0 -190px;
+    border-color: rgba(123,47,255,0.1);
+    animation: spin 20s linear infinite;
+  }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  .orbit-node {
+    position: absolute;
+    width: 44px; height: 44px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 18px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(0,245,255,0.1);
+    transition: all 0.3s;
+  }
+  .orbit-node:hover { border-color: var(--neon-cyan); transform: scale(1.15); box-shadow: 0 0 30px rgba(0,245,255,0.3); }
+  .n1 { top: 5%; left: 50%; margin-left: -22px; }
+  .n2 { top: 50%; right: 2%; margin-top: -22px; }
+  .n3 { bottom: 5%; left: 50%; margin-left: -22px; }
+  .n4 { top: 50%; left: 2%; margin-top: -22px; }
+  .n5 { top: 15%; right: 15%; }
+  .n6 { bottom: 15%; left: 15%; }
+
+  /* Stats bar */
+  .stats-bar {
+    position: relative; z-index: 10;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border-glow);
+    border-bottom: 1px solid var(--border-glow);
+  }
+  .stat-item {
+    padding: 32px 48px;
+    border-right: 1px solid var(--border-glow);
+    position: relative; overflow: hidden;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-item::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--neon-cyan), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .stat-item:hover::before { opacity: 1; }
+  .stat-num {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 3vw, 42px); font-weight: 700;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px rgba(0,245,255,0.4);
+    display: block; margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 12px; letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* SECTIONS */
+  section {
+    position: relative; z-index: 10;
+  }
+
+  .section-header {
+    padding: 80px 60px 0;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 48px;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em;
+    color: var(--neon-cyan); text-transform: uppercase;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    width: 24px; height: 1px; background: var(--neon-cyan);
+  }
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(24px, 3vw, 38px); font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+  }
+  .section-title em {
+    font-style: normal;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .section-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--neon-cyan); text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+    transition: gap 0.3s;
+    padding-bottom: 8px;
+  }
+  .section-link:hover { gap: 14px; }
+
+  /* RESEARCH AREAS */
+  .research-grid {
+    padding: 0 60px 80px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border-glow);
+    border: 1px solid var(--border-glow);
+    margin: 0 60px;
+  }
+  .research-card {
+    background: var(--bg-deep);
+    padding: 40px 36px;
+    position: relative; overflow: hidden;
+    transition: background 0.3s;
+    cursor: none;
+  }
+  .research-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    transform: scaleX(0); transition: transform 0.4s;
+  }
+  .research-card:hover::before { transform: scaleX(1); }
+  .research-card:hover { background: rgba(0, 20, 60, 0.8); }
+  .card-index {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: 0.15em;
+    color: rgba(0,245,255,0.3); margin-bottom: 24px;
+  }
+  .card-icon {
+    font-size: 36px; margin-bottom: 20px;
+    filter: drop-shadow(0 0 8px rgba(0,245,255,0.3));
+  }
+  .card-title {
+    font-size: 16px; font-weight: 500;
+    letter-spacing: 0.06em; margin-bottom: 12px;
+  }
+  .card-desc {
+    font-size: 13px; line-height: 1.8;
+    color: var(--text-dim); font-weight: 300;
+    margin-bottom: 24px;
+  }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.08em;
+    color: rgba(0,245,255,0.6);
+    border: 1px solid rgba(0,245,255,0.2);
+    padding: 3px 10px;
+    background: rgba(0,245,255,0.04);
+  }
+  .card-corner {
+    position: absolute; bottom: 0; right: 0;
+    width: 40px; height: 40px;
+    border-top: 1px solid var(--border-glow);
+    border-left: 1px solid var(--border-glow);
+    opacity: 0.5;
+  }
+
+  /* FEATURED RESEARCH */
+  .featured-section {
+    padding: 0 60px 80px;
+  }
+  .featured-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+  }
+  .featured-main {
+    grid-row: 1 / 3;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    padding: 48px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s;
+    cursor: none;
+  }
+  .featured-main::after {
+    content: ''; position: absolute;
+    bottom: 0; right: 0;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(0,128,255,0.15), transparent);
+  }
+  .featured-main:hover { border-color: rgba(0,245,255,0.4); }
+  .paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em; color: var(--neon-cyan);
+    text-transform: uppercase; margin-bottom: 20px;
+    display: flex; gap: 20px; align-items: center;
+  }
+  .paper-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--neon-cyan); }
+  .paper-title {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: clamp(18px, 2vw, 26px); font-weight: 500;
+    line-height: 1.5; margin-bottom: 16px; letter-spacing: 0.02em;
+  }
+  .paper-abstract {
+    font-size: 13px; line-height: 1.9; color: var(--text-dim);
+    margin-bottom: 32px;
+  }
+  .paper-authors {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .author-avatars { display: flex; }
+  .author-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--bg-deep);
+    margin-left: -8px; first-child:margin-left:0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-violet));
+    color: white;
+  }
+  .author-info { font-size: 12px; color: var(--text-dim); }
+
+  .paper-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    padding: 28px; cursor: none;
+    transition: all 0.3s; position: relative; overflow: hidden;
+  }
+  .paper-card:hover { border-color: rgba(0,245,255,0.35); transform: translateY(-2px); }
+  .paper-card .paper-title { font-size: 14px; margin-bottom: 10px; }
+  .paper-card .paper-meta { margin-bottom: 12px; font-size: 10px; }
+  .paper-card .paper-abstract { font-size: 12px; line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* INNOVATION LAB */
+  .lab-section {
+    background: linear-gradient(180deg, transparent, rgba(0,30,80,0.3), transparent);
+    padding: 0 60px 80px;
+  }
+  .lab-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .lab-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    padding: 28px 24px;
+    position: relative; cursor: none;
+    overflow: hidden;
+    transition: all 0.4s;
+  }
+  .lab-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: -10px; right: -5px;
+    font-family: 'Orbitron', monospace;
+    font-size: 80px; font-weight: 900;
+    color: rgba(0,245,255,0.03);
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .lab-card:hover::before { color: rgba(0,245,255,0.07); }
+  .lab-card:hover { border-color: rgba(0,245,255,0.3); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 40px rgba(0,245,255,0.05); }
+  .lab-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.15em;
+    padding: 4px 10px; text-transform: uppercase;
+    display: inline-block; margin-bottom: 20px;
+  }
+  .badge-active { color: #00ff88; border: 1px solid rgba(0,255,136,0.3); background: rgba(0,255,136,0.05); }
+  .badge-progress { color: var(--gold); border: 1px solid rgba(255,215,0,0.3); background: rgba(255,215,0,0.05); }
+  .badge-new { color: var(--neon-cyan); border: 1px solid var(--border-glow); background: rgba(0,245,255,0.05); }
+  .lab-title { font-size: 14px; font-weight: 500; margin-bottom: 10px; line-height: 1.5; }
+  .lab-desc { font-size: 12px; color: var(--text-dim); line-height: 1.7; margin-bottom: 20px; }
+  .lab-progress {
+    height: 2px; background: rgba(255,255,255,0.08);
+    position: relative; overflow: hidden;
+  }
+  .lab-progress-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan));
+    box-shadow: 0 0 8px var(--neon-cyan);
+  }
+  .lab-progress-label {
+    display: flex; justify-content: space-between;
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: rgba(0,245,255,0.4);
+  }
+
+  /* DATA VISUALIZATION SECTION */
+  .data-section {
+    padding: 0 60px 80px;
+  }
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 20px;
+  }
+  .data-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    padding: 36px;
+  }
+  .data-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px; letter-spacing: 0.1em; font-weight: 600;
+    margin-bottom: 28px; color: var(--text-primary);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .data-title::before {
+    content: ''; width: 8px; height: 8px;
+    background: var(--neon-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--neon-cyan);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Bar chart */
+  .chart-bars {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .chart-row { display: flex; align-items: center; gap: 12px; }
+  .chart-label { font-size: 12px; color: var(--text-dim); width: 80px; text-align: right; flex-shrink: 0; }
+  .chart-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+  .chart-bar-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    animation: fillBar 1.5s ease-out both;
+  }
+  @keyframes fillBar { from{width:0} }
+  .chart-value { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--neon-cyan); width: 40px; }
+
+  /* Trend lines */
+  .trend-chart { position: relative; }
+  .trend-svg { width: 100%; height: 200px; }
+
+  /* Rankings */
+  .ranking-list { display: flex; flex-direction: column; gap: 12px; }
+  .rank-item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid transparent;
+    transition: all 0.3s; cursor: none;
+  }
+  .rank-item:hover { border-color: var(--border-glow); background: rgba(0,245,255,0.03); }
+  .rank-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px; font-weight: 700;
+    color: rgba(0,245,255,0.2); width: 30px;
+  }
+  .rank-num.top { color: var(--gold); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 13px; margin-bottom: 2px; }
+  .rank-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); }
+  .rank-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px; font-weight: 600;
+    color: var(--neon-cyan);
+  }
+
+  /* EXPERTS */
+  .experts-section { padding: 0 60px 80px; }
+  .experts-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  }
+  .expert-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    padding: 32px 24px;
+    text-align: center;
+    transition: all 0.4s; cursor: none;
+    position: relative; overflow: hidden;
+  }
+  .expert-card::before {
+    content: ''; position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(0,245,255,0.08), transparent 60%);
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .expert-card:hover::before { opacity: 1; }
+  .expert-card:hover { border-color: rgba(0,245,255,0.35); transform: translateY(-6px); box-shadow: 0 24px 48px rgba(0,0,0,0.5); }
+  .expert-avatar-wrap {
+    position: relative; display: inline-block; margin-bottom: 20px;
+  }
+  .expert-avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-violet));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: white;
+    border: 2px solid rgba(0,245,255,0.2);
+    margin: 0 auto;
+  }
+  .expert-status {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #00ff88;
+    border: 2px solid var(--bg-deep);
+    box-shadow: 0 0 8px #00ff88;
+  }
+  .expert-name { font-size: 15px; font-weight: 500; margin-bottom: 4px; letter-spacing: 0.04em; }
+  .expert-role {
+    font-size: 11px; color: var(--neon-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em; margin-bottom: 12px;
+  }
+  .expert-field { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; }
+  .expert-papers {
+    display: flex; justify-content: center; gap: 24px;
+  }
+  .ep-item { text-align: center; }
+  .ep-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px; font-weight: 700; color: var(--text-primary);
+    display: block;
+  }
+  .ep-label { font-size: 10px; color: var(--text-dim); }
+
+  /* NEWS TICKER */
+  .ticker-section {
+    border-top: 1px solid var(--border-glow);
+    border-bottom: 1px solid var(--border-glow);
+    display: flex; overflow: hidden;
+    background: rgba(0,245,255,0.03);
+    margin: 0 0 0 0;
+  }
+  .ticker-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px; letter-spacing: 0.15em; font-weight: 700;
+    color: var(--bg-void); background: var(--neon-cyan);
+    padding: 10px 20px; white-space: nowrap;
+    display: flex; align-items: center;
+    flex-shrink: 0;
+  }
+  .ticker-track { overflow: hidden; flex: 1; }
+  .ticker-inner {
+    display: flex; align-items: center;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  .ticker-item {
+    padding: 10px 40px; font-size: 12px; color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .ticker-item::before {
+    content: '▶'; font-size: 8px; color: var(--neon-cyan);
+  }
+
+  /* CTA SECTION */
+  .cta-section {
+    position: relative; z-index: 10;
+    padding: 100px 60px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,128,255,0.1), transparent 70%);
+  }
+  .cta-grid-lines {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .cta-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 4vw, 56px); font-weight: 900;
+    position: relative; margin-bottom: 20px;
+    line-height: 1.1;
+  }
+  .cta-sub {
+    font-size: 15px; color: var(--text-dim);
+    max-width: 500px; margin: 0 auto 48px;
+    position: relative;
+  }
+  .cta-buttons {
+    display: flex; gap: 16px; justify-content: center;
+    position: relative;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative; z-index: 10;
+    border-top: 1px solid var(--border-glow);
+    padding: 48px 60px;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 40px;
+  }
+  .footer-brand { }
+  .footer-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; font-weight: 900;
+    color: var(--neon-cyan);
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+    text-shadow: 0 0 15px rgba(0,245,255,0.4);
+  }
+  .footer-desc { font-size: 12px; color: var(--text-dim); line-height: 1.8; }
+  .footer-col h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--neon-cyan);
+    margin-bottom: 16px;
+  }
+  .footer-col a {
+    display: block; font-size: 12px; color: var(--text-dim);
+    text-decoration: none; margin-bottom: 10px;
+    transition: color 0.2s;
+  }
+  .footer-col a:hover { color: var(--text-primary); }
+  .footer-bottom {
+    border-top: 1px solid var(--border-glow);
+    padding: 20px 60px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: rgba(200,220,255,0.25);
+    position: relative; z-index: 10;
+  }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-void); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.3); border-radius: 2px; }
+
+  /* Glitch effect on logo */
+  .glitch {
+    position: relative;
+    animation: glitch-skew 4s infinite linear alternate-reverse;
+  }
+  @keyframes glitch-skew {
+    0%{transform:skew(0deg)} 96%{transform:skew(0deg)} 97%{transform:skew(2deg)} 100%{transform:skew(0deg)}
+  }
+
+  /* Intersection observer animations */
+  .reveal {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Background layers -->
+<div class="grid-bg"></div>
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+<div class="ambient ambient-3"></div>
+<div class="noise"></div>
+<div class="scanlines"></div>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-logo glitch">
+    <span class="logo-bracket">[</span>
+    VERI
+    <span class="logo-bracket">]</span>
+  </div>
+  <div class="nav-links">
+    <a href="#">研究领域</a>
+    <a href="#">学术成果</a>
+    <a href="#">创新实验室</a>
+    <a href="#">数据中心</a>
+    <a href="#">专家团队</a>
+  </div>
+  <div class="nav-cta">加入研究</div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-tag">
+    <span>VOCATIONAL EDUCATION RESEARCH INSTITUTE</span>
+    <span class="blink">_</span>
+  </div>
+  <h1 class="hero-title">
+    <span class="line1">重塑职业教育</span>
+    <span class="line2">未来研究边界</span>
+  </h1>
+  <p class="hero-subtitle-zh">探索 · 创新 · 引领</p>
+  <p class="hero-desc">
+    整合人工智能、大数据与认知科学，构建面向未来的职业教育研究生态。
+    我们致力于通过前沿技术与实证研究，推动职业教育理论与实践的深度融合与创新突破。
+  </p>
+  <div class="hero-actions">
+    <button class="btn-primary">探索研究成果</button>
+    <button class="btn-secondary">// 了解研究院</button>
+  </div>
+
+  <div class="hero-visual">
+    <div class="orbit-system">
+      <div class="orbit-ring ring-1"></div>
+      <div class="orbit-ring ring-2"></div>
+      <div class="orbit-ring ring-3"></div>
+      <div class="orbit-center">VERI</div>
+      <div class="orbit-node n1">🤖</div>
+      <div class="orbit-node n2">📊</div>
+      <div class="orbit-node n3">🧠</div>
+      <div class="orbit-node n4">🔬</div>
+      <div class="orbit-node n5">💡</div>
+      <div class="orbit-node n6">🌐</div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-num" data-target="1280">0</span>
+    <span class="stat-label">// 发表论文</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" data-target="86">0</span>
+    <span class="stat-label">// 核心研究员</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" data-target="234">0</span>
+    <span class="stat-label">// 合作院校</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" data-target="47">0</span>
+    <span class="stat-label">// 在研项目</span>
+  </div>
+</div>
+
+<!-- Research Areas -->
+<section>
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">Research Domains</div>
+      <h2 class="section-title">核心<em>研究领域</em></h2>
+    </div>
+    <a href="#" class="section-link">查看全部领域 →</a>
+  </div>
+  <div class="research-grid reveal">
+    <div class="research-card">
+      <div class="card-index">// 01</div>
+      <div class="card-icon">🤖</div>
+      <div class="card-title">AI赋能职业教育</div>
+      <div class="card-desc">探索大语言模型、机器学习与自适应学习系统在职业技能培训中的深度应用，构建智能化教学新范式。</div>
+      <div class="card-tags">
+        <span class="tag">LLM</span>
+        <span class="tag">自适应学习</span>
+        <span class="tag">智能评估</span>
+      </div>
+      <div class="card-corner"></div>
+    </div>
+    <div class="research-card">
+      <div class="card-index">// 02</div>
+      <div class="card-icon">📊</div>
+      <div class="card-title">教育大数据分析</div>
+      <div class="card-desc">运用数据挖掘与学习分析技术，揭示职业教育中学习行为规律，为政策制定提供数据支撑。</div>
+      <div class="card-tags">
+        <span class="tag">数据挖掘</span>
+        <span class="tag">学习分析</span>
+        <span class="tag">预测模型</span>
+      </div>
+      <div class="card-corner"></div>
+    </div>
+    <div class="research-card">
+      <div class="card-index">// 03</div>
+      <div class="card-icon">🌐</div>
+      <div class="card-title">产教融合机制</div>
+      <div class="card-desc">研究校企合作新模式，探索产业链与教育链深度融合的制度设计与实施路径，促进人才供需精准匹配。</div>
+      <div class="card-tags">
+        <span class="tag">校企合作</span>
+        <span class="tag">双元制</span>
+        <span class="tag">现代学徒制</span>
+      </div>
+      <div class="card-corner"></div>
+    </div>
+    <div class="research-card">
+      <div class="card-index">// 04</div>
+      <div class="card-icon">🧠</div>
+      <div class="card-title">认知科学与职业技能</div>
+      <div class="card-desc">融合神经科学与认知心理学，研究职业技能习得的脑机制，优化技能训练方案与学习路径设计。</div>
+      <div class="card-tags">
+        <span class="tag">认知负荷</span>
+        <span class="tag">技能迁移</span>
+        <span class="tag">脑机接口</span>
+      </div>
+      <div class="card-corner"></div>
+    </div>
+    <div class="research-card">
+      <div class="card-index">// 05</div>
+      <div class="card-icon">🔮</div>
+      <div class="card-title">未来职业预测</div>
+      <div class="card-desc">基于产业变革趋势与技术演进规律，前瞻性预测未来职业结构变化，为专业设置与课程改革提供依据。</div>
+      <div class="card-tags">
+        <span class="tag">职业预测</span>
+        <span class="tag">技术影响</span>
+        <span class="tag">课程改革</span>
+      </div>
+      <div class="card-corner"></div>
+    </div>
+    <div class="research-card">
+      <div class="card-index">// 06</div>
+      <div class="card-icon">⚡</div>
+      <div class="card-title">XR沉浸式职业培训</div>
+      <div class="card-desc">开发VR/AR/MR职业技能训练环境，研究沉浸式学习对复杂技能习得效率的影响机制与优化策略。</div>
+      <div class="card-tags">
+        <span class="tag">VR培训</span>
+        <span class="tag">元宇宙</span>
+        <span class="tag">沉浸学习</span>
+      </div>
+      <div class="card-corner"></div>
+    </div>
+  </div>
+</section>
+
+<!-- News ticker -->
+<div class="ticker-section" style="position:relative;z-index:10;margin-top:60px;">
+  <div class="ticker-label">// LATEST</div>
+  <div class="ticker-track">
+    <div class="ticker-inner">
+      <span class="ticker-item">国家职业教育改革实施方案最新进展</span>
+      <span class="ticker-item">职业教育研究高峰论坛</span>
+      <span class="ticker-item">AI技术在职业院校的应用调研报告发布</span>
+      <span class="ticker-item">产教融合示范基地建设指南征求意见稿</span>
+      <span class="ticker-item">2026年职业教育专项科研课题申报</span>
+      <span class="ticker-item">《职业技术教育》期刊被CSSCI收录</span>
+      <span class="ticker-item">国家职业教育改革实施方案最新进展</span>
+      <span class="ticker-item">全国职业教育研究高峰论坛报名</span>
+      <span class="ticker-item">AI技术在职业院校的应用调研报告发布</span>
+      <span class="ticker-item">产教融合示范基地建设指南征求意见稿</span>
+      <span class="ticker-item">2026年职业教育专项科研课题申报通知</span>
+      <span class="ticker-item">《职业技术教育》期刊被CSSCI收录</span>
+    </div>
+  </div>
+</div>
+
+<!-- Featured Research -->
+<section>
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">Featured Papers</div>
+      <h2 class="section-title"><em>精选</em>学术成果</h2>
+    </div>
+    <a href="#" class="section-link">进入文献库 →</a>
+  </div>
+  <div class="featured-section reveal">
+    <div class="featured-grid">
+      <div class="featured-main">
+        <div class="paper-meta">
+          <span>2026</span><div class="paper-dot"></div>
+          <span>职业教育学报</span><div class="paper-dot"></div>
+          <span>CSSCI</span>
+        </div>
+        <h3 class="paper-title">大语言模型驱动的职业技能评估框架构建：理论逻辑与实践路径</h3>
+        <p class="paper-abstract">本研究提出了一种基于大语言模型（LLM）的多维职业技能动态评估框架，整合形成性评估与总结性评估，通过实证研究验证其在智能制造、现代服务业等典型职业领域的评估效度与信度，为推动职业教育评价体系数字化转型提供理论依据与实践参考。</p>
+        <div class="paper-authors">
+          <div class="author-avatars">
+            <div class="author-avatar" style="margin-left:0">张</div>
+            <div class="author-avatar">李</div>
+            <div class="author-avatar">王</div>
+          </div>
+          <div class="author-info">XXX 等 · 引用 <strong style="color:var(--neon-cyan)">182</strong> 次</div>
+        </div>
+      </div>
+      <div class="paper-card">
+        <div class="paper-meta"><span>2025</span><div class="paper-dot"></div><span>职业与技术教育</span></div>
+        <h3 class="paper-title">新质生产力背景下职业院校专业结构优化路径研究</h3>
+        <p class="paper-abstract">基于产业结构演变规律与技术技能人才需求预测，系统分析职业院校专业布局优化的内在逻辑，构建动态专业调整机制...</p>
+      </div>
+      <div class="paper-card">
+        <div class="paper-meta"><span>2025</span><div class="paper-dot"></div><span>比较教育研究</span></div>
+        <h3 class="paper-title">德国双元制职业教育数字化转型路径及其对我国的启示</h3>
+        <p class="paper-abstract">通过比较分析德国、瑞士、奥地利等国双元制职业教育在数字化时代的适应性改革，提炼可借鉴的制度设计要素...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Innovation Lab -->
+<section class="lab-section">
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">Innovation Lab</div>
+      <h2 class="section-title">创新<em>实验室</em>项目</h2>
+    </div>
+    <a href="#" class="section-link">全部项目 →</a>
+  </div>
+  <div class="lab-grid reveal">
+    <div class="lab-card" data-num="01">
+      <span class="lab-badge badge-active">● 进行中</span>
+      <div class="lab-title">智能职业规划导航系统</div>
+      <div class="lab-desc">基于知识图谱与强化学习的个性化职业发展路径推荐引擎，整合市场需求实时数据。</div>
+      <div class="lab-progress"><div class="lab-progress-fill" style="width:78%"></div></div>
+      <div class="lab-progress-label"><span>项目进度</span><span>78%</span></div>
+    </div>
+    <div class="lab-card" data-num="02">
+      <span class="lab-badge badge-active">● 进行中</span>
+      <div class="lab-title">虚实融合实训平台</div>
+      <div class="lab-desc">融合数字孪生与XR技术，构建高仿真工业场景技能实训环境，降低培训成本与安全风险。</div>
+      <div class="lab-progress"><div class="lab-progress-fill" style="width:61%"></div></div>
+      <div class="lab-progress-label"><span>项目进度</span><span>61%</span></div>
+    </div>
+    <div class="lab-card" data-num="03">
+      <span class="lab-badge badge-progress">◐ 立项筹备</span>
+      <div class="lab-title">职业教育质量监测平台</div>
+      <div class="lab-desc">构建覆盖院校、专业、课程、教师、学生的多维度质量监测指标体系与可视化平台。</div>
+      <div class="lab-progress"><div class="lab-progress-fill" style="width:35%"></div></div>
+      <div class="lab-progress-label"><span>项目进度</span><span>35%</span></div>
+    </div>
+    <div class="lab-card" data-num="04">
+      <span class="lab-badge badge-new">✦ 新项目</span>
+      <div class="lab-title">认知负荷自适应学习系统</div>
+      <div class="lab-desc">实时感知学习者认知状态，动态调整学习内容难度与呈现方式，提升技能学习效率。</div>
+      <div class="lab-progress"><div class="lab-progress-fill" style="width:12%"></div></div>
+      <div class="lab-progress-label"><span>项目进度</span><span>12%</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Data Section -->
+<section class="data-section">
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">Data Intelligence</div>
+      <h2 class="section-title">教育<em>数据</em>洞察</h2>
+    </div>
+  </div>
+  <div class="data-grid reveal">
+    <div class="data-panel">
+      <div class="data-title">职业教育研究热度指数（2024-2026）</div>
+      <div class="chart-bars">
+        <div class="chart-row">
+          <span class="chart-label">AI与教育</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:94%;background:linear-gradient(90deg,var(--neon-blue),var(--neon-cyan))"></div></div>
+          <span class="chart-value">94.2</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">产教融合</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:88%;background:linear-gradient(90deg,var(--neon-violet),var(--neon-blue))"></div></div>
+          <span class="chart-value">88.7</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">双高建设</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:82%;background:linear-gradient(90deg,#ff6b9d,var(--neon-violet))"></div></div>
+          <span class="chart-value">82.1</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">课程改革</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:76%;background:linear-gradient(90deg,var(--neon-blue),var(--neon-cyan))"></div></div>
+          <span class="chart-value">76.4</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">评价体系</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:71%;background:linear-gradient(90deg,var(--neon-violet),var(--neon-blue))"></div></div>
+          <span class="chart-value">71.8</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">国际比较</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:65%;background:linear-gradient(90deg,var(--neon-blue),var(--neon-cyan))"></div></div>
+          <span class="chart-value">65.3</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">师资发展</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:59%;background:linear-gradient(90deg,#ff6b9d,var(--neon-violet))"></div></div>
+          <span class="chart-value">59.9</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="data-panel">
+        <div class="data-title">期刊影响力排名</div>
+        <div class="ranking-list">
+          <div class="rank-item">
+            <span class="rank-num top">01</span>
+            <div class="rank-info"><div class="rank-name">职业技术教育</div><div class="rank-sub">// 北大核心 · 月刊</div></div>
+            <span class="rank-score">9.84</span>
+          </div>
+          <div class="rank-item">
+            <span class="rank-num top">02</span>
+            <div class="rank-info"><div class="rank-name">中国职业技术教育</div><div class="rank-sub">// CSSCI · 旬刊</div></div>
+            <span class="rank-score">8.96</span>
+          </div>
+          <div class="rank-item">
+            <span class="rank-num">03</span>
+            <div class="rank-info"><div class="rank-name">职业教育研究</div><div class="rank-sub">// 北大核心 · 月刊</div></div>
+            <span class="rank-score">8.21</span>
+          </div>
+          <div class="rank-item">
+            <span class="rank-num">04</span>
+            <div class="rank-info"><div class="rank-name">教育与职业</div><div class="rank-sub">// 北大核心 · 旬刊</div></div>
+            <span class="rank-score">7.73</span>
+          </div>
+        </div>
+      </div>
+      <div class="data-panel" style="flex:1">
+        <div class="data-title">实时数据终端</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);line-height:2.2">
+          <div><span style="color:rgba(0,245,255,0.4)">SYS › </span>数据库已收录 <span style="color:var(--neon-cyan)">38,420</span> 篇</div>
+          <div><span style="color:rgba(0,245,255,0.4)">SYS › </span>本月新增 <span style="color:#00ff88">+284</span> 篇</div>
+          <div><span style="color:rgba(0,245,255,0.4)">NET › </span>在线研究员 <span style="color:var(--neon-cyan)">142</span> 人</div>
+          <div><span style="color:rgba(0,245,255,0.4)">API › </span>今日查询 <span style="color:var(--neon-cyan)">6,891</span> 次</div>
+          <div><span style="color:rgba(0,245,255,0.4)">SYS › </span>系统状态 <span style="color:#00ff88">ONLINE ●</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Experts -->
+<section class="experts-section">
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">Research Team</div>
+      <h2 class="section-title">核心<em>专家</em>团队</h2>
+    </div>
+    <a href="#" class="section-link">全部专家 →</a>
+  </div>
+  <div class="experts-grid reveal">
+    <div class="expert-card">
+      <div class="expert-avatar-wrap">
+        <div class="expert-avatar">杨</div>
+        <div class="expert-status"></div>
+      </div>
+      <div class="expert-name">杨明远</div>
+      <div class="expert-role">// 首席研究员</div>
+      <div class="expert-field">AI与职业教育融合 · 教育政策分析 · 学习科学</div>
+      <div class="expert-papers">
+        <div class="ep-item"><span class="ep-num">127</span><span class="ep-label">论文</span></div>
+        <div class="ep-item"><span class="ep-num">2841</span><span class="ep-label">引用</span></div>
+        <div class="ep-item"><span class="ep-num">18</span><span class="ep-label">项目</span></div>
+      </div>
+    </div>
+    <div class="expert-card">
+      <div class="expert-avatar-wrap">
+        <div class="expert-avatar" style="background:linear-gradient(135deg,#ff6b9d,var(--neon-violet))">陈</div>
+        <div class="expert-status"></div>
+      </div>
+      <div class="expert-name">陈晓红</div>
+      <div class="expert-role">// 高级研究员</div>
+      <div class="expert-field">数据驱动教学决策 · 学习行为分析 · 智能评估</div>
+      <div class="expert-papers">
+        <div class="ep-item"><span class="ep-num">89</span><span class="ep-label">论文</span></div>
+        <div class="ep-item"><span class="ep-num">1563</span><span class="ep-label">引用</span></div>
+        <div class="ep-item"><span class="ep-num">12</span><span class="ep-label">项目</span></div>
+      </div>
+    </div>
+    <div class="expert-card">
+      <div class="expert-avatar-wrap">
+        <div class="expert-avatar" style="background:linear-gradient(135deg,#00c9ff,var(--neon-blue))">刘</div>
+        <div class="expert-status" style="background:#ffd700;box-shadow:0 0 8px #ffd700"></div>
+      </div>
+      <div class="expert-name">刘鹏飞</div>
+      <div class="expert-role">// 研究员</div>
+      <div class="expert-field">产教融合制度 · 职业院校治理 · 比较职业教育</div>
+      <div class="expert-papers">
+        <div class="ep-item"><span class="ep-num">65</span><span class="ep-label">论文</span></div>
+        <div class="ep-item"><span class="ep-num">978</span><span class="ep-label">引用</span></div>
+        <div class="ep-item"><span class="ep-num">9</span><span class="ep-label">项目</span></div>
+      </div>
+    </div>
+    <div class="expert-card">
+      <div class="expert-avatar-wrap">
+        <div class="expert-avatar" style="background:linear-gradient(135deg,var(--neon-cyan),#00b8d9)">王</div>
+        <div class="expert-status"></div>
+      </div>
+      <div class="expert-name">王思远</div>
+      <div class="expert-role">// 副研究员</div>
+      <div class="expert-field">XR沉浸式学习 · 认知负荷理论 · 技能习得研究</div>
+      <div class="expert-papers">
+        <div class="ep-item"><span class="ep-num">43</span><span class="ep-label">论文</span></div>
+        <div class="ep-item"><span class="ep-num">612</span><span class="ep-label">引用</span></div>
+        <div class="ep-item"><span class="ep-num">6</span><span class="ep-label">项目</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-grid-lines"></div>
+  <div class="cta-title reveal">
+    <span>加入</span>
+    <span style="background:linear-gradient(90deg,var(--neon-cyan),var(--neon-violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">VERI</span>
+    <br>共塑职业教育未来
+  </div>
+  <p class="cta-sub reveal">开放研究合作 · 学术交流 · 数据共享平台，与全国优秀研究者共同探索职业教育的无限可能</p>
+  <div class="cta-buttons reveal">
+    <button class="btn-primary">申请合作研究</button>
+    <button class="btn-secondary">// 访问数据平台</button>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-logo">[ VERI ]</div>
+    <p class="footer-desc">职业教育研究院致力于以前沿技术与严谨研究推动职业教育事业高质量发展，构建开放共享的研究生态。</p>
+  </div>
+  <div class="footer-col">
+    <h4>// 研究领域</h4>
+    <a href="#">AI与职业教育</a>
+    <a href="#">教育大数据</a>
+    <a href="#">产教融合</a>
+    <a href="#">认知与技能</a>
+    <a href="#">XR培训</a>
+  </div>
+  <div class="footer-col">
+    <h4>// 资源中心</h4>
+    <a href="#">学术数据库</a>
+    <a href="#">政策文件库</a>
+    <a href="#">开放数据集</a>
+    <a href="#">研究工具</a>
+    <a href="#">API接口</a>
+  </div>
+  <div class="footer-col">
+    <h4>// 关于我们</h4>
+    <a href="#">机构简介</a>
+    <a href="#">专家团队</a>
+    <a href="#">学术委员会</a>
+    <a href="#">合作伙伴</a>
+    <a href="#">联系我们</a>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2026 VERI · 职业教育研究院 · ALL RIGHTS RESERVED</span>
+  <span>BUILD_2026.02 · STATUS: ONLINE ●</span>
+</div>
+
+<script>
+  // Custom cursor
+  const dot = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+
+  document.addEventListener('mousemove', e => {
+    mouseX = e.clientX; mouseY = e.clientY;
+    dot.style.left = mouseX + 'px';
+    dot.style.top = mouseY + 'px';
+  });
+
+  function animateRing() {
+    ringX += (mouseX - ringX) * 0.12;
+    ringY += (mouseY - ringY) * 0.12;
+    ring.style.left = ringX + 'px';
+    ring.style.top = ringY + 'px';
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  document.querySelectorAll('button, a, .research-card, .expert-card, .lab-card, .paper-card, .stat-item').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      ring.style.width = '56px'; ring.style.height = '56px';
+      ring.style.borderColor = 'rgba(0,245,255,0.8)';
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.style.width = '36px'; ring.style.height = '36px';
+      ring.style.borderColor = 'rgba(0,245,255,0.5)';
+    });
+  });
+
+  // Counter animation
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.target);
+    const duration = 2000;
+    const step = target / (duration / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = Math.floor(current).toLocaleString();
+      if (current >= target) { el.textContent = target.toLocaleString() + '+'; clearInterval(timer); }
+    }, 16);
+  }
+
+  // Intersection observer
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Trigger counters
+        entry.target.querySelectorAll && entry.target.querySelectorAll('[data-target]').forEach(animateCounter);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Trigger stat counters when visible
+  const statsBar = document.querySelector('.stats-bar');
+  const statObserver = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) {
+      document.querySelectorAll('[data-target]').forEach(animateCounter);
+      statObserver.disconnect();
+    }
+  }, { threshold: 0.5 });
+  if (statsBar) statObserver.observe(statsBar);
+</script>
+</body>
+</html>
