@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职业教育研究院 | 未来技能研究中心</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 背景粒子效果 -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- 导航栏 -->
+    <nav class="navbar glass-effect">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" stroke="url(#logoGradient)" stroke-width="2"/>
+                        <path d="M12 20L18 26L28 14" stroke="url(#logoGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00ff88"/>
+                                <stop offset="100%" style="stop-color:#00d4ff"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="logo-text">EDU.RESEARCH</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home" class="nav-link active">首页</a></li>
+                <li><a href="#research" class="nav-link">研究方向</a></li>
+                <li><a href="#projects" class="nav-link">研究项目</a></li>
+                <li><a href="#team" class="nav-link">研究团队</a></li>
+                <li><a href="#publications" class="nav-link">学术成果</a></li>
+                <li><a href="#contact" class="nav-link">联系我们</a></li>
+            </ul>
+            <button class="cta-button glow-effect">
+                <span>加入研究</span>
+                <div class="button-glow"></div>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <div class="hero-badge glass-effect">
+                <span class="badge-dot"></span>
+                <span>探索未来职业教育</span>
+            </div>
+            <h1 class="hero-title">
+                <span class="title-line">重新定义</span>
+                <span class="title-line gradient-text">职业教育研究</span>
+                <span class="title-line">的未来边界</span>
+            </h1>
+            <p class="hero-description">
+                运用人工智能、大数据与前沿教育理论，构建面向2035的职业教育创新体系，
+                培养适应智能时代的高素质技术技能人才
+            </p>
+            <div class="hero-buttons">
+                <button class="primary-button glow-effect">
+                    <span>开始探索</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="secondary-button glass-effect">
+                    <span>了解更多</span>
+                </button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number" data-target="156">0</div>
+                    <div class="stat-label">研究项目</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="89">0</div>
+                    <div class="stat-label">合作院校</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="2340">0</div>
+                    <div class="stat-label">研究成果</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="visual-container">
+                <div class="orbit-ring ring-1"></div>
+                <div class="orbit-ring ring-2"></div>
+                <div class="orbit-ring ring-3"></div>
+                <div class="core-sphere">
+                    <div class="sphere-inner"></div>
+                </div>
+                <div class="floating-card card-1 glass-effect">
+                    <div class="card-icon">🎓</div>
+                    <div class="card-text">智能教学</div>
+                </div>
+                <div class="floating-card card-2 glass-effect">
+                    <div class="card-icon">📊</div>
+                    <div class="card-text">数据分析</div>
+                </div>
+                <div class="floating-card card-3 glass-effect">
+                    <div class="card-icon">🤖</div>
+                    <div class="card-text">AI驱动</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 研究方向 Section -->
+    <section id="research" class="research-section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge glass-effect">研究方向</div>
+                <h2 class="section-title">探索职业教育<span class="gradient-text">前沿领域</span></h2>
+                <p class="section-description">聚焦六大核心研究方向，引领职业教育创新发展</p>
+            </div>
+            <div class="research-grid">
+                <div class="research-card glass-effect" data-aos="fade-up">
+                    <div class="card-glow"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="icon-bg"></div>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">智能教学系统</h3>
+                    <p class="card-description">基于AI的自适应学习平台，实现个性化教学路径规划与智能评估</p>
+                    <div class="card-tags">
+                        <span class="tag">机器学习</span>
+                        <span class="tag">知识图谱</span>
+                        <span class="tag">推荐算法</span>
+                    </div>
+                </div>
+
+                <div class="research-card glass-effect" data-aos="fade-up" data-aos-delay="100">
+                    <div class="card-glow"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="icon-bg"></div>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M3 9H21" stroke="currentColor" stroke-width="2"/>
+                            <path d="M9 21V9" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">数字孪生实训</h3>
+                    <p class="card-description">构建虚拟仿真实训环境，实现沉浸式技能训练与实时反馈</p>
+                    <div class="card-tags">
+                        <span class="tag">VR/AR</span>
+                        <span class="tag">数字孪生</span>
+                        <span class="tag">仿真技术</span>
+                    </div>
+                </div>
+
+                <div class="research-card glass-effect" data-aos="fade-up" data-aos-delay="200">
+                    <div class="card-glow"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="icon-bg"></div>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">教育大数据</h3>
+                    <p class="card-description">深度挖掘教育数据价值，构建学习者画像与预测模型</p>
+                    <div class="card-tags">
+                        <span class="tag">数据挖掘</span>
+                        <span class="tag">学习分析</span>
+                        <span class="tag">可视化</span>
+                    </div>
+                </div>
+
+                <div class="research-card glass-effect" data-aos="fade-up" data-aos-delay="300">
+                    <div class="card-glow"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="icon-bg"></div>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">产教融合</h3>
+                    <p class="card-description">创新校企合作模式，构建产业需求驱动的课程体系</p>
+                    <div class="card-tags">
+                        <span class="tag">校企合作</span>
+                        <span class="tag">课程开发</span>
+                        <span class="tag">双师型</span>
+                    </div>
+                </div>
+
+                <div class="research-card glass-effect" data-aos="fade-up" data-aos-delay="400">
+                    <div class="card-glow"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="icon-bg"></div>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none">
+                            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">技能认证体系</h3>
+                    <p class="card-description">建立区块链技能认证系统，实现终身学习档案管理</p>
+                    <div class="card-tags">
+                        <span class="tag">区块链</span>
+                        <span class="tag">微证书</span>
+                        <span class="tag">学分银行</span>
+                    </div>
+                </div>
+
+                <div class="research-card glass-effect" data-aos="fade-up" data-aos-delay="500">
+                    <div class="card-glow"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="icon-bg"></div>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M2 12H22" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 2C14.5 4.73 15.92 8.29 16 12C15.92 15.71 14.5 19.27 12 22C9.5 19.27 8.08 15.71 8 12C8.08 8.29 9.5 4.73 12 2Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">国际比较研究</h3>
+                    <p class="card-description">借鉴国际先进经验，推动职业教育国际化发展</p>
+                    <div class="card-tags">
+                        <span class="tag">德国双元制</span>
+                        <span class="tag">TAFE模式</span>
+                        <span class="tag">国际认证</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 研究项目 Section -->
+    <section id="projects" class="projects-section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge glass-effect">重点项目</div>
+                <h2 class="section-title">正在进行中的<span class="gradient-text">研究项目</span></h2>
+                <p class="section-description">聚焦国家战略需求，开展前沿性、创新性研究</p>
+            </div>
+            <div class="projects-showcase">
+                <div class="project-main glass-effect">
+                    <div class="project-image">
+                        <div class="image-placeholder">
+                            <div class="placeholder-grid"></div>
+                            <div class="placeholder-icon">🚀</div>
+                        </div>
+                        <div class="project-overlay"></div>
+                    </div>
+                    <div class="project-content">
+                        <div class="project-status">
+                            <span class="status-dot"></span>
+                            <span>进行中</span>
+                        </div>
+                        <h3 class="project-title">AI驱动的职业教育课程智能生成系统</h3>
+                        <p class="project-description">
+                            基于大语言模型和知识图谱技术，构建智能课程开发平台，
+                            实现课程内容的自动生成、优化与个性化推荐，提升课程开发效率300%。
+                        </p>
+                        <div class="project-meta">
+                            <div class="meta-item">
+                                <span class="meta-label">研究周期</span>
+                                <span class="meta-value">2024-2026</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">项目经费</span>
+                                <span class="meta-value">¥500万</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">参与人员</span>
+                                <span class="meta-value">28人</span>
+                            </div>
+                        </div>
+                        <div class="project-progress">
+                            <div class="progress-header">
+                                <span>项目进度</span>
+                                <span class="progress-value">68%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 68%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="projects-list">
+                    <div class="project-item glass-effect">
+                        <div class="item-icon">📊</div>
+                        <div class="item-content">
+                            <h4>职业教育质量监测大数据平台</h4>
+                            <div class="item-meta">
+                                <span class="meta-tag">数据分析</span>
+                                <span class="meta-progress">进度 45%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-item glass-effect">
+                        <div class="item-icon">🎯</div>
+                        <div class="item-content">
+                            <h4>产教融合型企业评价指标体系研究</h4>
+                            <div class="item-meta">
+                                <span class="meta-tag">政策研究</span>
+                                <span class="meta-progress">进度 82%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-item glass-effect">
+                        <div class="item-icon">🌐</div>
+                        <div class="item-content">
+                            <h4>"一带一路"职业教育国际合作机制研究</h4>
+                            <div class="item-meta">
+                                <span class="meta-tag">国际合作</span>
+                                <span class="meta-progress">进度 56%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-item glass-effect">
+                        <div class="item-icon">🔬</div>
+                        <div class="item-content">
+                            <h4>虚拟仿真实训基地建设标准研究</h4>
+                            <div class="item-meta">
+                                <span class="meta-tag">标准制定</span>
+                                <span class="meta-progress">进度 91%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 研究团队 Section -->
+    <section id="team" class="team-section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge glass-effect">研究团队</div>
+                <h2 class="section-title">汇聚顶尖<span class="gradient-text">研究人才</span></h2>
+                <p class="section-description">跨学科、国际化、创新型的专业研究团队</p>
+            </div>
+            <div class="team-grid">
+                <div class="team-card glass-effect">
+                    <div class="member-avatar">
+                        <div class="avatar-placeholder">
+                            <div class="avatar-grid"></div>
+                            <span class="avatar-initial">张</span>
+                        </div>
+                    </div>
+                    <div class="member-info">
+                        <h4 class="member-name">张明远</h4>
+                        <p class="member-title">首席研究员</p>
+                        <p class="member-desc">教育技术学博士，人工智能教育应用专家</p>
+                        <div class="member-stats">
+                            <div class="stat">
+                                <span class="stat-num">86</span>
+                                <span class="stat-text">论文</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">12</span>
+                                <span class="stat-text">项目</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">2300+</span>
+                                <span class="stat-text">引用</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-card glass-effect">
+                    <div class="member-avatar">
+                        <div class="avatar-placeholder">
+                            <div class="avatar-grid"></div>
+                            <span class="avatar-initial">李</span>
+                        </div>
+                    </div>
+                    <div class="member-info">
+                        <h4 class="member-name">李雪晴</h4>
+                        <p class="member-title">高级研究员</p>
+                        <p class="member-desc">职业教育学博士，产教融合研究专家</p>
+                        <div class="member-stats">
+                            <div class="stat">
+                                <span class="stat-num">52</span>
+                                <span class="stat-text">论文</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">8</span>
+                                <span class="stat-text">项目</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">1500+</span>
+                                <span class="stat-text">引用</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-card glass-effect">
+                    <div class="member-avatar">
+                        <div class="avatar-placeholder">
+                            <div class="avatar-grid"></div>
+                            <span class="avatar-initial">王</span>
+                        </div>
+                    </div>
+                    <div class="member-info">
+                        <h4 class="member-name">王浩然</h4>
+                        <p class="member-title">数据科学家</p>
+                        <p class="member-desc">计算机科学博士，教育大数据分析专家</p>
+                        <div class="member-stats">
+                            <div class="stat">
+                                <span class="stat-num">68</span>
+                                <span class="stat-text">论文</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">15</span>
+                                <span class="stat-text">项目</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">3100+</span>
+                                <span class="stat-text">引用</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-card glass-effect">
+                    <div class="member-avatar">
+                        <div class="avatar-placeholder">
+                            <div class="avatar-grid"></div>
+                            <span class="avatar-initial">陈</span>
+                        </div>
+                    </div>
+                    <div class="member-info">
+                        <h4 class="member-name">陈思雨</h4>
+                        <p class="member-title">副研究员</p>
+                        <p class="member-desc">比较教育学博士，国际职业教育研究专家</p>
+                        <div class="member-stats">
+                            <div class="stat">
+                                <span class="stat-num">45</span>
+                                <span class="stat-text">论文</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">6</span>
+                                <span class="stat-text">项目</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-num">980+</span>
+                                <span class="stat-text">引用</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 学术成果 Section -->
+    <section id="publications" class="publications-section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-badge glass-effect">学术成果</div>
+                <h2 class="section-title">最新<span class="gradient-text">研究成果</span></h2>
+                <p class="section-description">持续产出高质量学术成果，推动理论与实践创新</p>
+            </div>
+            <div class="publications-tabs">
+                <button class="tab-btn active" data-tab="papers">学术论文</button>
+                <button class="tab-btn" data-tab="books">专著教材</button>
+                <button class="tab-btn" data-tab="reports">研究报告</button>
+            </div>
+            <div class="publications-content">
+                <div class="tab-content active" id="papers">
+                    <div class="publication-list">
+                        <div class="publication-item glass-effect">
+                            <div class="pub-type">SCI</div>
+                            <div class="pub-content">
+                                <h4 class="pub-title">AI-Driven Adaptive Learning Path Optimization in Vocational Education</h4>
+                                <p class="pub-authors">张明远, 王浩然, 李雪晴</p>
+                                <p class="pub-journal">Computers & Education, 2024, Vol.198</p>
+                                <div class="pub-metrics">
+                                    <span class="metric">影响因子: 12.0</span>
+                                    <span class="metric">引用: 45</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="publication-item glass-effect">
+                            <div class="pub-type">CSSCI</div>
+                            <div class="pub-content">
+                                <h4 class="pub-title">数字孪生技术在职业教育实训中的应用模式研究</h4>
+                                <p class="pub-authors">李雪晴, 张明远, 陈思雨</p>
+                                <p class="pub-journal">教育研究, 2024, (3): 56-68</p>
+                                <div class="pub-metrics">
+                                    <span class="metric">核心期刊</span>
+                                    <span class="metric">引用: 32</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="publication-item glass-effect">
+                            <div class="pub-type">SSCI</div>
+                            <div class="pub-content">
+                                <h4 class="pub-title">Blockchain-Based Skill Certification System for Lifelong Learning</h4>
+                                <p class="pub-authors">Wang Haoran, Zhang Mingyuan</p>
+                                <p class="pub-journal">Journal of Educational Technology & Society, 2024, 27(2)</p>
+                                <div class="pub-metrics">
+                                    <span class="metric">影响因子: 4.2</span>
+                                    <span class="metric">引用: 28</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系我们 Section -->
+    <section id="contact" class="contact-section">
+        <div class="section-container">
+            <div class="contact-wrapper">
+                <div class="contact-info">
+                    <div class="section-badge glass-effect">联系我们</div>
+                    <h2 class="section-title">开启<span class="gradient-text">合作研究</span></h2>
+                    <p class="contact-description">
+                        欢迎高校、企业、研究机构与我们开展合作研究，
+                        共同推动职业教育创新发展
+                    </p>
+                    <div class="contact-details">
+                        <div class="contact-item glass-effect">
+                            <div class="contact-icon">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="currentColor" stroke-width="2"/>
+                                    <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <div class="contact-text">
+                                <span class="label">地址</span>
+                                <span class="value">北京市海淀区学院路XX号</span>
+                            </div>
+                        </div>
+                        <div class="contact-item glass-effect">
+                            <div class="contact-icon">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="contact-text">
+                                <span class="label">邮箱</span>
+                                <span class="value">research@edu-research.cn</span>
+                            </div>
+                        </div>
+                        <div class="contact-item glass-effect">
+                            <div class="contact-icon">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7293C21.7209 20.9845 21.5573 21.2136 21.3521 21.4019C21.1468 21.5901 20.9046 21.7335 20.6407 21.8227C20.3769 21.9119 20.0974 21.9451 19.82 21.92C16.7428 21.5856 13.787 20.5341 11.19 18.85C8.77382 17.3147 6.72533 15.2662 5.18999 12.85C3.49997 10.2412 2.44824 7.27099 2.11999 4.18C2.09501 3.90347 2.12787 3.62476 2.21649 3.36162C2.30512 3.09849 2.44756 2.85669 2.63476 2.65162C2.82196 2.44655 3.0498 2.28271 3.30379 2.17052C3.55777 2.05833 3.83233 2.00026 4.10999 2H7.10999C7.5953 1.99522 8.06579 2.16708 8.43376 2.48353C8.80173 2.79999 9.04207 3.23945 9.10999 3.72C9.23662 4.68007 9.47144 5.62273 9.80999 6.53C9.94454 6.88792 9.97366 7.27691 9.8939 7.65088C9.81415 8.02485 9.62886 8.36811 9.35999 8.64L8.08999 9.91C9.51355 12.4135 11.5864 14.4864 14.09 15.91L15.36 14.64C15.6319 14.3711 15.9751 14.1858 16.3491 14.1061C16.7231 14.0263 17.1121 14.0555 17.47 14.19C18.3773 14.5286 19.3199 14.7634 20.28 14.89C20.7658 14.9585 21.2094 15.2032 21.5265 15.5775C21.8437 15.9518 22.0122 16.4296 22 16.92Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="contact-text">
+                                <span class="label">电话</span>
+                                <span class="value">010-88888888</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-form glass-effect">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <label for="name">姓名</label>
+                            <input type="text" id="name" name="name" placeholder="请输入您的姓名" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">邮箱</label>
+                            <input type="email" id="email" name="email" placeholder="请输入您的邮箱" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="organization">单位</label>
+                            <input type="text" id="organization" name="organization" placeholder="请输入您的单位名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">留言</label>
+                            <textarea id="message" name="message" rows="4" placeholder="请输入您的留言内容" required></textarea>
+                        </div>
+                        <button type="submit" class="submit-button glow-effect">
+                            <span>发送消息</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-main">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="20" cy="20" r="18" stroke="url(#footerLogoGradient)" stroke-width="2"/>
+                                <path d="M12 20L18 26L28 14" stroke="url(#footerLogoGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <defs>
+                                    <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#00ff88"/>
+                                        <stop offset="100%" style="stop-color:#00d4ff"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <span class="logo-text">EDU.RESEARCH</span>
+                    </div>
+                    <p class="footer-desc">致力于职业教育创新研究，培养面向未来的高素质技术技能人才</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>研究方向</h4>
+                        <ul>
+                            <li><a href="#">智能教学系统</a></li>
+                            <li><a href="#">数字孪生实训</a></li>
+                            <li><a href="#">教育大数据</a></li>
+                            <li><a href="#">产教融合</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h4>资源中心</h4>
+                        <ul>
+                            <li><a href="#">学术论文</a></li>
+                            <li><a href="#">研究报告</a></li>
+                            <li><a href="#">政策文件</a></li>
+                            <li><a href="#">数据资源</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h4>关于我们</h4>
+                        <ul>
+                            <li><a href="#">团队介绍</a></li>
+                            <li><a href="#">合作伙伴</a></li>
+                            <li><a href="#">加入我们</a></li>
+                            <li><a href="#">联系方式</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 职业教育研究院. All rights reserved.</p>
+                <div class="footer-social">
+                    <a href="#" class="social-link">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M23 3C22.0424 3.67548 20.9821 4.19211 19.86 4.53C19.2577 3.83751 18.4573 3.34669 17.567 3.12393C16.6767 2.90116 15.7395 2.9572 14.8821 3.28445C14.0247 3.6117 13.2884 4.19439 12.773 4.95372C12.2575 5.71305 11.9877 6.61234 12 7.53V8.53C10.2426 8.57557 8.50127 8.18581 6.93101 7.39545C5.36074 6.60508 4.01032 5.43864 3 4C3 4 -1 13 8 17C5.94053 18.398 3.48716 19.0989 1 19C10 24 21 19 21 7.5C20.9991 7.22145 20.9723 6.94359 20.92 6.67C21.9406 5.66349 22.6608 4.39271 23 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-link">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M16 8C17.5913 8 19.1174 8.63214 20.2426 9.75736C21.3679 10.8826 22 12.4087 22 14V21H18V14C18 13.4696 17.7893 12.9609 17.4142 12.5858C17.0391 12.2107 16.5304 12 16 12C15.4696 12 14.9609 12.2107 14.5858 12.5858C14.2107 12.9609 14 13.4696 14 14V21H10V14C10 12.4087 10.6321 10.8826 11.7574 9.75736C12.8826 8.63214 14.4087 8 16 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="2" y="9" width="4" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="4" cy="4" r="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-link">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 6L12 13L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
