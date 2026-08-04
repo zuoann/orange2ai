@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曲靖农业学校 · 未来课堂 Pro | Cyber-Classroom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    screens: { '3xl': '1920px' },
+                    colors: {
+                        cyber: {
+                            bg: '#030508',
+                            dark: '#050b14',
+                            panel: 'rgba(10, 20, 40, 0.65)',
+                            primary: '#00f3ff', // Cyan
+                            secondary: '#9d00ff', // Purple
+                            accent: '#ff003c', // Red
+                            success: '#00ff9d', // Green
+                            warning: '#facc15', // Yellow
+                        }
+                    },
+                    fontFamily: {
+                        sci: ['"Orbitron"', 'sans-serif'],
+                        tech: ['"Rajdhani"', 'sans-serif'],
+                        body: ['"Noto Sans SC"', 'sans-serif']
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 15s linear infinite',
+                        'spin-reverse': 'spin 20s linear infinite reverse',
+                        'grid-move': 'gridMove 20s linear infinite',
+                        'pop-in': 'popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                        'flash-red': 'flashRed 0.5s infinite',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'scanline': 'scanline 8s linear infinite',
+                        'glitch': 'glitch 1s linear infinite',
+                    },
+                    keyframes: {
+                        gridMove: {
+                            '0%': { transform: 'translateY(0) perspective(500px) rotateX(60deg)' },
+                            '100%': { transform: 'translateY(40px) perspective(500px) rotateX(60deg)' },
+                        },
+                        popIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.8) translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+                        },
+                        flashRed: {
+                            '0%, 100%': { color: '#ff003c', textShadow: '0 0 15px #ff003c' },
+                            '50%': { color: '#ffffff', textShadow: 'none' },
+                        },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100vh)' }
+                        },
+                        glitch: {
+                            '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
+                            '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
+                            '62%': { transform: 'translate(0,0) skew(5deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #030508; color: #e2e8f0; overflow: hidden; font-family: 'Rajdhani', 'Noto Sans SC', sans-serif; }
+        .stars { background-image: radial-gradient(1px 1px at 50% 50%, white, transparent); background-size: 100px 100px; opacity: 0.3; }
+        .cyber-grid { position: absolute; width: 200%; height: 200%; bottom: -50%; left: -50%; background-image: linear-gradient(rgba(0, 243, 255, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.2) 1px, transparent 1px); background-size: 60px 60px; transform: perspective(500px) rotateX(60deg); animation: gridMove 20s linear infinite; mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%); -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%); z-index: -2; pointer-events: none; }
+        .scanlines { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2)); background-size: 100% 4px; position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 50; opacity: 0.15; }
+        .cyber-panel { background: rgba(10, 20, 35, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(0, 243, 255, 0.15); box-shadow: 0 0 30px rgba(0, 0, 0, 0.5); position: relative; clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
+        .cyber-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 20px; height: 20px; border-top: 2px solid #00f3ff; border-left: 2px solid #00f3ff; opacity: 0.7; pointer-events: none; }
+        .cyber-panel::after { content: ''; position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; border-bottom: 2px solid #00f3ff; border-right: 2px solid #00f3ff; opacity: 0.7; pointer-events: none; }
+        .neon-cyan { text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.4); }
+        .neon-purple { text-shadow: 0 0 10px rgba(157, 0, 255, 0.8), 0 0 20px rgba(157, 0, 255, 0.4); }
+        .neon-red { text-shadow: 0 0 10px rgba(255, 0, 60, 0.8), 0 0 20px rgba(255, 0, 60, 0.4); }
+        .neon-green { text-shadow: 0 0 10px rgba(0, 255, 157, 0.8), 0 0 20px rgba(0, 255, 157, 0.4); }
+        .tech-badge { background: rgba(0, 243, 255, 0.1); border-left: 3px solid #00f3ff; padding: 2px 10px; font-family: 'Noto Sans SC', sans-serif; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.75rem; color: #00f3ff; clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%); }
+        @media (min-width: 768px) { .tech-badge { font-size: 0.9rem; } }
+        .cyber-btn { position: relative; background: linear-gradient(90deg, transparent 0%, rgba(0, 243, 255, 0.1) 50%, transparent 100%); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; font-family: 'Noto Sans SC', sans-serif; font-weight: 700; letter-spacing: 2px; transition: all 0.3s ease; overflow: hidden; cursor: pointer; }
+        .cyber-btn:hover { background: rgba(0, 243, 255, 0.2); box-shadow: 0 0 15px rgba(0, 243, 255, 0.4); border-color: #00f3ff; color: white; text-shadow: 0 0 8px rgba(255,255,255,0.8); }
+        .cyber-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: 0.5s; }
+        .cyber-btn:hover::before { left: 100%; }
+        /* Adjusted option-btn for tighter spacing */
+        .option-btn { white-space: normal; height: auto; min-height: 3rem; text-align: left; display: flex; align-items: center; padding: 0.5rem 1rem; line-height: 1.4; margin-bottom: 0; background: rgba(0, 20, 40, 0.6); border: 1px solid rgba(0, 243, 255, 0.2); color: #a5b4fc; transition: all 0.2s ease; font-size: 1rem; }
+        @media (min-width: 640px) { .option-btn { font-size: 1.125rem; } }
+        @media (min-width: 1024px) { .option-btn { font-size: 1.25rem; padding: 0.75rem 1.5rem; } }
+        .option-btn:hover:not(:disabled) { background: rgba(0, 243, 255, 0.15); border-color: #00f3ff; color: white; transform: translateX(5px); }
+        .option-btn.selected { background: rgba(0, 243, 255, 0.3); border-color: #00f3ff; color: white; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
+        .option-btn.correct-highlight { background: rgba(0, 255, 157, 0.2) !important; border-color: #00ff9d !important; color: #00ff9d !important; }
+        .option-btn.wrong-highlight { background: rgba(255, 0, 60, 0.2) !important; border-color: #ff003c !important; color: #ff003c !important; }
+        .cyber-input { background: rgba(0, 20, 40, 0.6); border: 1px solid #00f3ff; color: #fff; padding: 1rem 1.5rem; width: 100%; font-family: 'Noto Sans SC', monospace; font-size: 1.25rem; outline: none; transition: all 0.3s; margin-bottom: 1rem; }
+        .cyber-input:focus { box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); background: rgba(0, 20, 40, 0.8); border-color: #fff; }
+        .glitch-hover:hover { animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite; color: #ff003c; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050b14; }
+        ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 0; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .typing-cursor::after { content: '▋'; display: inline-block; vertical-align: middle; color: #00f3ff; animation: flash-red 1s infinite; margin-left: 2px; }
+        .clip-path-toast { clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
+        .badge-icon { display: inline-flex; align-items: center; margin-left: 4px; font-size: 0.8em; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-body bg-cyber-bg text-gray-200 selection:bg-cyber-primary selection:text-black text-base md:text-lg overflow-hidden supports-[height:100dvh]:h-[100dvh]">
+
+    <div class="fixed inset-0 stars z-0 pointer-events-none"></div>
+    <div class="fixed inset-0 bg-gradient-radial from-transparent via-cyber-dark/80 to-cyber-dark z-0 pointer-events-none"></div>
+    <div class="cyber-grid"></div>
+    <div class="scanlines"></div>
+    
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+    
+    <div id="celebration-text" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none hidden bg-black/60 backdrop-blur-sm">
+        <div class="relative p-8 md:p-12 border-y-4 border-cyber-success bg-black/80 animate-pop-in">
+            <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-cyber-success text-black font-bold px-4 py-1 skew-x-[-20deg]">好厉害哦 // SYSTEM</div>
+            <h1 class="text-5xl sm:text-6xl md:text-8xl font-black font-sci text-white neon-green tracking-[0.2em] text-center glitch-hover">回答正确</h1>
+            <div class="text-xl md:text-3xl text-cyber-success mt-4 font-bold text-center tracking-widest border-t border-cyber-success/30 pt-4">恭喜您！ // ACCESS GRANTED</div>
+        </div>
+    </div>
+
+    <div id="error-overlay" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none hidden bg-black/60 backdrop-blur-sm">
+        <div class="relative p-8 md:p-12 border-y-4 border-cyber-accent bg-black/80 animate-shake">
+            <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-cyber-accent text-black font-bold px-4 py-1 skew-x-[-20deg]">好伤心哦 // WARNING</div>
+            <h1 class="text-5xl sm:text-6xl md:text-8xl font-black font-sci text-white neon-red tracking-[0.2em] text-center" style="text-shadow: 0 0 30px #ff003c;">回答错误</h1>
+            <div class="text-xl md:text-3xl text-cyber-accent mt-4 font-bold text-center tracking-widest border-t border-cyber-accent/30 pt-4">非常遗憾// ACCESS DENIED</div>
+        </div>
+    </div>
+
+    <header class="h-16 md:h-20 lg:h-24 flex items-center justify-between px-4 md:px-8 border-b border-cyber-primary/20 bg-cyber-dark/90 backdrop-blur-md relative z-10 shadow-[0_5px_30px_rgba(0,0,0,0.5)]">
+        <div class="flex items-center gap-3 md:gap-4">
+            <div class="relative group">
+                <div class="absolute inset-0 bg-cyber-primary blur opacity-20 group-hover:opacity-40 transition-opacity rounded-full"></div>
+                <i data-lucide="cpu" class="text-cyber-primary w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 relative z-10 animate-pulse-fast"></i>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-sci font-bold tracking-widest text-white neon-cyan leading-none">
+                    职业教育<span class="text-cyber-primary">未来课堂</span>
+                </h1>
+                <span class="text-[9px] md:text-xs lg:text-sm text-cyber-primary/70 font-mono tracking-[0.3em] uppercase">曲靖农业学校 // PRO EDITION</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3 md:gap-8">
+            <div class="hidden lg:flex items-center gap-2 border-r border-cyber-primary/30 pr-6">
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] md:text-xs text-gray-400 font-mono uppercase">数据存储</span>
+                    <span class="text-xs md:text-sm text-cyber-success font-bold font-sci tracking-wider">LOCAL / 本地</span>
+                </div>
+                <i data-lucide="database" class="w-4 h-4 md:w-5 md:h-5 text-cyber-success"></i>
+            </div>
+            <div class="flex items-center gap-2 md:gap-4">
+                 <button onclick="toggleFullScreen()" id="fullscreen-btn" class="cyber-btn p-2 rounded-none border border-cyber-primary/50 hover:bg-cyber-primary/20" title="全屏模式">
+                    <i data-lucide="maximize" class="w-5 h-5 lg:w-6 lg:h-6"></i>
+                </button>
+                <div class="text-right">
+                    <div id="clock" class="text-lg md:text-2xl lg:text-3xl font-mono font-bold text-white neon-cyan leading-none">00:00:00</div>
+                    <div class="text-[9px] md:text-[10px] lg:text-xs text-cyber-primary/50 font-mono tracking-widest">系统时间 // BJ TIME</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 lg:gap-8 relative z-10 overflow-y-auto lg:overflow-hidden">
+        
+        <section class="lg:col-span-7 flex flex-col gap-4 h-auto lg:h-full animate-pop-in" style="animation-delay: 0.1s;">
+            <div class="cyber-panel flex-1 flex flex-col h-full group min-h-[500px] lg:min-h-0">
+                <div class="absolute inset-0 bg-gradient-to-b from-cyber-primary/5 to-transparent pointer-events-none"></div>
+
+                <div class="p-3 md:p-4 lg:p-5 border-b border-cyber-primary/20 flex justify-between items-center bg-black/20 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="terminal" class="text-cyber-primary w-5 h-5 lg:w-6 lg:h-6"></i>
+                        <h2 class="font-sci text-sm md:text-base lg:text-lg text-cyber-primary tracking-widest">数据流 // 当前题目</h2>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="q-type-badge" class="tech-badge hidden">单项选择题</span>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[8px] md:text-[10px] text-gray-500 font-mono leading-none mb-1">快速定位 / JUMP</span>
+                            <div class="flex items-center gap-1 font-mono text-xs md:text-sm lg:text-base">
+                                <input type="number" id="q-jump-input" class="w-10 md:w-12 bg-transparent border-b border-cyber-primary/50 text-white text-center focus:outline-none focus:border-cyber-primary p-0 appearance-none" min="1" onchange="jumpToQuestion(this.value)">
+                                <span class="text-gray-500">/</span>
+                                <span id="q-total-count" class="text-gray-500">10</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 p-4 md:p-6 lg:p-8 flex flex-col relative overflow-y-auto w-full min-h-0 z-10 custom-scrollbar">
+                    <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyber-primary/30 to-transparent"></div>
+                    
+                    <div id="question-text" class="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold mb-4 leading-relaxed md:leading-loose tracking-wide drop-shadow-md whitespace-pre-line transition-all duration-300 min-h-[60px] text-white">
+                        正在建立数据连接...
+                    </div>
+                    
+                    <div id="media-container" class="w-full flex justify-center mb-4 hidden">
+                        </div>
+
+                    <div id="options-container" class="flex flex-col gap-2 w-full mb-6">
+                        </div>
+                    
+                    <div id="answer-container" class="relative w-full max-w-4xl hidden transition-all duration-300 shrink-0 animate-pop-in mt-2 flex flex-col gap-4">
+                        <div class="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] md:text-xs font-bold text-cyber-secondary bg-black px-4 border-x border-cyber-secondary font-sci tracking-widest z-10">参考答案 / REFERENCE</div>
+                        <div id="answer-text" class="text-lg md:text-2xl lg:text-3xl text-white font-mono p-6 md:p-8 border border-cyber-secondary rounded-sm bg-cyber-secondary/10 shadow-[0_0_20px_rgba(157,0,255,0.2)] text-center relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-cyber-secondary/50 shadow-[0_0_10px_#9d00ff] animate-scanline opacity-50"></div>
+                            <span class="relative z-10 neon-purple">答案内容</span>
+                        </div>
+                    </div>
+
+                    <div id="answer-placeholder" class="text-cyber-primary/40 font-mono text-xs md:text-sm animate-pulse mt-4 shrink-0 flex items-center gap-2 hidden">
+                        <span class="w-2 h-2 bg-cyber-primary/40 rounded-full animate-ping"></span>
+                        等待解密密钥 (按 Enter 显示)...
+                    </div>
+                </div>
+
+                <div class="sticky bottom-0 p-3 md:p-5 bg-cyber-dark/90 border-t border-cyber-primary/20 grid grid-cols-5 gap-2 md:gap-4 shrink-0 backdrop-blur-md z-30 text-xs md:text-sm lg:text-base shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                    <button onclick="changeQuestion(-1)" class="cyber-btn col-span-1 py-3 md:py-4 flex justify-center items-center gap-2 group border-slate-600 text-slate-400">
+                        <i data-lucide="chevron-left" class="w-4 h-4 md:w-5 md:h-5"></i> <span class="hidden sm:inline">上一题</span>
+                    </button>
+                    
+                    <button onclick="toggleAnswer()" class="cyber-btn col-span-1 py-3 md:py-4 flex justify-center items-center gap-2 border-cyber-secondary/50 text-cyber-secondary hover:shadow-[0_0_20px_rgba(157,0,255,0.4)]">
+                        <i data-lucide="eye" class="w-4 h-4 md:w-5 md:h-5"></i> <span id="btn-answer-text" class="hidden sm:inline">显示答案</span>
+                    </button>
+
+                    <button onclick="triggerError()" class="cyber-btn col-span-1 py-3 md:py-4 flex justify-center items-center gap-2 border-cyber-accent/50 text-cyber-accent hover:shadow-[0_0_20px_rgba(255,0,60,0.4)]">
+                        <i data-lucide="x-circle" class="w-4 h-4 md:w-5 md:h-5"></i> <span class="hidden sm:inline">错误</span>
+                    </button>
+
+                    <button onclick="triggerCelebration()" class="cyber-btn col-span-1 py-3 md:py-4 flex justify-center items-center gap-2 border-cyber-success/50 text-cyber-success hover:shadow-[0_0_20px_rgba(0,255,157,0.4)]">
+                        <i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5"></i> <span class="hidden sm:inline">正确</span>
+                    </button>
+
+                    <button onclick="changeQuestion(1)" class="cyber-btn col-span-1 py-3 md:py-4 flex justify-center items-center gap-2 border-slate-600 text-slate-400">
+                        <span class="hidden sm:inline">下一题</span> <i data-lucide="chevron-right" class="w-4 h-4 md:w-5 md:h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-5 flex flex-col gap-4 h-auto lg:h-full animate-pop-in" style="animation-delay: 0.2s;">
+            
+            <div class="cyber-panel flex-[2] flex flex-col relative min-h-[450px] lg:min-h-0" id="lottery-box">
+                <div class="p-3 md:p-4 lg:p-5 border-b border-cyber-primary/20 bg-black/20 shrink-0 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="scan-face" class="text-cyber-secondary w-5 h-5 lg:w-6 lg:h-6"></i>
+                        <h2 class="font-sci text-sm md:text-base lg:text-lg text-cyber-secondary tracking-widest">目标锁定 // 随机点名</h2>
+                    </div>
+                     <!-- Mode Toggle -->
+                     <div class="flex items-center bg-black/40 rounded border border-cyber-secondary/30 p-1">
+                        <button onclick="setRollMode('auto')" id="mode-auto" class="px-2 py-0.5 text-[10px] md:text-xs rounded font-bold transition-all bg-cyber-secondary text-black">自动</button>
+                        <button onclick="setRollMode('manual')" id="mode-manual" class="px-2 py-0.5 text-[10px] md:text-xs rounded font-bold transition-all text-gray-500 hover:text-white">手动</button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col items-center justify-center p-4 md:p-6 lg:p-8 relative z-10 min-h-0">
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
+                        <div class="w-48 h-48 md:w-72 md:h-72 lg:w-80 lg:h-80 xl:w-96 xl:h-96 border-2 border-dashed border-cyber-secondary/20 rounded-full animate-spin-slow"></div>
+                        <div class="absolute w-36 h-36 md:w-56 md:h-56 lg:w-64 lg:h-64 xl:w-80 xl:h-80 border border-cyber-primary/20 rounded-full animate-spin-reverse"></div>
+                    </div>
+
+                    <div class="relative w-full flex justify-center py-8 lg:py-12 flex-col items-center group">
+                        <div class="absolute top-0 left-2 md:left-4 w-4 md:w-6 h-full border-l-4 border-t-4 border-b-4 border-cyber-secondary/50 rounded-l-lg opacity-50"></div>
+                        <div class="absolute top-0 right-2 md:right-4 w-4 md:w-6 h-full border-r-4 border-t-4 border-b-4 border-cyber-secondary/50 rounded-r-lg opacity-50"></div>
+                        
+                        <div id="student-name" class="text-4xl sm:text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-white z-10 neon-purple tracking-widest transition-all scale-100 text-center break-words w-full px-6" style="text-shadow: 0 0 30px rgba(157,0,255,0.5);">
+                            就绪
+                        </div>
+                        
+                        <div id="score-controls" class="flex gap-4 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden">
+                             <button onclick="updateScore(-1)" class="w-10 h-10 rounded-full border border-cyber-accent text-cyber-accent hover:bg-cyber-accent hover:text-black flex items-center justify-center transition-all font-bold text-xl" title="扣分">-1</button>
+                             <button onclick="updateScore(1)" class="w-10 h-10 rounded-full border border-cyber-success text-cyber-success hover:bg-cyber-success hover:text-black flex items-center justify-center transition-all font-bold text-xl" title="加分">+1</button>
+                        </div>
+                    </div>
+                    
+                    <div id="timer-container" class="hidden flex-col items-center justify-center w-full mt-4 md:mt-8 animate-pop-in relative group">
+                         <div class="relative w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 flex items-center justify-center bg-black/40 rounded-full border border-cyber-primary/30 backdrop-blur-md shadow-[0_0_20px_rgba(0,243,255,0.1)]">
+                            <svg class="absolute inset-0 w-full h-full transform -rotate-90 drop-shadow-[0_0_5px_rgba(255,0,60,0.5)]">
+                                <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="transparent" />
+                                <circle id="timer-ring" cx="50%" cy="50%" r="45%" stroke="#ff003c" stroke-width="6" fill="transparent" stroke-linecap="round" class="transition-all duration-1000 ease-linear" stroke-dasharray="283" stroke-dashoffset="0" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center z-10">
+                                <span class="text-[8px] md:text-[10px] text-cyber-accent font-sci tracking-widest">剩余时间</span>
+                                <div id="timer-display" class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-sci font-bold text-white tracking-widest neon-red">02:00</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-4 z-20">
+                            <button onclick="setTimerDuration(30)" id="btn-30s" class="timer-opt-btn px-2 py-1 text-[10px] md:text-xs font-mono border border-cyber-primary/30 text-cyber-primary/50 hover:text-cyber-primary hover:border-cyber-primary transition-all uppercase tracking-wider">30S</button>
+                            <button onclick="setTimerDuration(60)" id="btn-60s" class="timer-opt-btn px-2 py-1 text-[10px] md:text-xs font-mono border border-cyber-primary/30 text-cyber-primary/50 hover:text-cyber-primary hover:border-cyber-primary transition-all uppercase tracking-wider">60S</button>
+                            <button onclick="setTimerDuration(120)" id="btn-120s" class="timer-opt-btn px-2 py-1 text-[10px] md:text-xs font-mono border border-cyber-primary text-cyber-primary bg-cyber-primary/20 transition-all shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase tracking-wider">120S</button>
+                        </div>
+                         <div class="flex gap-2 mt-2">
+                             <button onclick="toggleTimer()" class="px-3 py-1 bg-cyber-primary/10 border border-cyber-primary text-cyber-primary text-[10px] md:text-xs font-bold hover:bg-cyber-primary hover:text-black transition-colors uppercase tracking-wider">暂停/T</button>
+                             <button onclick="resetTimer()" class="px-3 py-1 bg-gray-800 border border-gray-600 text-gray-400 text-[10px] md:text-xs font-bold hover:border-white hover:text-white transition-colors uppercase tracking-wider">重置</button>
+                        </div>
+                    </div>
+
+                    <div class="text-xs md:text-sm lg:text-base text-cyber-primary/60 font-mono mt-4 z-10 tracking-[0.2em] animate-pulse" id="status-text">系统待机中... (按空格抽签)</div>
+                </div>
+
+                <div class="p-4 md:p-6 lg:p-8 bg-black/40 z-20 shrink-0 border-t border-cyber-primary/10">
+                    <button id="roll-btn" onclick="toggleRoll()" class="w-full py-4 md:py-6 relative overflow-hidden group bg-transparent border border-cyber-primary text-cyber-primary font-sci font-bold text-xl md:text-2xl lg:text-3xl tracking-[0.2em] uppercase transition-all hover:bg-cyber-primary hover:text-black hover:shadow-[0_0_30px_rgba(0,243,255,0.6)]">
+                        <span class="relative z-10">启动幸运抽签 [Space]</span>
+                        <div class="absolute inset-0 bg-cyber-primary/20 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="cyber-panel flex-1 lg:flex-[0.8] flex flex-col relative overflow-hidden min-h-[200px] lg:min-h-[120px]">
+                <h3 class="text-[10px] md:text-xs text-cyber-primary/60 mb-2 p-3 md:p-4 border-b border-cyber-primary/20 uppercase tracking-widest bg-black/20">班级_花名册_数据库</h3>
+                <div id="student-list-preview" class="flex flex-wrap gap-2 overflow-y-auto content-start h-full p-3 md:p-4 text-xs md:text-sm custom-scrollbar">
+                    </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="h-10 md:h-12 lg:h-16 bg-black border-t border-gray-800 flex items-center justify-between px-4 md:px-8 z-10 text-[10px] md:text-xs lg:text-sm">
+        <div class="flex items-center gap-4">
+            <div class="text-gray-600 font-mono uppercase tracking-widest">系统版本V2.3 Pro // 技术支持：杨林</div>
+            <button onclick="toggleSound()" id="sound-btn" class="flex items-center gap-2 font-bold uppercase tracking-wider px-2 py-1 rounded bg-gray-900 border border-gray-800 text-gray-500 hover:text-cyber-success hover:border-cyber-success/50 transition-colors">
+                <i data-lucide="volume-2" class="w-3 h-3 md:w-4 md:h-4"></i> <span>音效: 开启</span>
+            </button>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="openLeaderboard()" class="text-cyber-warning hover:text-white transition-colors font-mono flex items-center gap-2 group">
+                 <i data-lucide="trophy" class="w-3 h-3 md:w-4 md:h-4 group-hover:-translate-y-1 transition-transform"></i> 学霸榜
+            </button>
+            <button onclick="exportData()" class="text-cyber-success hover:text-white transition-colors font-mono flex items-center gap-2 group">
+                 <i data-lucide="download" class="w-3 h-3 md:w-4 md:h-4 group-hover:translate-y-1 transition-transform"></i> 导出记录
+            </button>
+            <button onclick="openSettings()" class="text-cyber-primary hover:text-white transition-colors font-mono flex items-center gap-2 group">
+                <i data-lucide="settings" class="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-90 transition-transform"></i> 系统配置
+            </button>
+        </div>
+    </footer>
+
+    <div id="leaderboard-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 animate-pop-in">
+        <div class="cyber-panel w-full max-w-2xl max-h-[80vh] flex flex-col bg-cyber-dark/90 border border-cyber-warning/30 shadow-[0_0_50px_rgba(250,204,21,0.1)]">
+            <div class="p-4 border-b border-cyber-warning/20 flex flex-col gap-4 bg-cyber-warning/5 shrink-0">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-sci text-cyber-warning tracking-widest flex items-center gap-2">
+                        <i data-lucide="trophy" class="w-5 h-5"></i> 学霸遥遥领先榜
+                    </h2>
+                    <button onclick="closeLeaderboard()" class="text-cyber-warning hover:text-white transition-all"><i data-lucide="x"></i></button>
+                </div>
+                <!-- Leaderboard Tabs -->
+                 <div class="flex gap-2">
+                        <button onclick="switchLeaderboardTab('session')" id="tab-session" class="flex-1 py-2 text-xs md:text-sm font-bold uppercase tracking-wider border border-cyber-warning/20 text-gray-500 hover:text-cyber-warning transition-all">日排行</button>
+                        <button onclick="switchLeaderboardTab('week')" id="tab-week" class="flex-1 py-2 text-xs md:text-sm font-bold uppercase tracking-wider border border-cyber-warning/20 text-gray-500 hover:text-cyber-warning transition-all">周排行</button>
+                        <button onclick="switchLeaderboardTab('month')" id="tab-month" class="flex-1 py-2 text-xs md:text-sm font-bold uppercase tracking-wider border border-cyber-warning/20 text-gray-500 hover:text-cyber-warning transition-all">月排行</button>
+                        <button onclick="switchLeaderboardTab('semester')" id="tab-semester" class="flex-1 py-2 text-xs md:text-sm font-bold uppercase tracking-wider border border-cyber-warning/50 bg-cyber-warning/20 text-cyber-warning hover:bg-cyber-warning hover:text-black transition-all">学期总榜</button>
+                 </div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <table class="w-full text-left font-mono">
+                    <thead class="text-cyber-warning/50 text-xs uppercase tracking-widest border-b border-cyber-warning/20">
+                        <tr>
+                            <th class="pb-2">排名</th>
+                            <th class="pb-2">姓名</th>
+                            <th class="pb-2 text-right">积分 (Score)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body" class="text-sm md:text-base">
+                        </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-cyber-warning/20 bg-cyber-warning/5 flex justify-end gap-2 shrink-0">
+                 <div class="flex-1 text-[10px] text-gray-500 flex items-center">注：系统自动记录积分产生时间</div>
+                 <button onclick="resetScores()" class="px-4 py-2 border border-red-900 text-red-500 hover:border-red-500 hover:text-red-500 font-mono text-xs uppercase tracking-widest">清空所有数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal (Replaces native confirm()) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 animate-pop-in">
+        <div class="cyber-panel w-full max-w-md bg-cyber-dark/90 border border-cyber-accent/50 shadow-[0_0_30px_rgba(255,0,60,0.2)] p-6 text-center">
+            <i data-lucide="alert-triangle" class="w-12 h-12 text-cyber-accent mx-auto mb-4 animate-pulse"></i>
+            <h3 class="text-xl font-bold text-white mb-2">警告 // WARNING</h3>
+            <p id="confirm-msg" class="text-gray-400 mb-6 font-mono text-sm">操作不可逆，确定继续吗？</p>
+            <div class="flex gap-4 justify-center">
+                <button onclick="closeConfirm(false)" class="px-6 py-2 border border-gray-600 text-gray-400 hover:text-white hover:border-white transition-colors uppercase font-mono text-xs">取消 / CANCEL</button>
+                <button id="confirm-yes-btn" class="px-6 py-2 bg-cyber-accent/20 border border-cyber-accent text-cyber-accent hover:bg-cyber-accent hover:text-black transition-colors uppercase font-mono text-xs font-bold shadow-[0_0_15px_rgba(255,0,60,0.2)]">确定 / CONFIRM</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 animate-pop-in">
+        <div class="cyber-panel w-full max-w-4xl max-h-[90vh] flex flex-col bg-cyber-dark/90 border border-cyber-primary/30 shadow-[0_0_50px_rgba(0,243,255,0.1)]">
+            <div class="p-4 border-b border-cyber-primary/20 flex justify-between items-center bg-cyber-primary/5 shrink-0">
+                <h2 class="text-xl font-sci text-cyber-primary tracking-widest flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5"></i> 系统配置控制台
+                </h2>
+                <button onclick="closeSettings()" class="text-cyber-primary hover:text-white hover:rotate-90 transition-all"><i data-lucide="x"></i></button>
+            </div>
+
+            <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6 custom-scrollbar">
+                <div class="flex flex-col gap-2">
+                    <label class="text-cyber-success font-mono text-sm flex items-center gap-2 font-bold tracking-wide">
+                        <i data-lucide="file-code" class="w-4 h-4"></i> 试题数据库
+                    </label>
+                    <textarea id="input-questions" class="flex-1 h-64 bg-black/50 border border-cyber-success/30 rounded-none p-4 text-sm font-mono text-cyber-success/80 focus:border-cyber-success focus:outline-none focus:bg-black/80 resize-none transition-all" 
+placeholder="【支持Word文档直接粘贴】
+--------------------------------
+格式示范：
+1. [单选题] 世界上第一台计算机是？
+A. ENIAC
+B. EDVAC
+答案：A
+
+2. [图片题] 请识别此设备 [img:https://example.com/cpu.jpg]
+答案：CPU
+--------------------------------"></textarea>
+                    <div class="text-[10px] text-gray-500 font-mono border-l-2 border-cyber-success/30 pl-2">
+                        智能识别模式：支持Word文档格式及 [img:url] 图片插入
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-cyber-secondary font-mono text-sm flex items-center gap-2 font-bold tracking-wide">
+                        <i data-lucide="users" class="w-4 h-4"></i> 人员名单
+                    </label>
+                    <textarea id="input-students" class="flex-1 h-64 bg-black/50 border border-cyber-secondary/30 rounded-none p-4 text-sm font-mono text-cyber-secondary/80 focus:border-cyber-secondary focus:outline-none focus:bg-black/80 resize-none transition-all" placeholder="张三&#10;李四&#10;王五"></textarea>
+                     <div class="text-[10px] text-gray-500 font-mono border-l-2 border-cyber-secondary/30 pl-2">
+                        每行一个姓名，自动保存至本地缓存
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-cyber-primary/20 bg-cyber-primary/5 flex justify-end gap-4 shrink-0">
+                <button onclick="closeSettings()" class="px-6 py-2 border border-gray-600 text-gray-400 font-mono text-xs hover:text-white hover:border-white transition-colors uppercase tracking-widest">取消</button>
+                <button onclick="saveData()" class="px-8 py-2 bg-cyber-primary/20 border border-cyber-primary text-cyber-primary font-sci text-sm hover:bg-cyber-primary hover:text-black transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(0,243,255,0.2)]">
+                    保存更改 & 缓存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed top-24 right-0 transform translate-x-full transition-transform duration-300 z-50">
+        <div class="bg-black/90 border-l-4 border-cyber-primary text-white px-6 py-4 shadow-[0_0_30px_rgba(0,243,255,0.2)] flex items-center gap-4 clip-path-toast">
+            <i data-lucide="terminal" class="text-cyber-primary w-5 h-5 animate-pulse"></i>
+            <div>
+                <div class="text-[10px] text-cyber-primary font-mono tracking-widest">系统提示 // ALERT</div>
+                <div id="toast-msg" class="text-sm font-bold font-sci">操作成功</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+        const STORAGE_KEY = 'cyber_classroom_v2_pro';
+
+        // State Management
+        let questions = [
+            { type: "单选题", q: "计算机的大脑是什么？\nA. GPU\nB. CPU\nC. RAM", a: "B. CPU" },
+            { type: "多选题", q: "下列哪些属于计算机输入设备？\nA. 鼠标\nB. 显示器\nC. 键盘\nD. 打印机", a: "A. 鼠标, C. 键盘" },
+            { type: "判断题", q: "1KB 等于 1000 Byte", a: "错 (1024 Byte)" }
+        ];
+
+        let students = ["张伟", "李强", "王芳", "赵杰", "孙悟空"];
+        let scoreHistory = []; // Array of { name, delta, timestamp }
+        let sessionLog = []; 
+        let sessionStartTime = Date.now();
+        
+        let currentQIndex = 0;
+        let isAnswerVisible = false;
+        let rollInterval = null;
+        let isRolling = false;
+        let rollMode = 'auto'; // 'auto' or 'manual'
+        let enableSound = true;
+        let audioCtx = null;
+        let timerInterval = null;
+        let timerSeconds = 120;
+        let selectedDuration = 120;
+        let isTimerRunning = false;
+        let typeStemTimeout = null;
+        let selectedOptions = new Set();
+        let currentLuckyStudent = null;
+        let currentLeaderboardTab = 'semester';
+
+        // Timer Variables
+        const FULL_DASH_ARRAY = 283; 
+
+        // DOM Elements
+        const elQText = document.getElementById('question-text');
+        const elOptionsContainer = document.getElementById('options-container');
+        const elQAnswerContainer = document.getElementById('answer-container');
+        const elQAnswerText = document.getElementById('answer-text');
+        const elQAnswerPlaceholder = document.getElementById('answer-placeholder');
+        const elQTypeBadge = document.getElementById('q-type-badge');
+        const elBtnAnswerText = document.getElementById('btn-answer-text');
+        const elStudentName = document.getElementById('student-name');
+        const elRollBtn = document.getElementById('roll-btn');
+        const elStudentPreview = document.getElementById('student-list-preview');
+        const elCelebrationText = document.getElementById('celebration-text');
+        const elErrorOverlay = document.getElementById('error-overlay');
+        const elSoundBtn = document.getElementById('sound-btn');
+        const elStatusText = document.getElementById('status-text');
+        const elTimerContainer = document.getElementById('timer-container');
+        const elTimerDisplay = document.getElementById('timer-display');
+        const elTimerRing = document.getElementById('timer-ring');
+        const inputQuestions = document.getElementById('input-questions');
+        const inputStudents = document.getElementById('input-students');
+        const elScoreControls = document.getElementById('score-controls');
+        const elMediaContainer = document.getElementById('media-container');
+
+        // --- Data Persistence ---
+        function loadLocalData() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.questions && parsed.questions.length > 0) questions = parsed.questions;
+                    if (parsed.students && parsed.students.length > 0) students = parsed.students;
+                    
+                    // Migration Logic for old scores object
+                    if (parsed.scores && !parsed.scoreHistory) {
+                        scoreHistory = [];
+                        Object.entries(parsed.scores).forEach(([name, score]) => {
+                            if (score !== 0) {
+                                scoreHistory.push({ name: name, delta: score, timestamp: Date.now() });
+                            }
+                        });
+                    } else if (parsed.scoreHistory) {
+                        scoreHistory = parsed.scoreHistory;
+                    }
+
+                    if (parsed.logs) sessionLog = parsed.logs;
+                    
+                    inputQuestions.value = questions.map(i => `${i.type} | ${i.q.replace(/\n/g, '\\n')} | ${i.a}`).join('\n');
+                    inputStudents.value = students.join('\n');
+                    console.log("Local data loaded.");
+                } catch (e) {
+                    console.error("Failed to load local data", e);
+                }
+            }
+        }
+
+        function saveToLocal() {
+            const data = {
+                questions: questions,
+                students: students,
+                scoreHistory: scoreHistory, // Save full history now
+                logs: sessionLog
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function logEvent(eventDetail) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            sessionLog.push({ time: timeStr, detail: eventDetail });
+            saveToLocal();
+        }
+
+        // --- Audio System ---
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type, duration, startTime = 0, vol = 0.1) {
+            if (!enableSound || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + startTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime + startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
+            osc.stop(audioCtx.currentTime + startTime + duration);
+        }
+
+        function playWinSound() { initAudio(); playTone(880, 'sine', 0.1, 0, 0.2); playTone(1108, 'sine', 0.1, 0.1, 0.2); playTone(1318, 'square', 0.3, 0.2, 0.1); playTone(1760, 'square', 0.6, 0.3, 0.1); }
+        function playErrorSound() { initAudio(); playTone(150, 'sawtooth', 0.3, 0, 0.3); playTone(100, 'sawtooth', 0.5, 0.1, 0.3); }
+        function playClickSound() { initAudio(); playTone(2000, 'sine', 0.05, 0, 0.05); }
+        function playRollSound() { if(!isRolling) return; playTone(800 + Math.random()*400, 'square', 0.05, 0, 0.05); }
+        function playScoreSound(up) { initAudio(); if(up) { playTone(1200, 'sine', 0.1, 0, 0.2); playTone(1500, 'sine', 0.2, 0.1, 0.2); } else { playTone(400, 'sawtooth', 0.3, 0, 0.2); } }
+
+        function toggleSound() {
+            enableSound = !enableSound;
+            const colorClass = enableSound ? 'text-cyber-success border-cyber-success/50' : 'text-gray-500 border-gray-800';
+            const icon = enableSound ? 'volume-2' : 'volume-x';
+            elSoundBtn.innerHTML = `<i data-lucide="${icon}" class="w-3 h-3"></i> <span>音效: ${enableSound ? '开启' : '关闭'}</span>`;
+            elSoundBtn.className = `flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-gray-900 border transition-colors ${colorClass}`;
+            lucide.createIcons();
+            if (enableSound) initAudio();
+        }
+
+        // --- Confirm Modal Logic ---
+        let confirmCallback = null;
+        function showConfirm(msg, callback) {
+            document.getElementById('confirm-msg').innerText = msg;
+            confirmCallback = callback;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+        function closeConfirm(val) {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            if (val && confirmCallback) confirmCallback();
+            confirmCallback = null;
+        }
+        document.getElementById('confirm-yes-btn').onclick = () => closeConfirm(true);
+
+
+        // --- Core Logic ---
+        function getPointsByType(type, questionText) {
+            if (type === "单选题" || type === "单项选择题") return 1;
+            if (type === "多选题" || type === "多项选择题") return 2;
+            if (type === "判断题") return 1;
+            if (type === "名词解释") return 4;
+            if (type === "解答题" || type === "简答题") return 5;
+            if (type === "论述题") return 10; // Default for essay
+            
+            if (type === "填空题") {
+                const blankRegex = /(_+|[\(（]\s*[\)）])/g;
+                const matches = questionText.match(blankRegex);
+                const count = matches ? matches.length : 1;
+                return 1.5 * count;
+            }
+            
+            return 1; // Default fallback
+        }
+
+        // --- Reward Badges Logic ---
+        function getBadgesHTML(score) {
+            if (score <= 0) return '';
+            const suns = Math.floor(score / 100);
+            let remainder = score % 100;
+            const flags = Math.floor(remainder / 10);
+            remainder = remainder % 10;
+            const flowers = Math.floor(remainder / 5);
+            
+            let html = '';
+            html += '☀️'.repeat(suns);
+            html += '🚩'.repeat(flags);
+            html += '🌸'.repeat(flowers);
+            
+            if (html === '') return '';
+            return `<span class="badge-icon">${html}</span>`;
+        }
+
+        function finalizeQuestion(q) {
+            if (!q) return null;
+            let detectedType = q.type;
+            const ans = q.a.trim().toUpperCase(); 
+            
+            if (!detectedType || detectedType === "综合题") {
+                const judgmentRegex = /^(对|错|正确|错误|√|×|T|F|TRUE|FALSE|YES|NO)/;
+                const cleanAns = ans.replace(/[\s,，。.()（）]/g, '');
+                if (judgmentRegex.test(cleanAns)) detectedType = "判断题";
+                else if (/^[A-F]$/.test(cleanAns)) detectedType = "单项选择题";
+                else if (/^[A-F]+$/.test(cleanAns)) detectedType = "多项选择题";
+                else if (/_{3,}|\(\s*\)|（\s*）/.test(q.q)) detectedType = "填空题";
+                else detectedType = "简答题";
+                q.type = detectedType;
+            }
+            
+            if (q.type.includes("选")) {
+                const optionAMatch = q.q.match(/(?:^|[\n\s])(A[\.、\s])/);
+                if (optionAMatch) {
+                    const idx = optionAMatch.index + optionAMatch[0].indexOf('A');
+                    let stem = q.q.substring(0, idx).trim();
+                    let optionsRaw = q.q.substring(idx).trim();
+                    optionsRaw = optionsRaw.replace(/([\s\n]+)([B-F][\.、\s])/g, '  $2');
+                    q.q = stem + "\n\n" + optionsRaw;
+                }
+            }
+            return q;
+        }
+
+        function init() {
+            loadLocalData();
+            updateClock();
+            setInterval(updateClock, 1000);
+            questions = questions.map(finalizeQuestion);
+            renderQuestion();
+            renderStudentPreview();
+            
+            document.body.addEventListener('click', () => {
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            }, { once: true });
+
+            document.querySelectorAll('button').forEach(b => {
+                b.addEventListener('mouseenter', () => playTone(300, 'sine', 0.02, 0, 0.02));
+                b.addEventListener('click', playClickSound);
+            });
+
+            // Keyboard Shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+                switch(e.code) {
+                    case 'Space': e.preventDefault(); toggleRoll(); break;
+                    case 'Enter': e.preventDefault(); toggleAnswer(); break;
+                    case 'ArrowLeft': changeQuestion(-1); break;
+                    case 'ArrowRight': changeQuestion(1); break;
+                    case 'KeyT': toggleTimer(); break;
+                }
+            });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const bjTime = new Date(utc + (3600000 * 8));
+            document.getElementById('clock').innerText = bjTime.toLocaleTimeString('en-GB');
+        }
+
+        function jumpToQuestion(val) {
+            const idx = parseInt(val) - 1;
+            if (!isNaN(idx) && idx >= 0 && idx < questions.length) {
+                currentQIndex = idx;
+                renderQuestion();
+            } else {
+                document.getElementById('q-jump-input').value = currentQIndex + 1;
+                showToast("无效的题号");
+            }
+        }
+
+        // --- Question Rendering ---
+        function renderQuestion() {
+            if (typeStemTimeout) { clearTimeout(typeStemTimeout); typeStemTimeout = null; }
+            if (questions.length === 0) return;
+            
+            const item = questions[currentQIndex];
+            selectedOptions.clear();
+
+            document.getElementById('q-jump-input').value = currentQIndex + 1;
+            document.getElementById('q-total-count').innerText = questions.length;
+
+            elQText.innerHTML = "";
+            elQText.classList.remove('typing-cursor');
+            elOptionsContainer.innerHTML = "";
+            elMediaContainer.innerHTML = "";
+            elMediaContainer.classList.add('hidden');
+            
+            updateTypeBadge(item.type);
+            
+            const isSubjective = !item.type.includes("选") && !item.type.includes("判断") && !item.type.includes("填空");
+            elQAnswerText.className = isSubjective 
+                ? "text-base sm:text-lg md:text-xl lg:text-2xl text-white font-mono p-4 md:p-6 lg:p-8 border border-cyber-secondary rounded-sm bg-cyber-secondary/10 shadow-[0_0_20px_rgba(157,0,255,0.2)] text-justify relative overflow-hidden leading-relaxed break-words"
+                : "text-lg md:text-2xl lg:text-3xl text-white font-mono p-4 md:p-6 lg:p-8 border border-cyber-secondary rounded-sm bg-cyber-secondary/10 shadow-[0_0_20px_rgba(157,0,255,0.2)] text-center relative overflow-hidden";
+
+            elQAnswerText.innerHTML = `<div class="absolute top-0 left-0 w-full h-1 bg-cyber-secondary/50 shadow-[0_0_10px_#9d00ff] animate-scanline opacity-50"></div><span class="relative z-10 neon-purple">${item.a}</span>`;
+
+            // Handle Images: Extract [img:url]
+            let stemText = item.q;
+            const imgRegex = /\[img:(.*?)\]/g;
+            let imgMatch;
+            const images = [];
+            while ((imgMatch = imgRegex.exec(item.q)) !== null) {
+                images.push(imgMatch[1]);
+            }
+            stemText = stemText.replace(imgRegex, '').trim();
+
+            if (images.length > 0) {
+                elMediaContainer.classList.remove('hidden');
+                images.forEach(url => {
+                    elMediaContainer.innerHTML += `<img src="${url}" class="rounded border border-cyber-primary shadow-[0_0_10px_rgba(0,243,255,0.3)] max-h-60 cursor-zoom-in hover:scale-105 transition-transform" onclick="window.open(this.src)">`;
+                });
+            }
+
+            let options = [];
+            if (item.type.includes("选")) {
+                const optionMatch = stemText.match(/(?:^|[\n\s])(A[\.、\s])/);
+                if (optionMatch) {
+                    const idx = optionMatch.index + optionMatch[0].indexOf('A');
+                    const optionsRaw = stemText.substring(idx).trim();
+                    stemText = stemText.substring(0, idx).trim();
+                    options = optionsRaw.split(/(?=(?:^|[\s\n])[A-F][\.、\s])/g).map(o => o.trim()).filter(o => o.length > 0);
+                }
+            }
+
+            elQText.classList.toggle('text-center', stemText.length <= 20 && !stemText.includes('\n'));
+            elQText.classList.toggle('text-left', stemText.length > 20 || stemText.includes('\n'));
+
+            let i = 0;
+            const speed = 15; 
+            elQText.classList.add('typing-cursor');
+            function typeStem() {
+                if (i < stemText.length) {
+                    elQText.innerText += stemText.charAt(i);
+                    i++;
+                    typeStemTimeout = setTimeout(typeStem, speed);
+                } else {
+                    elQText.classList.remove('typing-cursor');
+                    typeStemTimeout = null;
+                    if (item.type === "填空题") renderFillInBlankInput();
+                    else if (isSubjective) renderSubjectiveInput();
+                    else renderOptionsButtons(item.type, options);
+                }
+            }
+            typeStem();
+            
+            isAnswerVisible = false;
+            updateAnswerUI();
+        }
+
+        // New function for Subjective Input
+        function renderSubjectiveInput() {
+            const wrapper = document.createElement('div');
+            wrapper.className = "w-full max-w-3xl mx-auto flex flex-col gap-4";
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = "w-full h-32 md:h-48 bg-cyber-panel border border-cyber-primary/30 p-4 text-white font-mono text-sm md:text-base focus:border-cyber-primary focus:outline-none transition-all placeholder-gray-500 rounded-sm";
+            textarea.placeholder = "请输入你的答案...";
+            textarea.id = "subjective-input";
+            
+            const submitBtn = document.createElement('button');
+            submitBtn.className = "w-full py-3 md:py-4 bg-cyber-primary/20 border border-cyber-primary text-cyber-primary font-bold tracking-widest hover:bg-cyber-primary hover:text-black transition-all uppercase text-sm md:text-base";
+            submitBtn.innerHTML = "提交答案";
+            submitBtn.onclick = () => {
+                const val = document.getElementById('subjective-input').value.trim();
+                if(!val) { showToast("请输入内容"); return; }
+                toggleAnswer(); // Show answer and grading controls
+                // Auto-grade logic hint
+                const keywords = questions[currentQIndex].a.split(/[,，\s]+/).filter(k => k.length > 1);
+                let hitCount = 0;
+                keywords.forEach(k => { if(val.includes(k)) hitCount++; });
+                const ratio = Math.min(1, hitCount / Math.max(1, keywords.length * 0.6)); // Loose matching
+                
+                if(ratio > 0.8) showToast("系统评估：回答非常准确！");
+                else if(ratio > 0.4) showToast("系统评估：回答部分正确");
+                else showToast("系统评估：关键点可能有遗漏");
+            };
+
+            wrapper.appendChild(textarea);
+            wrapper.appendChild(submitBtn);
+            elOptionsContainer.appendChild(wrapper);
+        }
+
+        function renderGradingControls() {
+            // Only render if it's a subjective question
+            const item = questions[currentQIndex];
+            const isSubjective = !item.type.includes("选") && !item.type.includes("判断") && !item.type.includes("填空");
+            
+            const existingPanel = document.getElementById('grading-panel');
+            if(existingPanel) existingPanel.remove();
+
+            if (isSubjective && isAnswerVisible) {
+                const maxPoints = getPointsByType(item.type, item.q);
+                const panel = document.createElement('div');
+                panel.id = 'grading-panel';
+                panel.className = "flex gap-2 justify-center mt-2 flex-wrap";
+                
+                const btnFull = document.createElement('button');
+                btnFull.className = "px-4 py-2 bg-cyber-success/20 border border-cyber-success text-cyber-success hover:bg-cyber-success hover:text-black transition-all font-bold text-sm rounded";
+                btnFull.innerHTML = `✅ 满分 (+${maxPoints})`;
+                btnFull.onclick = () => { updateScore(maxPoints); playWinSound(); };
+
+                const btnHalf = document.createElement('button');
+                const halfPoints = Math.floor(maxPoints * 0.5 * 10) / 10;
+                btnHalf.className = "px-4 py-2 bg-cyber-warning/20 border border-cyber-warning text-cyber-warning hover:bg-cyber-warning hover:text-black transition-all font-bold text-sm rounded";
+                btnHalf.innerHTML = `⚠️ 半分 (+${halfPoints})`;
+                btnHalf.onclick = () => { updateScore(halfPoints); playClickSound(); };
+
+                const btnZero = document.createElement('button');
+                btnZero.className = "px-4 py-2 bg-cyber-accent/20 border border-cyber-accent text-cyber-accent hover:bg-cyber-accent hover:text-black transition-all font-bold text-sm rounded";
+                btnZero.innerHTML = `❌ 零分`;
+                btnZero.onclick = () => { playErrorSound(); };
+
+                panel.appendChild(btnFull);
+                panel.appendChild(btnHalf);
+                panel.appendChild(btnZero);
+                
+                elQAnswerContainer.appendChild(panel);
+            }
+        }
+
+        function renderFillInBlankInput() {
+            const item = questions[currentQIndex];
+            const blankRegex = /(_+|[\(（]\s*[\)）])/g; 
+            const matches = item.q.match(blankRegex);
+            const blankCount = matches ? matches.length : 1;
+            const wrapper = document.createElement('div');
+            wrapper.className = "w-full max-w-2xl mx-auto flex flex-col gap-4"; 
+            const inputsContainer = document.createElement('div');
+            inputsContainer.className = "flex flex-col gap-3";
+            inputsContainer.id = "blank-inputs-wrapper";
+            wrapper.appendChild(inputsContainer);
+
+            for (let i = 0; i < blankCount; i++) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = "flex items-center gap-2";
+                if (blankCount > 1) {
+                    const label = document.createElement('span');
+                    label.className = "text-cyber-primary font-mono text-sm whitespace-nowrap";
+                    label.innerText = `填空 ${i + 1}:`;
+                    inputGroup.appendChild(label);
+                }
+                const input = document.createElement('input');
+                input.type = "text";
+                input.className = "cyber-input text-center flex-1 mb-0"; 
+                input.placeholder = "输入答案...";
+                input.dataset.index = i;
+                input.autocomplete = "off";
+                input.addEventListener("keydown", function(event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        if (i < blankCount - 1) inputsContainer.querySelectorAll('input')[i + 1].focus();
+                        else checkFillInBlank();
+                    }
+                });
+                inputGroup.appendChild(input);
+                inputsContainer.appendChild(inputGroup);
+            }
+            const submitBtn = document.createElement('button');
+            submitBtn.className = "w-full py-3 md:py-4 bg-cyber-primary/20 border border-cyber-primary text-cyber-primary font-bold tracking-widest hover:bg-cyber-primary hover:text-black transition-all uppercase text-sm md:text-base mt-2";
+            submitBtn.innerHTML = "提交答案";
+            submitBtn.onclick = checkFillInBlank;
+            wrapper.appendChild(submitBtn);
+            elOptionsContainer.appendChild(wrapper);
+            setTimeout(() => inputsContainer.querySelector('input').focus(), 100);
+        }
+
+        function checkFillInBlank() {
+            if (isAnswerVisible) return;
+            const inputs = document.querySelectorAll('#blank-inputs-wrapper .cyber-input');
+            const userValues = Array.from(inputs).map(inp => inp.value.trim());
+            const numBlanks = inputs.length;
+            const item = questions[currentQIndex];
+            const answerStr = item.a.trim();
+            let correctAnswers = [];
+            
+            if (answerStr.includes('&&')) correctAnswers = answerStr.split('&&');
+            else if (answerStr.includes(';;')) correctAnswers = answerStr.split(';;');
+            else {
+                const separators = [/\n+/, /[;；]+/, /[,，]+/, /\s+/];
+                let foundMatch = false;
+                for (let sep of separators) {
+                    const parts = answerStr.split(sep).filter(s => s.trim());
+                    if (parts.length === numBlanks) { correctAnswers = parts; foundMatch = true; break; }
+                }
+                if (!foundMatch) correctAnswers = answerStr.split(/[:：,，;；\n]+/).filter(s => s.trim());
+            }
+            while(correctAnswers.length < numBlanks) correctAnswers.push("");
+            correctAnswers = correctAnswers.map(s => s.trim());
+
+            const normalize = (str) => str.replace(/[\uff01-\uff5e]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0)).replace(/\u3000/g, " ").trim().toLowerCase();
+            let allCorrect = true;
+            inputs.forEach((inp, idx) => {
+                let userVal = normalize(userValues[idx]);
+                const expectedSegment = correctAnswers[idx] || "";
+                const possibilities = expectedSegment.split(/[|/]|(?:\s+OR\s+)/i).map(s => normalize(s));
+                let isSegmentCorrect = false;
+                if (possibilities.includes(userVal)) isSegmentCorrect = true;
+                else { for (let p of possibilities) { if (userVal.replace(/,/g, '') === p.replace(/,/g, '')) { isSegmentCorrect = true; break; } } }
+                inp.classList.remove('border-white', 'text-white', 'border-cyber-accent', 'text-cyber-accent', 'border-cyber-success', 'text-cyber-success');
+                if (isSegmentCorrect) inp.classList.add('border-cyber-success', 'text-cyber-success');
+                else { inp.classList.add('border-cyber-accent', 'text-cyber-accent'); allCorrect = false; }
+            });
+            handleResult(allCorrect);
+        }
+
+        function renderOptionsButtons(type, optionsArr) {
+            if (type === "判断题") {
+                ["正确", "错误"].forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = "option-btn w-full cyber-btn";
+                    btn.dataset.value = opt;
+                    btn.innerHTML = `<span class="font-bold mr-4 text-cyber-primary text-xl">●</span> ${opt}`;
+                    btn.onclick = () => checkChoice(opt, type);
+                    elOptionsContainer.appendChild(btn);
+                });
+            } else if (type.includes("选") && optionsArr.length > 0) {
+                optionsArr.forEach(optStr => {
+                    const letter = optStr.charAt(0); 
+                    const content = optStr.substring(2).trim() || optStr;
+                    const btn = document.createElement('button');
+                    btn.className = "option-btn w-full cyber-btn relative overflow-hidden group";
+                    btn.dataset.value = letter;
+                    btn.innerHTML = `<div class="absolute inset-0 bg-cyber-primary/10 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300"></div><span class="font-bold font-mono text-cyber-primary text-xl mr-4 relative z-10">${letter}.</span><span class="relative z-10">${content}</span>`;
+                    if (type === "多项选择题") btn.onclick = () => toggleMultiChoice(btn, letter);
+                    else btn.onclick = () => checkChoice(letter, type);
+                    elOptionsContainer.appendChild(btn);
+                });
+                if (type === "多项选择题") {
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.className = "w-full py-3 md:py-4 mt-4 bg-cyber-success/20 border border-cyber-success text-cyber-success font-bold tracking-widest hover:bg-cyber-success hover:text-black transition-all uppercase text-sm md:text-base";
+                    confirmBtn.innerHTML = "确认提交答案";
+                    confirmBtn.onclick = () => checkMultiAnswer();
+                    elOptionsContainer.appendChild(confirmBtn);
+                }
+            }
+        }
+
+        // --- Interaction Logic ---
+        function checkChoice(userChoice, type) {
+            if (isAnswerVisible) return;
+            const item = questions[currentQIndex];
+            let isCorrect = false;
+            
+            if (type === "判断题") {
+                const correctAns = item.a.trim().toUpperCase();
+                const trueKeywords = ["对", "正确", "T", "√", "YES", "TRUE"];
+                const falseKeywords = ["错", "错误", "F", "×", "NO", "FALSE"];
+                let isAnswerKeyTrue = trueKeywords.some(k => correctAns.startsWith(k)) || (!falseKeywords.some(k => correctAns.startsWith(k)) && trueKeywords.some(k => correctAns.includes(k)));
+                isCorrect = (isAnswerKeyTrue === (userChoice === "正确"));
+            } else {
+                const cleanAns = item.a.match(/[A-Z]/);
+                const correctLetter = cleanAns ? cleanAns[0] : "";
+                isCorrect = (userChoice === correctLetter);
+            }
+
+            const btns = elOptionsContainer.querySelectorAll('.option-btn');
+            btns.forEach(btn => {
+                if(btn.dataset.value === userChoice) btn.classList.remove('wrong-highlight'); 
+                if (isCorrect && btn.dataset.value === userChoice) btn.classList.add('correct-highlight');
+                else if (!isCorrect && btn.dataset.value === userChoice) btn.classList.add('wrong-highlight');
+            });
+            handleResult(isCorrect);
+        }
+
+        function toggleMultiChoice(btn, value) {
+            if (isAnswerVisible) return;
+            btn.classList.remove('wrong-highlight');
+            if (selectedOptions.has(value)) { selectedOptions.delete(value); btn.classList.remove('selected'); }
+            else { selectedOptions.add(value); btn.classList.add('selected'); }
+            playClickSound();
+        }
+
+        function checkMultiAnswer() {
+            if (isAnswerVisible) return;
+            if (selectedOptions.size === 0) { showToast("请至少选择一个选项"); return; }
+            const item = questions[currentQIndex];
+            const correctLetters = (item.a.match(/[A-Z]/g) || []).sort().join('');
+            const userLetters = Array.from(selectedOptions).sort().join('');
+            const isCorrect = (correctLetters === userLetters);
+
+            const btns = elOptionsContainer.querySelectorAll('.option-btn');
+            btns.forEach(btn => {
+                btn.classList.remove('wrong-highlight', 'correct-highlight');
+                const val = btn.dataset.value;
+                if (isCorrect) { if (correctLetters.includes(val)) btn.classList.add('correct-highlight'); }
+                else { if (selectedOptions.has(val)) btn.classList.add('wrong-highlight'); }
+            });
+            handleResult(isCorrect);
+        }
+
+        function handleResult(isCorrect) {
+            if (isCorrect) {
+                triggerCelebration();
+                if (currentLuckyStudent) {
+                     // Add score automatically if answer is correct
+                     const points = getPointsByType(questions[currentQIndex].type, questions[currentQIndex].q);
+                     updateScore(points);
+                }
+                setTimeout(() => { if (!isAnswerVisible) toggleAnswer(); }, 1000);
+            } else {
+                triggerError();
+            }
+        }
+
+        function updateTypeBadge(type) {
+            if (!type) { elQTypeBadge.classList.add('hidden'); return; }
+            elQTypeBadge.classList.remove('hidden');
+            elQTypeBadge.innerText = type;
+        }
+
+        function changeQuestion(dir) {
+            if (questions.length === 0) return;
+            const newIndex = currentQIndex + dir;
+            if (newIndex >= 0 && newIndex < questions.length) {
+                currentQIndex = newIndex;
+                renderQuestion();
+            }
+        }
+
+        function toggleAnswer() {
+            if (questions.length === 0) return;
+            isAnswerVisible = !isAnswerVisible;
+            updateAnswerUI();
+            // Call renderGradingControls explicitly after visibility change
+            if(isAnswerVisible) renderGradingControls();
+        }
+
+        function updateAnswerUI() {
+            const panel = document.getElementById('grading-panel');
+            if (isAnswerVisible) {
+                elQAnswerContainer.classList.remove('hidden');
+                elQAnswerPlaceholder.classList.add('hidden');
+                elBtnAnswerText.innerText = "隐藏答案";
+            } else {
+                elQAnswerContainer.classList.add('hidden');
+                elQAnswerPlaceholder.classList.remove('hidden');
+                elBtnAnswerText.innerText = "显示答案";
+                if(panel) panel.remove(); // Remove grading panel when hiding answer
+            }
+        }
+
+        // --- Overlays ---
+        function triggerCelebration() { playWinSound(); elCelebrationText.classList.remove('hidden'); fireConfetti(); setTimeout(() => { elCelebrationText.classList.add('hidden'); }, 2500); }
+        function triggerError() { playErrorSound(); elErrorOverlay.classList.remove('hidden'); setTimeout(() => { elErrorOverlay.classList.add('hidden'); }, 1000); }
+
+        // --- Confetti ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationId;
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        function createParticle() {
+            const colors = ['#00f3ff', '#9d00ff', '#ff003c', '#00ff9d', '#ffffff'];
+            return { x: window.innerWidth / 2, y: window.innerHeight / 2, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, size: Math.random() * 6 + 2, color: colors[Math.floor(Math.random() * colors.length)], life: 100, gravity: 0.2 };
+        }
+        function fireConfetti() { for(let i=0; i<200; i++) particles.push(createParticle()); if(!animationId) animateConfetti(); }
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for(let i=0; i<particles.length; i++) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.vx *= 0.94; p.vy *= 0.94; p.life--;
+                ctx.fillStyle = p.color; ctx.shadowBlur = 10; ctx.shadowColor = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.shadowBlur = 0;
+            }
+            particles = particles.filter(p => p.life > 0);
+            if(particles.length > 0) animationId = requestAnimationFrame(animateConfetti); else { animationId = null; ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        }
+
+        // --- Randomizer & Scoring ---
+        function setRollMode(mode) {
+            rollMode = mode;
+            const autoBtn = document.getElementById('mode-auto');
+            const manualBtn = document.getElementById('mode-manual');
+            
+            if (mode === 'auto') {
+                autoBtn.className = "px-2 py-0.5 text-[10px] md:text-xs rounded font-bold transition-all bg-cyber-secondary text-black";
+                manualBtn.className = "px-2 py-0.5 text-[10px] md:text-xs rounded font-bold transition-all text-gray-500 hover:text-white";
+                showToast("已切换至自动抽签模式");
+            } else {
+                manualBtn.className = "px-2 py-0.5 text-[10px] md:text-xs rounded font-bold transition-all bg-cyber-secondary text-black";
+                autoBtn.className = "px-2 py-0.5 text-[10px] md:text-xs rounded font-bold transition-all text-gray-500 hover:text-white";
+                showToast("已切换至手动抽签模式");
+            }
+        }
+
+        function toggleRoll() {
+            if (students.length === 0) { showToast("错误：数据库为空"); return; }
+            if (isRolling) {
+                // If rolling, stop it (manual mode or early stop)
+                stopRoll();
+            } else {
+                startRoll();
+                // If auto mode, set a timeout to stop
+                if (rollMode === 'auto') {
+                     setTimeout(() => {
+                         if (isRolling) stopRoll();
+                     }, 3000); // 3 seconds auto roll
+                }
+            }
+        }
+
+        function startRoll() {
+            initAudio(); 
+            isRolling = true;
+            elScoreControls.classList.add('hidden'); // Hide scores while rolling
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            elTimerContainer.classList.add('hidden');
+            elStatusText.innerText = rollMode === 'auto' ? "正在自动抽选..." : "正在扫描名单 (点击停止)...";
+            elStatusText.classList.add('text-cyber-primary');
+            elStatusText.classList.remove('text-cyber-success');
+            const btnText = elRollBtn.querySelector('span');
+            btnText.innerText = "停止扫描 [Space]";
+            elRollBtn.classList.add('border-cyber-accent', 'text-cyber-accent');
+            elRollBtn.classList.remove('border-cyber-primary', 'text-cyber-primary');
+            elStudentName.classList.add('blur-sm');
+            elStudentName.classList.remove('neon-purple', 'scale-110');
+            elStudentName.classList.add('text-cyber-primary');
+            
+            rollInterval = setInterval(() => {
+                const r = Math.floor(Math.random() * students.length);
+                elStudentName.innerText = students[r];
+                playRollSound();
+            }, 50); 
+        }
+
+        function stopRoll() {
+            clearInterval(rollInterval);
+            isRolling = false;
+            const winnerIndex = Math.floor(Math.random() * students.length);
+            currentLuckyStudent = students[winnerIndex];
+            elStudentName.innerText = currentLuckyStudent;
+            
+            const btnText = elRollBtn.querySelector('span');
+            btnText.innerText = "启动幸运抽签 [Space]";
+            elRollBtn.classList.remove('border-cyber-accent', 'text-cyber-accent');
+            elRollBtn.classList.add('border-cyber-primary', 'text-cyber-primary');
+
+            elStudentName.classList.remove('blur-sm', 'text-cyber-primary');
+            elStudentName.classList.add('neon-purple', 'scale-110'); 
+            elStatusText.innerText = "目标已锁定 // 抽签完成";
+            elStatusText.classList.remove('text-cyber-primary');
+            elStatusText.classList.add('text-cyber-success');
+            
+            playWinSound(); 
+            startTimer();
+            logEvent(`抽中学生: ${currentLuckyStudent}`);
+            
+            // Show Score Controls
+            elScoreControls.classList.remove('hidden');
+        }
+        
+        function updateScore(delta) {
+            if(!currentLuckyStudent) return;
+            
+            // Push to history
+            scoreHistory.push({
+                name: currentLuckyStudent,
+                delta: delta,
+                timestamp: Date.now()
+            });
+
+            playScoreSound(delta > 0);
+            showToast(`${currentLuckyStudent} 积分 ${delta > 0 ? '+' : ''}${delta}`);
+            logEvent(`${currentLuckyStudent} 积分变更: ${delta}`);
+            saveToLocal();
+        }
+
+        function switchLeaderboardTab(tab) {
+            currentLeaderboardTab = tab;
+            // Update Tab UI
+            const tabs = ['session', 'week', 'month', 'semester'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = "flex-1 py-2 text-xs md:text-sm font-bold uppercase tracking-wider border border-cyber-warning/50 bg-cyber-warning/20 text-cyber-warning hover:bg-cyber-warning hover:text-black transition-all";
+                } else {
+                    btn.className = "flex-1 py-2 text-xs md:text-sm font-bold uppercase tracking-wider border border-cyber-warning/20 text-gray-500 hover:text-cyber-warning transition-all";
+                }
+            });
+            renderLeaderboard();
+        }
+
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = "";
+            
+            // Helper to get Beijing Time components from timestamp
+            const getBJDate = (ts) => {
+                const d = new Date(ts + (new Date().getTimezoneOffset() * 60000) + (8 * 3600000));
+                return d;
+            };
+
+            const now = Date.now();
+            const nowBJ = getBJDate(now);
+            let cutoffTime = 0;
+            
+            // Logic for Beijing Time boundaries
+            switch(currentLeaderboardTab) {
+                case 'session': 
+                    cutoffTime = sessionStartTime; 
+                    break;
+                case 'week': 
+                    const day = nowBJ.getDay() || 7; // 1 (Mon) - 7 (Sun)
+                    const diffToMon = day - 1;
+                    const mondayBJ = new Date(nowBJ);
+                    mondayBJ.setDate(nowBJ.getDate() - diffToMon);
+                    mondayBJ.setHours(0,0,0,0);
+                    cutoffTime = mondayBJ.getTime() - (8 * 3600000) - (new Date().getTimezoneOffset() * 60000);
+                    break;
+                case 'month': 
+                    const firstDayBJ = new Date(nowBJ.getFullYear(), nowBJ.getMonth(), 1, 0, 0, 0);
+                    cutoffTime = firstDayBJ.getTime() - (8 * 3600000) - (new Date().getTimezoneOffset() * 60000);
+                    break;
+                case 'semester': 
+                    const month = nowBJ.getMonth() + 1; // 1-12
+                    const year = nowBJ.getFullYear();
+                    let startMonth, startYear;
+                    
+                    if (month >= 3 && month <= 8) {
+                        startMonth = 2; // March (0-indexed)
+                        startYear = year;
+                    } else if (month >= 9) {
+                        startMonth = 8; // Sep
+                        startYear = year;
+                    } else {
+                        startMonth = 8; // Sep of prev year
+                        startYear = year - 1;
+                    }
+                    const semesterStartBJ = new Date(startYear, startMonth, 1, 0, 0, 0);
+                    cutoffTime = semesterStartBJ.getTime() - (8 * 3600000) - (new Date().getTimezoneOffset() * 60000);
+                    break; 
+            }
+
+            const aggregatedScores = {};
+            scoreHistory.forEach(entry => {
+                if (entry.timestamp >= cutoffTime) {
+                    if (!aggregatedScores[entry.name]) aggregatedScores[entry.name] = 0;
+                    aggregatedScores[entry.name] += entry.delta;
+                }
+            });
+
+            const sorted = Object.entries(aggregatedScores).sort((a,b) => b[1] - a[1]);
+            
+            if(sorted.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-gray-500 font-mono">该时间段内暂无数据记录</td></tr>`;
+            } else {
+                sorted.forEach((item, index) => {
+                    const rank = index + 1;
+                    const colorClass = rank === 1 ? 'text-cyber-warning' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-orange-400' : 'text-gray-400';
+                    const rowClass = rank === 1 ? 'bg-cyber-warning/10' : '';
+                    // Get badges based on total score
+                    const badges = getBadgesHTML(item[1]);
+                    
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-800 hover:bg-white/5 transition-colors ${rowClass}">
+                            <td class="py-3 pl-2 font-bold ${colorClass}">${rank}</td>
+                            <td class="py-3 ${colorClass}">${item[0]} ${badges}</td>
+                            <td class="py-3 text-right pr-2 font-sci text-cyber-primary font-bold">${item[1]}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        function openLeaderboard() {
+            renderLeaderboard();
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+        }
+
+        function closeLeaderboard() { document.getElementById('leaderboard-modal').classList.add('hidden'); }
+        
+        function resetScores() {
+            showConfirm("确定要清空所有历史积分数据吗？此操作将永久删除所有榜单记录。", () => {
+                scoreHistory = [];
+                studentScores = {}; // Clear legacy just in case
+                saveToLocal();
+                renderLeaderboard();
+                showToast("所有数据已重置");
+            });
+        }
+
+        function exportData() {
+            // Create Workbook
+            const wb = XLSX.utils.book_new();
+            
+            // 1. Logs Sheet
+            const logData = sessionLog.map(l => [l.time, l.detail]);
+            logData.unshift(["时间", "事件详情"]);
+            const wsLogs = XLSX.utils.aoa_to_sheet(logData);
+            XLSX.utils.book_append_sheet(wb, wsLogs, "课堂日志");
+            
+            // 2. Scores Sheet (Current Semester Total)
+            const aggregatedScores = {};
+            scoreHistory.forEach(entry => {
+                if (!aggregatedScores[entry.name]) aggregatedScores[entry.name] = 0;
+                aggregatedScores[entry.name] += entry.delta;
+            });
+            const scoreData = Object.entries(aggregatedScores).map(([name, score]) => [name, score]);
+            scoreData.unshift(["姓名", "学期总积分"]);
+            const wsScores = XLSX.utils.aoa_to_sheet(scoreData);
+            XLSX.utils.book_append_sheet(wb, wsScores, "积分榜");
+            
+            // Export
+            const dateStr = new Date().toISOString().slice(0,10);
+            XLSX.writeFile(wb, `课堂记录_${dateStr}.xlsx`);
+            showToast("数据导出成功");
+        }
+
+        // --- Timer ---
+        function setTimerDuration(sec) {
+            selectedDuration = sec;
+            document.querySelectorAll('.timer-opt-btn').forEach(btn => {
+                btn.className = "timer-opt-btn px-2 py-1 text-[10px] md:text-xs font-mono border border-cyber-primary/30 text-cyber-primary/50 hover:text-cyber-primary hover:border-cyber-primary transition-all uppercase tracking-wider";
+            });
+            const activeBtnId = sec === 30 ? 'btn-30s' : sec === 60 ? 'btn-60s' : 'btn-120s';
+            const activeBtn = document.getElementById(activeBtnId);
+            if(activeBtn) activeBtn.className = "timer-opt-btn px-2 py-1 text-[10px] md:text-xs font-mono border border-cyber-primary text-cyber-primary bg-cyber-primary/20 transition-all shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase tracking-wider";
+            resetTimer();
+        }
+
+        function startTimer() {
+            elTimerContainer.classList.remove('hidden'); elTimerContainer.classList.add('flex');
+            timerSeconds = selectedDuration; updateTimerDisplay(); isTimerRunning = true;
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval); isTimerRunning = false; timerSeconds = selectedDuration; updateTimerDisplay();
+        }
+
+        function toggleTimer() {
+            if (isTimerRunning) { clearInterval(timerInterval); isTimerRunning = false; } 
+            else { isTimerRunning = true; timerInterval = setInterval(updateTimer, 1000); }
+        }
+
+        function updateTimer() {
+            if (timerSeconds > 0) {
+                timerSeconds--; updateTimerDisplay();
+                if(timerSeconds === 10) playTone(500, 'sawtooth', 0.5);
+            } else {
+                clearInterval(timerInterval); isTimerRunning = false; playErrorSound(); showToast("时间到");
+            }
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+            const s = (timerSeconds % 60).toString().padStart(2, '0');
+            elTimerDisplay.innerText = `${m}:${s}`;
+            const percentage = timerSeconds / selectedDuration;
+            const offset = FULL_DASH_ARRAY - (percentage * FULL_DASH_ARRAY);
+            elTimerRing.style.strokeDashoffset = offset;
+            if (timerSeconds < 10) elTimerDisplay.classList.add('animate-flash-red');
+            else elTimerDisplay.classList.remove('animate-flash-red');
+        }
+
+        function renderStudentPreview() {
+            elStudentPreview.innerHTML = students.map(s => 
+                `<span class="px-2 py-1 bg-cyber-primary/10 border border-cyber-primary/20 text-cyber-primary/70 rounded-none text-[10px] md:text-xs uppercase tracking-wider hover:bg-cyber-primary/30 hover:text-white transition-colors cursor-default">${s}</span>`
+            ).join('');
+        }
+
+        // --- System Functions ---
+        function openSettings() { document.getElementById('settings-modal').classList.remove('hidden'); }
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+        function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); }
+
+        function parseSmartInput(text) {
+            const parsedQuestions = [];
+            const lines = text.split('\n');
+            let currentQ = null;
+            const qStartRegex = /^\s*(\d+)[\.、\s\t].*|^\s*[\(（\[【]\d+[\)）\]】].*/;
+            const answerRegex = /^\s*(?:答案|Answer|参考答案)[:：]\s*(.*)/i;
+            const typeRegex = /[\[【\(（](单选|多选|判断|填空|简答|解答|名词解释|综合|图片)[题]?[\]】\)）]/;
+            const isPipeFormat = (line) => line.split('|').length >= 3;
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if(!trimmedLine) return;
+                if (isPipeFormat(trimmedLine)) {
+                    if (currentQ) parsedQuestions.push(finalizeQuestion(currentQ)); 
+                    currentQ = null;
+                    const parts = trimmedLine.split('|');
+                    parsedQuestions.push({ type: parts[0].trim(), q: parts[1].trim().replace(/\\n/g, '\n'), a: parts.slice(2).join('|').trim() });
+                    return;
+                }
+                if (qStartRegex.test(trimmedLine)) {
+                    if (currentQ) parsedQuestions.push(finalizeQuestion(currentQ));
+                    let type = "综合题";
+                    const typeMatch = trimmedLine.match(typeRegex);
+                    if (typeMatch) type = typeMatch[1] + (typeMatch[1].endsWith('题') ? '' : '题');
+                    currentQ = { type: type, q: trimmedLine, a: "" };
+                } else {
+                    if (currentQ) {
+                        const answerMatch = trimmedLine.match(answerRegex);
+                        if (answerMatch) currentQ.a = answerMatch[1].trim();
+                        else currentQ.q += '\n' + trimmedLine;
+                    }
+                }
+            });
+            if (currentQ) parsedQuestions.push(finalizeQuestion(currentQ));
+            return parsedQuestions;
+        }
+
+        function saveData() {
+            const newQuestions = parseSmartInput(inputQuestions.value);
+            const sRaw = inputStudents.value.trim().split('\n');
+            const newStudents = sRaw.map(s => s.trim()).filter(s => s.length > 0);
+            let msg = "系统配置已更新";
+            if (newQuestions.length > 0) {
+                questions = newQuestions;
+                currentQIndex = 0;
+                msg += ` (成功识别 ${newQuestions.length} 道题目)`;
+            } else if (inputQuestions.value.trim().length > 0) {
+                 msg += " (警告: 未能识别有效题目，请检查格式)";
+            }
+            if (newStudents.length > 0) students = newStudents;
+            saveToLocal();
+            renderQuestion();
+            renderStudentPreview();
+            closeSettings();
+            showToast(msg);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.remove('translate-x-full');
+            setTimeout(() => t.classList.add('translate-x-full'), 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
