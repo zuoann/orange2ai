@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公文自助排版系统 · GB/T 9704-2012</title>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<style>
+  :root{
+    --bg:#05070f; --panel:rgba(15,23,42,.72); --panel2:rgba(10,15,30,.85);
+    --line:rgba(56,189,248,.18); --cyan:#22d3ee; --violet:#8b5cf6; --pink:#f472b6;
+    --txt:#e2e8f0; --dim:#64748b; --red:#e60012;
+    --glow:0 0 24px rgba(34,211,238,.25);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--txt); overflow:hidden;
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  }
+  /* ---------- 背景特效 ---------- */
+  .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(rgba(56,189,248,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(56,189,248,.06) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 20%,#000 30%,transparent 100%);}
+  .bg-glow{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;pointer-events:none;opacity:.5}
+  .g1{width:520px;height:520px;background:#0ea5e9;top:-180px;left:-120px}
+  .g2{width:460px;height:460px;background:#7c3aed;bottom:-160px;right:-100px}
+  .g3{width:300px;height:300px;background:#db2777;top:40%;left:45%;opacity:.22}
+  .scanline{position:fixed;left:0;right:0;height:120px;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,transparent,rgba(34,211,238,.05),transparent);
+    animation:scan 9s linear infinite}
+  @keyframes scan{0%{top:-15%}100%{top:110%}}
+
+  /* ---------- 顶栏 ---------- */
+  header{position:relative;z-index:2;height:64px;display:flex;align-items:center;gap:16px;
+    padding:0 28px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(10,15,30,.9),rgba(10,15,30,.4));backdrop-filter:blur(10px)}
+  .logo{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));box-shadow:var(--glow);
+    font-size:20px;font-weight:900;color:#04121a}
+  h1{font-size:18px;letter-spacing:2px;font-weight:700;
+    background:linear-gradient(90deg,#7dd3fc,#c4b5fd,#f9a8d4);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .badge{margin-left:6px;font-size:11px;padding:4px 12px;border-radius:999px;
+    border:1px solid var(--line);color:#7dd3ee;letter-spacing:1px;
+    background:rgba(34,211,238,.06)}
+  .hud{margin-left:auto;display:flex;gap:22px;font-size:11px;color:var(--dim);letter-spacing:1px}
+  .hud b{color:var(--cyan);font-weight:600}
+  .hud .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;
+    margin-right:6px;box-shadow:0 0 8px #34d399;animation:blink 2s infinite}
+  @keyframes blink{50%{opacity:.35}}
+
+  /* ---------- 主布局 ---------- */
+  main{position:relative;z-index:2;display:flex;height:calc(100% - 64px)}
+  .left{width:470px;min-width:470px;overflow-y:auto;padding:20px 18px 60px;
+    border-right:1px solid var(--line);background:rgba(6,10,22,.55);backdrop-filter:blur(8px)}
+  .left::-webkit-scrollbar{width:6px}
+  .left::-webkit-scrollbar-thumb{background:rgba(56,189,248,.25);border-radius:3px}
+  .right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:18px;margin-bottom:16px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(34,211,238,.6),transparent)}
+  .card h2{font-size:13px;letter-spacing:2px;color:#7dd3fc;margin-bottom:14px;
+    display:flex;align-items:center;gap:10px;font-weight:600}
+  .card h2 .num{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;
+    font-size:11px;color:#04121a;background:linear-gradient(135deg,var(--cyan),var(--violet))}
+  .card h2 .tag{margin-left:auto;font-size:10px;color:var(--dim);letter-spacing:1px}
+
+  /* 文种选择 */
+  .types{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .chip{padding:9px 2px;text-align:center;font-size:12px;border-radius:9px;cursor:pointer;
+    border:1px solid rgba(100,116,139,.25);background:rgba(30,41,59,.5);color:#94a3b8;
+    transition:all .2s;user-select:none}
+  .chip:hover{border-color:rgba(34,211,238,.5);color:#bae6fd;transform:translateY(-1px)}
+  .chip.on{background:linear-gradient(135deg,rgba(34,211,238,.18),rgba(139,92,246,.22));
+    border-color:var(--cyan);color:#e0f2fe;box-shadow:0 0 14px rgba(34,211,238,.25)}
+  .type-info{margin-top:10px;font-size:11px;color:var(--dim);line-height:1.7;min-height:18px}
+  .type-info b{color:#a5f3fc;font-weight:600}
+
+  /* 输入区 */
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tab{flex:1;padding:8px;text-align:center;font-size:12px;border-radius:8px;cursor:pointer;
+    border:1px solid rgba(100,116,139,.25);color:#94a3b8;background:rgba(30,41,59,.4);transition:all .2s}
+  .tab.on{border-color:var(--cyan);color:#e0f2fe;background:rgba(34,211,238,.1)}
+  textarea,input[type=text]{
+    width:100%;background:rgba(2,6,17,.7);border:1px solid rgba(100,116,139,.3);
+    border-radius:10px;color:var(--txt);padding:10px 12px;font-size:13px;outline:none;
+    transition:border .2s, box-shadow .2s;font-family:inherit}
+  textarea:focus,input[type=text]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+  textarea{resize:vertical;line-height:1.8}
+  .drop{border:1.5px dashed rgba(56,189,248,.35);border-radius:12px;padding:34px 16px;
+    text-align:center;cursor:pointer;transition:all .25s;background:rgba(34,211,238,.03)}
+  .drop:hover,.drop.over{border-color:var(--cyan);background:rgba(34,211,238,.08);box-shadow:var(--glow)}
+  .drop .ico{font-size:30px;margin-bottom:8px}
+  .drop p{font-size:12px;color:#94a3b8;line-height:1.8}
+  .drop p b{color:#7dd3fc}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    border:none;border-radius:10px;font-size:13px;letter-spacing:1px;transition:all .2s;font-family:inherit}
+  .btn-primary{padding:11px 18px;color:#04121a;font-weight:700;width:100%;
+    background:linear-gradient(90deg,var(--cyan),#60a5fa,var(--violet));
+    box-shadow:0 4px 22px rgba(34,211,238,.35)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(34,211,238,.5)}
+  .btn-ghost{padding:9px 14px;color:#a5f3fc;background:rgba(34,211,238,.08);
+    border:1px solid rgba(34,211,238,.3)}
+  .btn-ghost:hover{background:rgba(34,211,238,.16)}
+  .btn-red{padding:9px 14px;color:#fecaca;background:rgba(230,0,18,.1);border:1px solid rgba(230,0,18,.4)}
+  .btn-red:hover{background:rgba(230,0,18,.2)}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .mt{margin-top:10px}
+
+  /* 表单 */
+  .field{margin-bottom:11px}
+  .field label{display:block;font-size:11px;color:#7dd3fc;letter-spacing:1px;margin-bottom:5px}
+  .field label small{color:var(--dim);margin-left:6px;letter-spacing:0}
+  .field input,.field textarea{font-size:13px}
+  .hidden{display:none!important}
+
+  /* ---------- 预览区 ---------- */
+  .toolbar{height:48px;display:flex;align-items:center;gap:12px;padding:0 22px;
+    border-bottom:1px solid var(--line);background:rgba(6,10,22,.6);backdrop-filter:blur(8px)}
+  .toolbar .t{font-size:12px;letter-spacing:2px;color:#7dd3fc}
+  .toolbar .meta{margin-left:auto;font-size:11px;color:var(--dim)}
+  .toolbar .meta b{color:#a5f3fc}
+  .paper-scroll{flex:1;overflow:auto;padding:34px 20px 80px;
+    display:flex;flex-direction:column;align-items:center;gap:34px}
+  .paper-scroll::-webkit-scrollbar{width:8px;height:8px}
+  .paper-scroll::-webkit-scrollbar-thumb{background:rgba(56,189,248,.25);border-radius:4px}
+
+  /* ---------- A4 纸面（GB/T 9704-2012 版式） ---------- */
+  .page{
+    width:794px;height:1122px;background:#fdfdfa;flex:none;position:relative;color:#000;
+    box-shadow:0 0 0 1px rgba(56,189,248,.15),0 20px 60px rgba(0,0,0,.6),0 0 80px rgba(34,211,238,.08);
+    font-family:"仿宋_GB2312","FangSong_GB2312","仿宋","FangSong",serif;
+  }
+  .page-num{position:absolute;left:0;right:0;top:1052px;text-align:center;
+    font-family:"宋体","SimSun",serif;font-size:14pt;color:#000}
+  .gb-content{position:absolute;left:106px;top:140px;width:590px;bottom:102px}
+  .fw-logo{text-align:center;color:var(--red);font-size:40pt;line-height:1.25;
+    font-family:"方正小标宋简体","FZXiaoBiaoSong-B05S","小标宋体","STZhongsong","宋体",serif;
+    margin-top:129px;letter-spacing:2px}
+  .fw-logo.letter-style{margin-top:0}
+  .fw-no{text-align:center;font-size:16pt;margin-top:77px}
+  .fw-no.letter-style{text-align:right;margin-top:22px}
+  .sign-line{height:0;border-top:3px solid var(--red);margin-top:15px}
+  .sign-double{border-top:3px solid var(--red);margin-top:15px}
+  .sign-double2{border-top:1px solid var(--red);margin-top:3px}
+  .doc-title{text-align:center;font-size:22pt;line-height:1.45;margin-top:74px;
+    font-family:"方正小标宋简体","FZXiaoBiaoSong-B05S","小标宋体","STZhongsong","宋体",serif}
+  .doc-to{font-size:16pt;line-height:38.5px;margin-top:38.5px}
+  .p{font-size:16pt;line-height:38.5px;text-align:justify;text-indent:2em}
+  .p.h1{font-family:"黑体","SimHei",sans-serif}
+  .p.h2{font-family:"楷体_GB2312","楷体","KaiTi",serif}
+  .p.h3{font-family:"仿宋_GB2312","仿宋",serif;font-weight:700}
+  .attach{font-size:16pt;line-height:38.5px;margin-top:38.5px;padding-left:2em}
+  .signorg,.signdate{font-size:16pt;line-height:38.5px;text-align:right;margin-top:38.5px}
+  .signdate{margin-top:0}
+  .cc{font-size:14pt;line-height:1.8;border-top:1px solid #000;border-bottom:1px solid #000;
+    padding:4px 1em;margin-top:60px}
+  .empty-tip{position:absolute;inset:0;display:grid;place-items:center;color:#94a3b8;
+    font-size:13px;letter-spacing:2px;font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(20px);
+    z-index:50;padding:12px 26px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;
+    background:rgba(8,15,30,.95);border:1px solid var(--cyan);color:#a5f3fc;
+    box-shadow:0 0 30px rgba(34,211,238,.3);transition:all .35s}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media print{
+    body{overflow:visible;background:#fff}
+    header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast{display:none!important}
+    main{display:block;height:auto}
+    .right{display:block}
+    .paper-scroll{overflow:visible;padding:0;display:block}
+    .page{box-shadow:none;margin:0 auto;page-break-after:always}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow g1"></div><div class="bg-glow g2"></div><div class="bg-glow g3"></div>
+<div class="scanline"></div>
+
+<header>
+  <div class="logo">文</div>
+  <h1>公文自助排版系统</h1>
+  <span class="badge">GB/T 9704-2012 · 党政机关公文格式</span>
+  <div class="hud">
+    <span><span class="dot"></span>引擎在线</span>
+    <span>版式库 <b>15</b> 文种</span>
+    <span>标准 <b>2012</b> 版</span>
+  </div>
+</header>
+
+<main>
+  <!-- 左侧面板 -->
+  <div class="left">
+
+    <div class="card">
+      <h2><span class="num">01</span>选择公文文种<span class="tag">DOCUMENT TYPE</span></h2>
+      <div class="types" id="typeGrid"></div>
+      <div class="type-info" id="typeInfo"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">02</span>导入公文内容<span class="tag">CONTENT INPUT</span></h2>
+      <div class="tabs">
+        <div class="tab on" data-tab="paste">✎ 粘贴文本</div>
+        <div class="tab" data-tab="upload">⇪ 上传文件</div>
+      </div>
+      <div id="panePaste">
+        <textarea id="rawText" rows="9" placeholder="在此粘贴公文全文，系统将智能解析标题、主送机关、正文层级、附件与落款……&#10;&#10;提示：点击下方「载入示例」可查看效果"></textarea>
+        <div class="row mt">
+          <button class="btn btn-ghost" id="btnSample">载入示例</button>
+          <button class="btn btn-primary" id="btnParse" style="flex:2">⌁ 智能解析</button>
+        </div>
+      </div>
+      <div id="paneUpload" class="hidden">
+        <div class="drop" id="dropZone">
+          <div class="ico">📄</div>
+          <p>点击选择或拖拽文件到此处<br><b>支持 .txt / .docx</b>（docx 自动提取纯文本）</p>
+          <input type="file" id="fileInput" accept=".txt,.docx" style="display:none">
+        </div>
+        <div class="row mt">
+          <button class="btn btn-primary" id="btnParse2">⌁ 智能解析</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">03</span>公文要素校核<span class="tag">ELEMENTS</span></h2>
+      <div class="field" id="fLogo"><label>发文机关标志（红头）<small>红色小标宋，居中</small></label>
+        <input type="text" id="inLogo" value="××××××文件"></div>
+      <div class="field"><label>发文字号<small>三号仿宋</small></label>
+        <input type="text" id="inNo" placeholder="如：×政发〔2026〕12号"></div>
+      <div class="field hidden" id="fSignatory"><label>签发人<small>上行文需标注，三号仿宋+楷体</small></label>
+        <input type="text" id="inSignatory" placeholder="签发人姓名"></div>
+      <div class="field"><label>标题<small>二号小标宋，居中，可分二行</small></label>
+        <textarea id="inTitle" rows="2" placeholder="关于……的通知"></textarea></div>
+      <div class="field"><label>主送机关<small>三号仿宋，顶格，回行顶格</small></label>
+        <input type="text" id="inTo" placeholder="如：各市、县人民政府，省政府各部门："></div>
+      <div class="field"><label>正文<small>三号仿宋｜一级标题黑体 / 二级楷体 / 三级仿宋加粗，自动识别</small></label>
+        <textarea id="inBody" rows="10" placeholder="正文内容，每段一行"></textarea></div>
+      <div class="field"><label>附件说明<small>可选，如：1.×××××</small></label>
+        <input type="text" id="inAttach" placeholder="无附件可留空"></div>
+      <div class="row">
+        <div class="field"><label>发文机关署名</label><input type="text" id="inOrg" placeholder="如：××省人民政府"></div>
+        <div class="field"><label>成文日期</label><input type="text" id="inDate"></div>
+      </div>
+      <div class="field"><label>抄送机关<small>可选，版记部分，四号仿宋</small></label>
+        <input type="text" id="inCc" placeholder="如：省委办公厅，省人大常委会办公厅"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">04</span>生成与导出<span class="tag">OUTPUT</span></h2>
+      <button class="btn btn-primary" id="btnExport" style="font-size:14px;padding:13px">⬇ 导出 Word（.docx）</button>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnPrint">🖨 打印预览</button>
+        <button class="btn btn-red" id="btnReset">↺ 清空重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧预览 -->
+  <div class="right">
+    <div class="toolbar">
+      <span class="t">◈ 实时版式预览 · A4（210×297mm）</span>
+      <span class="meta">版心 <b>156×225mm</b> · 每页 <b>22</b> 行 × 每行 <b>28</b> 字 · 正文 <b>三号仿宋</b></span>
+    </div>
+    <div class="paper-scroll" id="paperScroll"></div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+ * GB/T 9704-2012 公文排版引擎
+ * 页面：A4｜天头 37mm 订口 28mm｜版心 156×225mm
+ * 正文：三号仿宋（16pt）｜行距 28.9pt｜22行×28字
+ * ============================================================ */
+const LINE_PX = 28.9 * 96 / 72;        // 38.53px
+const BODY_PX = 16 * 96 / 72;          // 21.33px
+const CPL = 28;                        // 每行字数
+
+const TYPES = [
+  {n:'决议',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于会议讨论通过的重大决策事项。'},
+  {n:'决定',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于对重要事项作出决策和部署、奖惩有关单位及人员、变更或撤销下级机关不适当的决定事项。'},
+  {n:'命令（令）',c:'下行文',f:'red',  logo:'××人民政府令',  d:'适用于公布行政法规和规章、宣布施行重大强制性措施、批准授予和晋升衔级、嘉奖有关单位及人员。'},
+  {n:'公报',   c:'公布文', f:'red',    logo:'××××××公报',   d:'适用于公布重要决定或者重大事项。'},
+  {n:'公告',   c:'公布文', f:'red',    logo:'××××××文件',   d:'适用于向国内外宣布重要事项或者法定事项。'},
+  {n:'通告',   c:'公布文', f:'red',    logo:'××××××文件',   d:'适用于在一定范围内公布应当遵守或者周知的事项。'},
+  {n:'意见',   c:'多向行文',f:'red',   logo:'××××××文件',   d:'适用于对重要问题提出见解和处理办法。'},
+  {n:'通知',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于发布、传达要求下级机关执行和有关单位周知或者执行的事项，批转、转发公文。'},
+  {n:'通报',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于表彰先进、批评错误、传达重要精神和告知重要情况。'},
+  {n:'报告',   c:'上行文', f:'red',    logo:'××××××文件',   d:'适用于向上级机关汇报工作、反映情况，回复上级机关的询问。<b>上行文需标注签发人。</b>'},
+  {n:'请示',   c:'上行文', f:'red',    logo:'××××××文件',   d:'适用于向上级机关请求指示、批准。一文一事，<b>需标注签发人</b>，并在附注处注明联系人及电话。'},
+  {n:'批复',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于答复下级机关请示事项。'},
+  {n:'议案',   c:'上行文', f:'red',    logo:'××××××文件',   d:'适用于各级人民政府按照法律程序向同级人民代表大会或者人民代表大会常务委员会提请审议事项。'},
+  {n:'函',     c:'平行文', f:'letter', logo:'××××××（机关名称）', d:'适用于不相隶属机关之间商洽工作、询问和答复问题、请求批准和答复审批事项。<b>采用信函式格式</b>：武文线（上粗下细红色双线），发文字号居右顶格。'},
+  {n:'纪要',   c:'会议纪要',f:'red',   logo:'××××××纪要',   d:'适用于记载会议主要情况和议定事项。标志由「会议名称+纪要」组成。'},
+];
+
+let curType = '通知';
+const $ = id => document.getElementById(id);
+
+/* ---------- 文种选择 ---------- */
+function renderTypes(){
+  $('typeGrid').innerHTML = TYPES.map(t =>
+    `<div class="chip${t.n===curType?' on':''}" data-n="${t.n}">${t.n}</div>`).join('');
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    curType = c.dataset.n;
+    const t = TYPES.find(x => x.n === curType);
+    $('inLogo').value = t.logo;
+    $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
+    renderTypes(); renderPreview();
+  });
+  const t = TYPES.find(x => x.n === curType);
+  $('typeInfo').innerHTML = `<b>${t.n}</b>｜${t.c}｜${t.d}`;
+}
+
+/* ---------- 工具 ---------- */
+function wLen(s){ let w=0; for(const ch of s){ w += (ch.charCodeAt(0)<128 ? .5 : 1); } return w; }
+function classify(p){
+  if(/^[一二三四五六七八九十百]+、/.test(p)) return 'h1';
+  if(/^[（(][一二三四五六七八九十]+[)）]/.test(p)) return 'h2';
+  if(/^\d+[\.．、]/.test(p)) return 'h3';
+  return 'body';
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function todayCN(){
+  const d = new Date();
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+/* ---------- 智能解析 ---------- */
+function smartParse(text){
+  const lines = text.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(s=>s);
+  if(!lines.length){ toast('未检测到有效文本'); return; }
+  let idx = 0;
+  const title = lines[idx++];
+  let to = '';
+  if(idx < lines.length && /[:：]$/.test(lines[idx]) && lines[idx].length <= 40
+     && !/^\d{4}/.test(lines[idx])){
+    to = lines[idx].replace(/[:：]\s*$/,'') + '：'; idx++;
+  }
+  let attach = '';
+  const body = [];
+  for(let i=idx;i<lines.length;i++){
+    const l = lines[i];
+    if(/^附件\s*[:：]/.test(l)){ attach = l.replace(/^附件\s*[:：]\s*/,''); continue; }
+    body.push(l);
+  }
+  let org = '', date = '';
+  if(body.length){
+    const last = body[body.length-1];
+    const dm = last.match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+    if(dm && last.length < 32){
+      date = `${dm[1]}年${dm[2]}月${dm[3]}日`; body.pop();
+      if(body.length){
+        const prev = body[body.length-1];
+        if(prev.length <= 30 && !/[。；，、：:]$/.test(prev) && classify(prev)==='body'){
+          org = prev; body.pop();
+        }
+      }
+    }
+  }
+  $('inTitle').value = title;
+  $('inTo').value = to;
+  $('inBody').value = body.join('\n');
+  $('inAttach').value = attach;
+  if(org) $('inOrg').value = org;
+  if(date) $('inDate').value = date;
+  renderPreview();
+  toast('✓ 智能解析完成，请校核各要素');
+}
+
+/* ---------- 采集要素 ---------- */
+function collect(){
+  return {
+    type: curType,
+    t: TYPES.find(x=>x.n===curType),
+    logo: $('inLogo').value.trim() || '××××××文件',
+    no: $('inNo').value.trim(),
+    signatory: $('inSignatory').value.trim(),
+    title: $('inTitle').value.trim(),
+    to: $('inTo').value.trim(),
+    paras: $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s),
+    attach: $('inAttach').value.trim(),
+    org: $('inOrg').value.trim(),
+    date: $('inDate').value.trim() || todayCN(),
+    cc: $('inCc').value.trim(),
+  };
+}
+
+/* ---------- 预览渲染 ---------- */
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function headerHTML(d){
+  const letter = d.t.f === 'letter';
+  let h = `<div class="fw-logo${letter?' letter-style':''}">${esc(d.logo)}</div>`;
+  if(letter){
+    h += `<div class="sign-double"></div><div class="sign-double2"></div>`;
+    if(d.no) h += `<div class="fw-no letter-style">${esc(d.no)}</div>`;
+  }else{
+    if(d.no) h += `<div class="fw-no">${esc(d.no)}</div>`;
+    if(d.t.c==='上行文' && d.signatory)
+      h += `<div style="text-align:right;font-size:16pt;margin-top:10px">签发人：<span style="font-family:'楷体_GB2312','楷体',serif">${esc(d.signatory)}</span></div>`;
+    h += `<div class="sign-line"></div>`;
+  }
+  return h;
+}
+function blockHTML(d){
+  let h = '';
+  if(d.title) h += `<div class="doc-title">${esc(d.title)}</div>`;
+  if(d.to) h += `<div class="doc-to">${esc(d.to)}</div>`;
+  for(const p of d.paras) h += `<div class="p ${classify(p)}">${esc(p)}</div>`;
+  if(d.attach) h += `<div class="attach">附件：${esc(d.attach)}</div>`;
+  if(d.org) h += `<div class="signorg">${esc(d.org)}</div>`;
+  h += `<div class="signdate">${esc(d.date)}</div>`;
+  if(d.cc) h += `<div class="cc">抄送：${esc(d.cc)}。</div>`;
+  return h;
+}
+
+/* 估算行数用于分页 */
+function estLines(d){
+  const blocks = [];
+  if(d.title) blocks.push({k:'title', lines: Math.ceil(wLen(d.title)/14) + 2});
+  if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
+  for(const p of d.paras){
+    blocks.push({k:'p', html:`<div class="p ${classify(p)}">${esc(p)}</div>`,
+      lines: Math.ceil((wLen(p)+2)/CPL)});
+  }
+  const tail = [];
+  if(d.attach) tail.push(`<div class="attach">附件：${esc(d.attach)}</div>`);
+  if(d.org) tail.push(`<div class="signorg">${esc(d.org)}</div>`);
+  tail.push(`<div class="signdate">${esc(d.date)}</div>`);
+  if(d.cc) tail.push(`<div class="cc">抄送：${esc(d.cc)}。</div>`);
+  blocks.push({k:'tail', html:tail.join(''), lines: (d.attach?2:0)+(d.org?1:0)+1+(d.cc?2:0)+2});
+  return blocks;
+}
+
+function renderPreview(){
+  const d = collect();
+  const wrap = $('paperScroll');
+  if(!d.title && !d.paras.length){
+    wrap.innerHTML = `<div class="page"><div class="empty-tip">◈ 等待公文内容输入 ◈<br><br>选择文种 → 粘贴或上传文本 → 智能解析</div></div>`;
+    return;
+  }
+  const header = headerHTML(d);
+  const headBlocks = [];
+  if(d.title) headBlocks.push(`<div class="doc-title">${esc(d.title)}</div>`);
+  if(d.to) headBlocks.push(`<div class="doc-to">${esc(d.to)}</div>`);
+  const blocks = estLines(d);
+  // 首页正文容量约 10 行（红头占用），后续页 22 行
+  let pages = [], cur = [], cap = 10, used = 0;
+  let bodyStart = false;
+  for(const b of blocks){
+    if(b.k==='title'||b.k==='to') continue; // 已在头部区
+    if(used + b.lines > cap && cur.length){
+      pages.push(cur); cur = []; cap = 22; used = 0;
+    }
+    cur.push(b.html); used += b.lines;
+  }
+  if(cur.length) pages.push(cur);
+  if(!pages.length) pages.push([]);
+  wrap.innerHTML = pages.map((pg,i)=>`
+    <div class="page">
+      <div class="gb-content">
+        ${i===0 ? header + headBlocks.join('') : ''}
+        ${pg.join('')}
+      </div>
+      <div class="page-num">— ${i+1} —</div>
+    </div>`).join('');
+}
+
+/* ============================================================
+ * Word 导出（docx.js）
+ * ============================================================ */
+const TW = mm => Math.round(mm * 56.6929);   // mm → twips
+const PT = pt => Math.round(pt * 20);        // pt → twentieths
+
+async function exportWord(){
+  const d = collect();
+  if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
+  const {
+    Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
+    PageNumber, LineRuleType, BorderStyle
+  } = docx;
+
+  const F_FS   = {ascii:'FangSong_GB2312', hAnsi:'FangSong_GB2312', eastAsia:'仿宋_GB2312'};
+  const F_BS   = {ascii:'FZXiaoBiaoSong-B05S', hAnsi:'FZXiaoBiaoSong-B05S', eastAsia:'方正小标宋简体'};
+  const F_HEI  = {ascii:'SimHei', hAnsi:'SimHei', eastAsia:'黑体'};
+  const F_KAI  = {ascii:'KaiTi_GB2312', hAnsi:'KaiTi_GB2312', eastAsia:'楷体_GB2312'};
+  const F_SONG = {ascii:'SimSun', hAnsi:'SimSun', eastAsia:'宋体'};
+
+  const run = (text, font, pt, extra={}) =>
+    new TextRun({text, font, size: Math.round(pt*2), ...extra});
+
+  const line578 = {line: PT(28.9), lineRule: LineRuleType.EXACT};
+  const letter = d.t.f === 'letter';
+  const children = [];
+
+  if(!letter){
+    /* —— 红头格式 —— */
+    // 发文机关标志：上边缘至版心上边缘 35mm（酌定字号，醒目美观）
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing:{before: TW(35)},
+      children:[run(d.logo, F_BS, 40, {color:'FF0000'})]
+    }));
+    // 发文字号：标志下空二行，三号仿宋，居中；上行文居左空一字 + 签发人居右
+    if(d.no || d.signatory){
+      const kids = [];
+      if(d.t.c==='上行文' && d.signatory){
+        kids.push(run(d.no ? '  '+d.no : '', F_FS, 16));
+        kids.push(run('\t', F_FS, 16));
+        kids.push(run('签发人：', F_FS, 16));
+        kids.push(run(d.signatory, F_KAI, 16));
+      }else{
+        kids.push(run(d.no, F_FS, 16));
+      }
+      children.push(new Paragraph({
+        alignment: (d.t.c==='上行文'&&d.signatory) ? AlignmentType.LEFT : AlignmentType.CENTER,
+        tabStops: d.t.c==='上行文'&&d.signatory ? [{type:'right', position: TW(156)}] : undefined,
+        spacing:{before: PT(28.9*2), ...line578},
+        children: kids
+      }));
+    }
+    // 红色分隔线（武文线简化为红色直线，宽度同版心）
+    children.push(new Paragraph({
+      spacing:{before: TW(4), ...line578},
+      border:{bottom:{color:'FF0000', size:18, style:BorderStyle.SINGLE, space:1}},
+      children:[run('', F_FS, 16)]
+    }));
+  }else{
+    /* —— 信函式格式（函） —— */
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing:{before: 0},
+      children:[run(d.logo, F_BS, 30, {color:'FF0000'})]
+    }));
+    // 红色双线：上粗下细
+    children.push(new Paragraph({
+      spacing:{before: TW(4), line: PT(2), lineRule: LineRuleType.EXACT},
+      border:{bottom:{color:'FF0000', size:24, style:BorderStyle.SINGLE, space:1}},
+      children:[run('', F_FS, 16)]
+    }));
+    children.push(new Paragraph({
+      spacing:{before: PT(3), line: PT(2), lineRule: LineRuleType.EXACT},
+      border:{bottom:{color:'FF0000', size:6, style:BorderStyle.SINGLE, space:1}},
+      children:[run('', F_FS, 16)]
+    }));
+    if(d.no) children.push(new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      spacing:{before: PT(28.9), ...line578},
+      children:[run(d.no+' ', F_FS, 16)]
+    }));
+  }
+
+  // 标题：红色分隔线下空二行，二号小标宋，居中
+  if(d.title) children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing:{before: PT(28.9*2), line: PT(33), lineRule: LineRuleType.EXACT},
+    children:[run(d.title, F_BS, 22)]
+  }));
+
+  // 主送机关：标题下空一行，三号仿宋，顶格
+  if(d.to) children.push(new Paragraph({
+    spacing:{before: PT(28.9), ...line578},
+    children:[run(d.to, F_FS, 16)]
+  }));
+
+  // 正文
+  for(const p of d.paras){
+    const k = classify(p);
+    const font = k==='h1' ? F_HEI : k==='h2' ? F_KAI : F_FS;
+    children.push(new Paragraph({
+      alignment: k==='body' ? AlignmentType.JUSTIFIED : AlignmentType.LEFT,
+      indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
+      spacing:{...line578},
+      children:[run(p, font, 16, k==='h3' ? {bold:true} : {})]
+    }));
+  }
+
+  // 附件说明：正文下空一行，左空二字
+  if(d.attach) children.push(new Paragraph({
+    indent:{left: PT(32)},
+    spacing:{before: PT(28.9), ...line578},
+    children:[run('附件：'+d.attach, F_FS, 16)]
+  }));
+
+  // 发文机关署名 + 成文日期：日期右空四字，署名以日期为准居中
+  const wDate = wLen(d.date), wOrg = wLen(d.org);
+  if(d.org) children.push(new Paragraph({
+    alignment: AlignmentType.RIGHT,
+    indent:{right: Math.max(0, Math.round(PT(64) + (wDate - wOrg) * PT(16)))},
+    spacing:{before: PT(28.9), ...line578},
+    children:[run(d.org, F_FS, 16)]
+  }));
+  children.push(new Paragraph({
+    alignment: AlignmentType.RIGHT,
+    indent:{right: PT(64)},               // 右空四字
+    spacing:d.org ? {...line578} : {before: PT(28.9), ...line578},
+    children:[run(d.date, F_FS, 16)]
+  }));
+
+  // 版记：抄送机关，四号仿宋，左右各空一字，上下分隔线
+  if(d.cc) children.push(new Paragraph({
+    indent:{left: PT(14), right: PT(14)},
+    spacing:{before: PT(28.9*3), line: PT(22), lineRule: LineRuleType.EXACT},
+    border:{
+      top:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1},
+      bottom:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1}
+    },
+    children:[run('抄送：'+d.cc+'。', F_FS, 14)]
+  }));
+
+  // 页码：四号半角宋体阿拉伯数字，左右各放一条一字线
+  const footer = new Footer({children:[new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children:[new TextRun({children:['— ', PageNumber.CURRENT, ' —'], font:F_SONG, size:28})]
+  })]});
+
+  const docu = new Document({
+    creator:'公文自助排版系统',
+    title:d.title || '公文',
+    sections:[{
+      properties:{
+        page:{
+          size:{width: TW(210), height: TW(297)},
+          margin:{top: TW(37), bottom: TW(35), left: TW(28), right: TW(26)}
+        }
+      },
+      footers:{default: footer},
+      children
+    }]
+  });
+
+  const blob = await Packer.toBlob(docu);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (d.title || '公文') + '.docx';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✓ Word 文档已生成并开始下载');
+}
+
+/* ---------- 输入方式切换 ---------- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  $('panePaste').classList.toggle('hidden', t.dataset.tab !== 'paste');
+  $('paneUpload').classList.toggle('hidden', t.dataset.tab !== 'upload');
+});
+
+/* ---------- 文件上传 ---------- */
+const dz = $('dropZone');
+dz.onclick = () => $('fileInput').click();
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('over'); };
+dz.ondragleave = () => dz.classList.remove('over');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('over'); handleFile(e.dataTransfer.files[0]); };
+$('fileInput').onchange = e => handleFile(e.target.files[0]);
+
+async function handleFile(f){
+  if(!f) return;
+  try{
+    if(f.name.toLowerCase().endsWith('.docx')){
+      const buf = await f.arrayBuffer();
+      const r = await mammoth.extractRawText({arrayBuffer: buf});
+      $('rawText').value = r.value;
+    }else{
+      $('rawText').value = await f.text();
+    }
+    toast('✓ 文件「'+f.name+'」读取成功，请点击智能解析');
+    document.querySelector('.tab[data-tab=paste]').click();
+  }catch(err){ toast('文件读取失败：'+err.message); }
+}
+
+/* ---------- 示例 ---------- */
+const SAMPLE = `××省人民政府关于加快推进数字政府建设的通知
+各市、县人民政府，省政府各部门：
+为深入贯彻落实党中央、国务院关于数字中国建设的决策部署，加快推进我省数字政府建设，现将有关事项通知如下。
+一、总体要求
+以习近平新时代中国特色社会主义思想为指导，全面贯彻党的二十大精神，坚持以人民为中心，统筹推进数字政府建设，全面提升政府治理数字化水平。
+（一）基本原则
+坚持党的全面领导，坚持整体协同，坚持安全可控，确保数字政府建设行稳致远。
+1.加强组织领导
+各地各部门要把数字政府建设摆在突出位置，主要负责同志亲自抓、负总责。
+二、主要任务
+（一）夯实数字基础底座
+加快建设一体化政务云平台和电子政务外网，推进政务数据汇聚共享。
+（二）提升政务服务效能
+深化"一网通办"改革，推动更多政务服务事项网上办、掌上办、一次办。
+三、保障措施
+各地各部门要加强组织领导，强化资金保障，严格考核评估，确保各项任务落到实处。
+附件：1.数字政府建设重点任务分工表
+××省人民政府
+2026年8月4日`;
+
+$('btnSample').onclick = () => { $('rawText').value = SAMPLE; toast('示例已载入，点击「智能解析」'); };
+$('btnParse').onclick = () => smartParse($('rawText').value);
+$('btnParse2').onclick = () => smartParse($('rawText').value);
+$('btnExport').onclick = () => exportWord().catch(e => toast('导出失败：'+e.message));
+$('btnPrint').onclick = () => window.print();
+$('btnReset').onclick = () => {
+  ['inNo','inSignatory','inTitle','inTo','inBody','inAttach','inOrg','inCc','rawText']
+    .forEach(id => $(id).value = '');
+  $('inDate').value = todayCN();
+  renderPreview(); toast('已清空');
+};
+
+/* 表单联动实时预览 */
+['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inOrg','inDate','inCc']
+  .forEach(id => $(id).addEventListener('input', renderPreview));
+
+/* ---------- 初始化 ---------- */
+$('inDate').value = todayCN();
+renderTypes();
+renderPreview();
+</script>
+</body>
+</html>
