@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>公文制作智能体 v2026 1.0 · GB/T 9704-2012</title>
+<title>秒针公文智能体 v2026 1.0 · GB/T 9704-2012</title>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root{
     --bg:#05070f; --panel:rgba(15,23,42,.72); --panel2:rgba(10,15,30,.85);
@@ -186,6 +187,9 @@
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
   .att-title{font-size:16pt;line-height:38.5px;text-align:center;text-indent:0;margin-top:38.5px;
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
+  /* 页面缩放包装（自适应 PC / Pad / 移动端） */
+  .pg{position:relative;flex:none;width:794px;height:1122px}
+  .pg .page{position:absolute;top:0;left:0;transform-origin:top left}
   .empty-tip{position:absolute;inset:0;display:grid;place-items:center;color:#94a3b8;
     font-size:13px;letter-spacing:2px;font-family:"Segoe UI","Microsoft YaHei",sans-serif}
 
@@ -196,12 +200,130 @@
     box-shadow:0 0 30px rgba(34,211,238,.3);transition:all .35s}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* ---------- 公文表格（预览） ---------- */
+  .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:12pt;
+    font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;color:#000}
+  .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;line-height:1.5}
+  .gt th{font-family:"Times New Roman","方正黑体_GBK","黑体",sans-serif}
+
+  /* ---------- 模态框 ---------- */
+  .mask{position:fixed;inset:0;z-index:60;display:grid;place-items:center;
+    background:rgba(2,6,17,.72);backdrop-filter:blur(6px)}
+  .mask.hidden{display:none!important}
+  .modal{width:min(680px,92vw);max-height:84vh;display:flex;flex-direction:column;
+    background:var(--panel2);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 0 60px rgba(34,211,238,.18);overflow:hidden}
+  .modal header2,.modal .m-head{display:flex;align-items:center;gap:10px;padding:16px 20px;
+    border-bottom:1px solid var(--line);font-size:14px;letter-spacing:2px;color:#7dd3fc}
+  .modal .m-head .x{margin-left:auto;cursor:pointer;color:var(--dim);font-size:18px;
+    width:28px;height:28px;display:grid;place-items:center;border-radius:8px}
+  .modal .m-head .x:hover{background:rgba(230,0,18,.15);color:#fca5a5}
+  .modal .m-body{padding:18px 20px;overflow-y:auto;flex:1}
+  .modal .m-body::-webkit-scrollbar{width:6px}
+  .modal .m-body::-webkit-scrollbar-thumb{background:rgba(56,189,248,.25);border-radius:3px}
+  .modal .m-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+
+  /* 校验面板 */
+  .modes{display:flex;gap:8px;margin-bottom:12px}
+  .mode{flex:1;padding:8px;text-align:center;font-size:12px;border-radius:8px;cursor:pointer;
+    border:1px solid rgba(100,116,139,.25);color:#94a3b8;background:rgba(30,41,59,.4);transition:all .2s}
+  .mode.on{border-color:var(--violet);color:#e9d5ff;background:rgba(139,92,246,.15);
+    box-shadow:0 0 12px rgba(139,92,246,.25)}
+  .rules{display:flex;flex-direction:column;gap:6px;max-height:170px;overflow-y:auto;
+    padding:4px 2px;margin-bottom:4px}
+  .rule{display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8;cursor:pointer;
+    padding:6px 10px;border-radius:8px;border:1px solid rgba(100,116,139,.2);background:rgba(2,6,17,.4)}
+  .rule input{accent-color:var(--cyan);cursor:pointer}
+  .rule .lv{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:99px}
+  .lv.err{color:#fca5a5;background:rgba(230,0,18,.12)}
+  .lv.warn{color:#fcd34d;background:rgba(245,158,11,.12)}
+  .iss{padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:6px;line-height:1.6}
+  .iss.err{background:rgba(230,0,18,.1);border:1px solid rgba(230,0,18,.35);color:#fecaca}
+  .iss.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#fde68a}
+  .iss.ok{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}
+  #checkResult{margin-top:12px}
+
+  /* 模板库 / 规则库 / 历史 列表 */
+  .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .tpl{padding:14px 12px;border-radius:12px;cursor:pointer;border:1px solid rgba(100,116,139,.25);
+    background:rgba(30,41,59,.5);transition:all .2s}
+  .tpl:hover{border-color:var(--cyan);box-shadow:var(--glow);transform:translateY(-2px)}
+  .tpl b{display:block;font-size:13px;color:#e0f2fe;margin-bottom:4px}
+  .tpl span{font-size:11px;color:var(--dim);line-height:1.5;display:block}
+  .list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+    border:1px solid rgba(100,116,139,.2);background:rgba(2,6,17,.4);margin-bottom:8px;font-size:12px}
+  .list-item .nm{color:#e2e8f0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list-item .meta{color:var(--dim);font-size:11px}
+  .tagc{font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(34,211,238,.12);color:#67e8f9}
+  .mini-btn{padding:4px 10px;font-size:11px;border-radius:7px;cursor:pointer;
+    border:1px solid rgba(34,211,238,.35);color:#a5f3fc;background:rgba(34,211,238,.08)}
+  .mini-btn:hover{background:rgba(34,211,238,.18)}
+  .mini-btn.danger{border-color:rgba(230,0,18,.4);color:#fca5a5;background:rgba(230,0,18,.08)}
+  .search-bar{width:100%;margin-bottom:12px}
+  .stats{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+  .stat{flex:1;min-width:100px;padding:10px;border-radius:10px;text-align:center;
+    border:1px solid var(--line);background:rgba(34,211,238,.05)}
+  .stat b{display:block;font-size:18px;color:#67e8f9}
+  .stat span{font-size:11px;color:var(--dim)}
+
+  /* 批量进度 */
+  .prog-track{height:10px;border-radius:99px;background:rgba(100,116,139,.25);overflow:hidden;margin:12px 0 8px}
+  .prog-fill{height:100%;width:0%;border-radius:99px;transition:width .3s;
+    background:linear-gradient(90deg,var(--cyan),var(--violet));box-shadow:0 0 12px rgba(34,211,238,.5)}
+  .prog-txt{font-size:12px;color:#94a3b8;display:flex;justify-content:space-between}
+  #miniProg{position:fixed;right:22px;bottom:22px;z-index:55;display:none;align-items:center;gap:10px;
+    padding:10px 16px;border-radius:14px;cursor:pointer;font-size:12px;color:#a5f3fc;
+    background:var(--panel2);border:1px solid var(--cyan);box-shadow:0 0 24px rgba(34,211,238,.35)}
+  #miniProg.show{display:flex}
+  .spinner{width:14px;height:14px;border:2px solid rgba(34,211,238,.25);border-top-color:var(--cyan);
+    border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  select{background:rgba(2,6,17,.7);border:1px solid rgba(100,116,139,.3);border-radius:10px;
+    color:var(--txt);padding:9px 10px;font-size:12px;outline:none;font-family:inherit}
+
+  /* ---------- 响应式：Pad 端 ---------- */
+  @media (max-width:1280px){
+    .left{width:400px;min-width:400px}
+    .hud span:last-child{display:none}
+  }
+  @media (max-width:1024px){
+    .left{width:350px;min-width:350px;padding:16px 12px 50px}
+    .hud{display:none}
+    h1{font-size:15px}
+    .toolbar .meta{font-size:10px}
+    .types{grid-template-columns:repeat(4,1fr)}
+  }
+  /* ---------- 响应式：移动端 ---------- */
+  @media (max-width:768px){
+    body{overflow:auto}
+    header{height:56px;padding:0 12px;gap:8px}
+    .logo{width:30px;height:30px;font-size:16px;border-radius:8px}
+    h1{font-size:14px;letter-spacing:1px}
+    .badge{font-size:9px;padding:3px 8px;letter-spacing:0}
+    .hud{display:none}
+    main{flex-direction:column;height:auto;overflow:visible}
+    .left{width:100%;min-width:0;max-height:none;overflow:visible;
+      border-right:none;border-bottom:1px solid var(--line);padding:14px 12px 30px}
+    .types{grid-template-columns:repeat(4,1fr)}
+    .right{height:72vh}
+    .paper-scroll{padding:18px 10px 60px;gap:20px}
+    .toolbar .meta{display:none}
+    textarea{font-size:12px}
+    .btn-primary{padding:12px 14px}
+  }
+  @media (max-width:400px){
+    .types{grid-template-columns:repeat(3,1fr)}
+    .badge:not(.ver){display:none}
+  }
+
   @media print{
     body{overflow:visible;background:#fff}
     header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast{display:none!important}
     main{display:block;height:auto}
-    .right{display:block}
+    .right{display:block;height:auto}
     .paper-scroll{overflow:visible;padding:0;display:block}
+    .pg{width:auto!important;height:auto!important}
+    .pg .page{position:static;transform:none!important}
     .page{box-shadow:none;margin:0 auto;page-break-after:always}
   }
 </style>
@@ -213,7 +335,7 @@
 
 <header>
   <div class="logo">文</div>
-  <h1>公文制作智能体</h1>
+  <h1>秒针公文智能体</h1>
   <span class="badge ver">v2026 1.0</span>
   <span class="badge">GB/T 9704-2012 · 党政机关公文格式</span>
   <div class="hud">
@@ -246,6 +368,7 @@
         </label>
         <div class="row mt">
           <button class="btn btn-ghost" id="btnSample">载入示例</button>
+          <button class="btn btn-ghost" id="btnTpl">📚 模板库</button>
           <button class="btn btn-primary" id="btnParse" style="flex:2">⌁ 智能解析</button>
         </div>
       </div>
@@ -288,8 +411,44 @@
     </div>
 
     <div class="card">
-      <h2><span class="num">04</span>生成与导出<span class="tag">OUTPUT</span></h2>
+      <h2><span class="num">04</span>智能校验<span class="tag">VALIDATION</span></h2>
+      <div class="modes" id="modeRow">
+        <div class="mode" data-m="strict">严格模式</div>
+        <div class="mode on" data-m="standard">标准模式</div>
+        <div class="mode" data-m="loose">宽松模式</div>
+      </div>
+      <div class="rules" id="ruleList"></div>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnCheck">⚔ 立即校验</button>
+        <button class="btn btn-ghost" id="btnFixAll">⚒ 一键修复</button>
+      </div>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnRuleLib">☰ 规则库</button>
+        <button class="btn btn-ghost" id="btnRuleExp">⇪ 导出规则</button>
+        <button class="btn btn-ghost" id="btnRuleImp">⇱ 导入规则</button>
+        <input type="file" id="ruleFile" accept=".json" style="display:none">
+      </div>
+      <div id="checkResult"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">05</span>生成与导出<span class="tag">OUTPUT</span></h2>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn btn-ghost" id="btnUndo" title="撤销 (Ctrl+Z)">↶ 撤销</button>
+        <button class="btn btn-ghost" id="btnRedo" title="重做 (Ctrl+Y)">↷ 重做</button>
+      </div>
       <button class="btn btn-primary" id="btnExport" style="font-size:14px;padding:13px">⬇ 导出 Word（.docx）</button>
+      <div class="row mt">
+        <button class="btn btn-primary" id="btnPdf" style="background:linear-gradient(90deg,#f472b6,#8b5cf6)">⬇ 导出 PDF</button>
+      </div>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnBatch">📦 批量导出</button>
+        <button class="btn btn-ghost" id="btnHist">🕘 导出历史</button>
+      </div>
+      <div class="row mt">
+        <select id="expTplSel" style="flex:1.4"><option value="">默认文件名（标题）</option></select>
+        <button class="btn btn-ghost" id="btnExpTplSave" title="将当前导出配置存为模板">☆ 存为导出模板</button>
+      </div>
       <div class="row mt">
         <button class="btn btn-ghost" id="btnPrint">🖨 打印预览</button>
         <button class="btn btn-red" id="btnReset">↺ 清空重置</button>
@@ -308,6 +467,74 @@
 </main>
 
 <div id="toast"></div>
+
+<!-- 模板库 -->
+<div class="mask hidden" id="modalTpl">
+  <div class="modal">
+    <div class="m-head">📚 公文模板库 · 按文种一键加载<span class="x" data-x="modalTpl">✕</span></div>
+    <div class="m-body"><div class="tpl-grid" id="tplGrid"></div></div>
+  </div>
+</div>
+
+<!-- 校验结果 / 导出确认 -->
+<div class="mask hidden" id="modalCheck">
+  <div class="modal">
+    <div class="m-head">⚔ 格式校验结果<span class="x" data-x="modalCheck">✕</span></div>
+    <div class="m-body" id="checkModalBody"></div>
+    <div class="m-foot" id="checkModalFoot"></div>
+  </div>
+</div>
+
+<!-- 团队规则库 -->
+<div class="mask hidden" id="modalLib">
+  <div class="modal">
+    <div class="m-head">☰ 团队规则库<span class="x" data-x="modalLib">✕</span></div>
+    <div class="m-body">
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" id="libName" placeholder="预设名称，如：办公室标准">
+        <input type="text" id="libTags" placeholder="标签，逗号分隔，如：上行文,严格">
+      </div>
+      <button class="btn btn-ghost" id="btnLibSave" style="width:100%">☆ 保存当前规则为预设</button>
+      <input type="text" class="search-bar mt" id="libSearch" placeholder="⌕ 搜索预设名称或标签…">
+      <div id="libList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 批量导出 -->
+<div class="mask hidden" id="modalBatch">
+  <div class="modal">
+    <div class="m-head">📦 批量导出（ZIP）<span class="x" data-x="modalBatch">✕</span></div>
+    <div class="m-body">
+      <button class="btn btn-ghost" id="btnBatchAdd" style="width:100%">＋ 将当前公文加入批量队列</button>
+      <div class="row mt" style="align-items:center">
+        <label style="font-size:12px;color:#7dd3fc">并发数
+          <select id="concNum"><option>1</option><option selected>2</option><option>3</option></select></label>
+        <label style="font-size:12px;color:#94a3b8">断网自动暂停，恢复后续传</label>
+      </div>
+      <div id="batchList" class="mt"></div>
+      <div class="prog-track" id="progTrack" style="display:none"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-txt" id="progTxt" style="display:none"><span id="progName"></span><span id="progPct"></span></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" id="btnBatchMin">— 最小化后台</button>
+      <button class="btn btn-primary" id="btnBatchGo">⬇ 开始导出 ZIP</button>
+    </div>
+  </div>
+</div>
+<div id="miniProg"><div class="spinner"></div><span id="miniProgTxt">批量导出中…</span><span>▣</span></div>
+
+<!-- 导出历史 -->
+<div class="mask hidden" id="modalHist">
+  <div class="modal">
+    <div class="m-head">🕘 导出历史<span class="x" data-x="modalHist">✕</span></div>
+    <div class="m-body">
+      <div class="stats" id="histStats"></div>
+      <div id="histList"></div>
+    </div>
+    <div class="m-foot"><button class="btn btn-red" id="btnHistClear">清空历史</button></div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -354,7 +581,7 @@ function renderTypes(){
     $('fNo').classList.toggle('hidden', plain);
     $('fCc').classList.toggle('hidden', plain);
     $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
-    renderTypes(); renderPreview();
+    renderTypes(); renderPreview(); pushSnap();
   });
   const t = TYPES.find(x => x.n === curType);
   $('typeInfo').innerHTML = `<b>${t.n}</b>｜${t.c}｜${t.d}`;
@@ -369,6 +596,29 @@ function classify(p){
   if(/^\d+[\.．、]/.test(p)) return 'h3';
   if(/^[（(]\d+[)）]/.test(p)) return 'h4';
   return 'body';
+}
+/* ---------- 表格识别：Markdown 表格行分组解析 ---------- */
+function isTableLine(s){ return /^\|.*\|\s*$/.test(s); }
+function parseTableRows(tl){
+  return tl.map(l=>l.replace(/^\|/,'').replace(/\|\s*$/,'').split('|').map(c=>c.trim()))
+    .filter(r=>!r.every(c=>/^[-:：\s]+$/.test(c)));
+}
+function iterBlocks(paras){
+  const out=[]; let i=0;
+  while(i<paras.length){
+    if(isTableLine(paras[i])){
+      const tl=[];
+      while(i<paras.length && isTableLine(paras[i])) tl.push(paras[i++]);
+      const rows = parseTableRows(tl);
+      if(rows.length) out.push({t:'tb', rows});
+    }else out.push({t:'p', s:paras[i++]});
+  }
+  return out;
+}
+function tableHTML(rows){
+  let h='<table class="gt">';
+  rows.forEach((r,ri)=>{ h+='<tr>'+r.map(c=> ri===0?`<th>${esc(c)}</th>`:`<td>${esc(c)}</td>`).join('')+'</tr>'; });
+  return h+'</table>';
 }
 function toast(msg){
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -588,6 +838,7 @@ function smartParse(text){
   if(date){ $('inDate').value = date; found.push('成文日期'); }
   if(cc) $('inCc').value = cc;
   renderPreview();
+  if(typeof pushSnap === 'function') pushSnap();
   toast('✓ 已识别：' + found.join('、') + (removed ? `｜净化 ${removed} 处符号` : ''));
 }
 
@@ -664,9 +915,10 @@ function estLines(d){
   const blocks = [];
   if(d.title) blocks.push({k:'title', lines: Math.ceil(wLen(d.title)/14) + 2});
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
-  for(const p of d.paras){
-    blocks.push({k:'p', html:`<div class="p ${classify(p)}">${esc(p)}</div>`,
-      lines: Math.ceil((wLen(p)+2)/CPL)});
+  for(const b of iterBlocks(d.paras)){
+    if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows), lines: b.rows.length + 1});
+    else blocks.push({k:'p', html:`<div class="p ${classify(b.s)}">${esc(b.s)}</div>`,
+      lines: Math.ceil((wLen(b.s)+2)/CPL)});
   }
   const tail = [];
   const attachItems = parseAttachList(d.attach);
@@ -688,7 +940,8 @@ function renderPreview(){
   const d = collect();
   const wrap = $('paperScroll');
   if(!d.title && !d.paras.length && !d.attachParas.length){
-    wrap.innerHTML = `<div class="page"><div class="empty-tip">◈ 等待公文内容输入 ◈<br><br>选择文种 → 粘贴或上传文本 → 智能解析</div></div>`;
+    wrap.innerHTML = `<div class="pg"><div class="page"><div class="empty-tip">◈ 等待公文内容输入 ◈<br><br>选择文种 → 粘贴或上传文本 → 智能解析</div></div></div>`;
+    fitPages();
     return;
   }
   const header = headerHTML(d);
@@ -710,9 +963,10 @@ function renderPreview(){
   // 附件另面编排（版记之前）
   if(d.attachParas.length){
     const attBlocks = [{html: attachHeadHTML(d.attach), lines: (attachMeta(d.attach).title ? 3 : 1)}];
-    for(const p of d.attachParas){
-      attBlocks.push({html:`<div class="p ${classify(p)}">${esc(p)}</div>`,
-        lines: Math.ceil((wLen(p)+2)/CPL)});
+    for(const b of iterBlocks(d.attachParas)){
+      if(b.t==='tb') attBlocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1});
+      else attBlocks.push({html:`<div class="p ${classify(b.s)}">${esc(b.s)}</div>`,
+        lines: Math.ceil((wLen(b.s)+2)/CPL)});
     }
     cur = []; used = 0;
     for(const b of attBlocks){
@@ -723,15 +977,31 @@ function renderPreview(){
   }
   // 版记（抄送）置于最后一页版心最底部
   wrap.innerHTML = pages.map((pg,i)=>`
-    <div class="page">
+    <div class="pg"><div class="page">
       <div class="gb-content">
         ${i===0 ? header + headBlocks.join('') : ''}
         ${pg.join('')}
         ${i===pages.length-1 && d.cc ? `<div class="cc bottom">抄送：${esc(d.cc)}。</div>` : ''}
       </div>
       <div class="page-num">— ${i+1} —</div>
-    </div>`).join('');
+    </div></div>`).join('');
+  fitPages();
 }
+
+/* ---------- 预览缩放：A4 页面按容器宽度自适应（Pad/移动端） ---------- */
+function fitPages(){
+  const sc = $('paperScroll');
+  if(!sc) return;
+  const avail = sc.clientWidth - 40;
+  const s = Math.min(1, Math.max(.28, avail/794));
+  document.querySelectorAll('.pg').forEach(pg=>{
+    pg.style.width = 794*s + 'px';
+    pg.style.height = 1122*s + 'px';
+    const page = pg.firstElementChild;
+    if(page) page.style.transform = `scale(${s})`;
+  });
+}
+window.addEventListener('resize', fitPages);
 
 /* ============================================================
  * Word 导出（docx.js）
@@ -739,12 +1009,10 @@ function renderPreview(){
 const TW = mm => Math.round(mm * 56.6929);   // mm → twips
 const PT = pt => Math.round(pt * 20);        // pt → twentieths
 
-async function exportWord(){
-  const d = collect();
-  if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
+async function buildDocxBlob(d){
   const {
     Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
-    PageNumber, LineRuleType, BorderStyle
+    PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType
   } = docx;
 
   // 公文内西文与阿拉伯数字统一使用 Times New Roman（ascii/hAnsi），汉字用对应公文字体（eastAsia）
@@ -845,7 +1113,21 @@ async function exportWord(){
       children:[run(p, font, 16)]
     });
   };
-  for(const p of d.paras) children.push(bodyPara(p));
+  // 表格块（Markdown 表格 → Word 表格，首行表头方正黑体）
+  const BD = {style:BorderStyle.SINGLE, size:4, color:'000000'};
+  const docxTable = rows => new Table({
+    width:{size:100, type:WidthType.PERCENTAGE},
+    borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
+    rows: rows.map((r,ri)=> new TableRow({children: r.map(c=> new TableCell({
+      margins:{top:60, bottom:60, left:100, right:100},
+      children:[new Paragraph({alignment:AlignmentType.CENTER,
+        children:[run(c, ri===0?F_HEI:F_FS, 12)]})]
+    }))}))
+  });
+  for(const b of iterBlocks(d.paras)){
+    if(b.t==='tb'){ children.push(docxTable(b.rows)); }
+    else children.push(bodyPara(b.s));
+  }
 
   // 附件说明：正文下空一行，左空二字起排"附件："；多附件另起一行，
   // 序号首字与"1."对齐（悬挂缩进：左缩进5字、首行回退3字）
@@ -891,7 +1173,10 @@ async function exportWord(){
         children:[run(a.title, F_HEI, 16)]
       }));
     }
-    for(const p of d.attachParas) children.push(bodyPara(p));
+    for(const b of iterBlocks(d.attachParas)){
+      if(b.t==='tb'){ children.push(docxTable(b.rows)); }
+      else children.push(bodyPara(b.s));
+    }
   }
 
   // 版记：抄送机关，四号仿宋，左右各空一字，上下分隔线，置于最后一页版心底部
@@ -941,13 +1226,15 @@ async function exportWord(){
     }]
   });
 
-  const blob = await Packer.toBlob(docu);
+  return await Packer.toBlob(docu);
+}
+
+function downloadBlob(blob, name){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = (d.title || '公文') + '.docx';
+  a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('✓ Word 文档已生成并开始下载');
 }
 
 /* ---------- 输入方式切换 ---------- */
@@ -1021,18 +1308,554 @@ $('btnSample').onclick = () => {
 };
 $('btnParse').onclick = () => smartParse($('rawText').value);
 $('btnParse2').onclick = () => smartParse($('rawText').value);
-$('btnExport').onclick = () => exportWord().catch(e => toast('导出失败：'+e.message));
+$('btnExport').onclick = () => guardedExport('docx');
+$('btnPdf').onclick = () => guardedExport('pdf');
 $('btnPrint').onclick = () => window.print();
 $('btnReset').onclick = () => {
   ['inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inCc','rawText']
     .forEach(id => $(id).value = '');
   $('inDate').value = todayCN();
-  renderPreview(); toast('已清空');
+  pushSnap(); renderPreview(); toast('已清空');
 };
 
-/* 表单联动实时预览 */
+/* ============================================================
+ * 版本历史：撤销 / 重做
+ * ============================================================ */
+const SNAP_FIELDS = ['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inDate','inCc'];
+const undoStack = [], redoStack = [];
+let undoLock = false, snapTimer = null;
+function snapState(){ const o={type:curType}; SNAP_FIELDS.forEach(f=>o[f]=$(f).value); return JSON.stringify(o); }
+function applyState(j){
+  const o = JSON.parse(j);
+  curType = o.type || '通知';
+  const t = TYPES.find(x=>x.n===curType);
+  const plain = t.f === 'plain';
+  $('fLogo').classList.toggle('hidden', plain);
+  $('fNo').classList.toggle('hidden', plain);
+  $('fCc').classList.toggle('hidden', plain);
+  $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
+  SNAP_FIELDS.forEach(f=>{ if(o[f] !== undefined) $(f).value = o[f]; });
+  renderTypes(); renderPreview();
+}
+function pushSnap(){
+  if(undoLock) return;
+  clearTimeout(snapTimer);
+  snapTimer = setTimeout(()=>{
+    const s = snapState();
+    if(undoStack[undoStack.length-1] !== s){
+      undoStack.push(s);
+      if(undoStack.length > 50) undoStack.shift();
+      redoStack.length = 0;
+      updateUndoUI();
+    }
+  }, 600);
+}
+function updateUndoUI(){
+  $('btnUndo').style.opacity = undoStack.length > 1 ? 1 : .4;
+  $('btnRedo').style.opacity = redoStack.length ? 1 : .4;
+}
+function undo(){
+  if(undoStack.length <= 1){ toast('没有可撤销的操作'); return; }
+  undoLock = true;
+  const cur = undoStack.pop();
+  redoStack.push(cur);
+  applyState(undoStack[undoStack.length-1]);
+  undoLock = false; updateUndoUI(); toast('↶ 已撤销');
+}
+function redo(){
+  if(!redoStack.length){ toast('没有可重做的操作'); return; }
+  undoLock = true;
+  const s = redoStack.pop();
+  undoStack.push(s);
+  applyState(s);
+  undoLock = false; updateUndoUI(); toast('↷ 已重做');
+}
+$('btnUndo').onclick = undo;
+$('btnRedo').onclick = redo;
+document.addEventListener('keydown', e=>{
+  if(/INPUT|TEXTAREA/.test(e.target.tagName)) return;
+  if(e.ctrlKey && !e.shiftKey && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
+  if(e.ctrlKey && (e.key.toLowerCase()==='y' || (e.shiftKey && e.key.toLowerCase()==='z'))){ e.preventDefault(); redo(); }
+});
+
+/* ============================================================
+ * 智能校验：规则 / 模式 / 一键修复 / 导入导出
+ * ============================================================ */
+const MODE_RULES = {
+  loose:    ['r_title','r_body','r_date'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt'],
+};
+let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
+const DATE_STD = /^\d{4}年\d{1,2}月\d{1,2}日$/;
+const RULES = [
+  {id:'r_title', name:'标题必填', lv:'err',
+    check: d => d.title ? null : '公文标题缺失',
+    fix: () => { $('inTitle').value = '关于××工作的' + curType; }},
+  {id:'r_body', name:'正文必填', lv:'err',
+    check: d => d.paras.length ? null : '正文内容缺失'},
+  {id:'r_date', name:'成文日期必填且格式为"×年×月×日"', lv:'err',
+    check: d => { if(!d.date) return '成文日期缺失';
+      return DATE_STD.test(d.date) ? null : '成文日期格式不规范：' + d.date; },
+    fix: () => { const r = parseDateLine($('inDate').value.trim());
+      $('inDate').value = r ? r.date : todayCN(); }},
+  {id:'r_to', name:'主送机关必填', lv:'err',
+    check: d => d.to ? null : '主送机关缺失'},
+  {id:'r_org', name:'发文机关署名必填', lv:'err',
+    check: d => d.org ? null : '发文机关署名缺失'},
+  {id:'r_no', name:'发文字号必填（红头文种）', lv:'err', skip: d => d.plain,
+    check: d => d.no ? null : '发文字号缺失',
+    fix: () => { $('inNo').value = '×政发〔' + new Date().getFullYear() + '〕1号'; }},
+  {id:'r_nofmt', name:'发文字号须用六角括号〔〕', lv:'warn', skip: d => d.plain,
+    check: d => (!d.no || d.no.includes('〔')) ? null : '发文字号未使用六角括号：' + d.no,
+    fix: () => { $('inNo').value = normalizeDocNo($('inNo').value); }},
+  {id:'r_attach', name:'附件内容须配套附件说明', lv:'warn',
+    check: d => (d.attachParas.length && !d.attach) ? '已填写附件内容但缺少附件说明' : null,
+    fix: () => { $('inAttach').value = '1.' + (TYPES.find(x=>x.n===curType).n) + '有关材料'; }},
+  {id:'r_sign', name:'上行文须标注签发人', lv:'warn', skip: d => d.t.c !== '上行文',
+    check: d => d.signatory ? null : '上行文未标注签发人'},
+  {id:'r_titlepunct', name:'标题末尾不加标点符号', lv:'warn',
+    check: d => /[。，、；：？！]$/.test(d.title) ? '标题末尾含有标点符号' : null,
+    fix: () => { $('inTitle').value = $('inTitle').value.replace(/[。，、；：？！\s]+$/,''); }},
+  {id:'r_tplen', name:'标题超过 50 字建议精简', lv:'warn',
+    check: d => d.title.length > 50 ? '标题过长（' + d.title.length + ' 字）' : null},
+];
+function ruleEnabled(r){
+  if(ruleState.on && r.id in ruleState.on) return ruleState.on[r.id];
+  return MODE_RULES[ruleState.mode || 'standard'].includes(r.id);
+}
+function runValidation(d){
+  const out = [];
+  for(const r of RULES){
+    if(!ruleEnabled(r) || (r.skip && r.skip(d))) continue;
+    const msg = r.check(d);
+    if(msg) out.push({id:r.id, level:r.lv, msg, fixable: !!r.fix});
+  }
+  return out;
+}
+function applyFixes(issues){
+  let n = 0;
+  for(const is of issues){
+    const r = RULES.find(x=>x.id===is.id);
+    if(r && r.fix){ r.fix(); n++; }
+  }
+  pushSnap(); renderPreview();
+  return n;
+}
+function renderRuleList(){
+  $('ruleList').innerHTML = RULES.map(r=>{
+    const off = ruleState.on && r.id in ruleState.on ? !ruleState.on[r.id] : false;
+    const on = ruleEnabled(r);
+    return `<label class="rule"><input type="checkbox" data-r="${r.id}" ${on?'checked':''}>
+      <span>${r.name}</span><span class="lv ${r.lv==='err'?'err':'warn'}">${r.lv==='err'?'错误':'提醒'}</span></label>`;
+  }).join('');
+  document.querySelectorAll('#ruleList input').forEach(cb => cb.onchange = () => {
+    ruleState.on[cb.dataset.r] = cb.checked;
+    localStorage.setItem('mzw_rules', JSON.stringify(ruleState));
+  });
+}
+function setMode(m){
+  ruleState.mode = m; ruleState.on = {};
+  localStorage.setItem('mzw_rules', JSON.stringify(ruleState));
+  document.querySelectorAll('#modeRow .mode').forEach(x=>x.classList.toggle('on', x.dataset.m===m));
+  renderRuleList();
+  toast('已切换为' + {strict:'严格模式', standard:'标准模式', loose:'宽松模式'}[m]);
+}
+document.querySelectorAll('#modeRow .mode').forEach(x => x.onclick = () => setMode(x.dataset.m));
+document.querySelector('#modeRow .mode[data-m="'+(ruleState.mode||'standard')+'"]')?.classList.add('on');
+
+function showIssues(el, issues){
+  el.innerHTML = issues.length
+    ? issues.map(i=>`<div class="iss ${i.level==='err'?'err':'warn'}">${i.level==='err'?'✕':'⚠'} ${i.msg}${i.fixable?' <i style="opacity:.7">（可一键修复）</i>':''}</div>`).join('')
+    : '<div class="iss ok">✓ 全部通过，未发现格式问题</div>';
+}
+$('btnCheck').onclick = () => {
+  const issues = runValidation(collect());
+  showIssues($('checkResult'), issues);
+  toast(issues.length ? `发现 ${issues.length} 个问题` : '✓ 校验通过');
+};
+$('btnFixAll').onclick = () => {
+  const issues = runValidation(collect());
+  const n = applyFixes(issues);
+  showIssues($('checkResult'), runValidation(collect()));
+  toast(n ? `⚒ 已自动修复 ${n} 处` : '没有可自动修复的问题');
+};
+/* 规则导入 / 导出 */
+$('btnRuleExp').onclick = () => {
+  const blob = new Blob([JSON.stringify(ruleState, null, 2)], {type:'application/json'});
+  downloadBlob(blob, '秒针公文校验规则.json');
+  toast('✓ 规则配置已导出');
+};
+$('btnRuleImp').onclick = () => $('ruleFile').click();
+$('ruleFile').onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const j = JSON.parse(await f.text());
+    if(!j.mode) throw new Error('配置格式不正确');
+    ruleState = j;
+    localStorage.setItem('mzw_rules', JSON.stringify(ruleState));
+    setMode(j.mode); ruleState.on = j.on || {};
+    localStorage.setItem('mzw_rules', JSON.stringify(ruleState));
+    renderRuleList();
+    toast('✓ 规则配置已导入');
+  }catch(err){ toast('导入失败：' + err.message); }
+  e.target.value = '';
+};
+
+/* ============================================================
+ * 团队规则库（标签分类 + 搜索）
+ * ============================================================ */
+function libAll(){ return JSON.parse(localStorage.getItem('mzw_rulelib') || '[]'); }
+function libSave(list){ localStorage.setItem('mzw_rulelib', JSON.stringify(list)); }
+function renderLibList(){
+  const q = ($('libSearch').value || '').trim();
+  const list = libAll().filter(p => !q || p.name.includes(q) || (p.tags||[]).some(t=>t.includes(q)));
+  $('libList').innerHTML = list.length ? list.map((p,i)=>`
+    <div class="list-item">
+      <span class="nm">${esc(p.name)}</span>
+      ${(p.tags||[]).map(t=>`<span class="tagc">${esc(t)}</span>`).join('')}
+      <span class="meta">${p.mode}</span>
+      <button class="mini-btn" data-a="apply" data-i="${i}">应用</button>
+      <button class="mini-btn danger" data-a="del" data-i="${i}">删</button>
+    </div>`).join('') : '<div style="color:var(--dim);font-size:12px;text-align:center;padding:20px">暂无预设，保存当前规则试试</div>';
+  $('libList').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const list = libAll(); const i = +b.dataset.i;
+    const real = libAll().filter(p => !q || p.name.includes(q) || (p.tags||[]).some(t=>t.includes(q)))[i];
+    const idx = list.indexOf(real);
+    if(b.dataset.a === 'del'){ list.splice(idx,1); libSave(list); renderLibList(); toast('已删除'); }
+    else{
+      ruleState = {mode: real.mode, on: real.on || {}};
+      localStorage.setItem('mzw_rules', JSON.stringify(ruleState));
+      setMode(real.mode); ruleState.on = real.on || {};
+      localStorage.setItem('mzw_rules', JSON.stringify(ruleState));
+      renderRuleList();
+      toast('✓ 已应用预设「' + real.name + '」');
+    }
+  });
+}
+$('btnLibSave').onclick = () => {
+  const name = $('libName').value.trim();
+  if(!name){ toast('请填写预设名称'); return; }
+  const list = libAll();
+  list.unshift({name, tags: $('libTags').value.split(/[,，]/).map(s=>s.trim()).filter(s=>s),
+    mode: ruleState.mode, on: ruleState.on, time: Date.now()});
+  libSave(list); renderLibList();
+  toast('✓ 预设「' + name + '」已保存，可分享给团队成员');
+};
+$('libSearch').addEventListener('input', renderLibList);
+
+/* ============================================================
+ * 导出模板（文件名 / 格式配置）
+ * ============================================================ */
+function expTpls(){ return JSON.parse(localStorage.getItem('mzw_exptpl') || '[]'); }
+function renderExpTpls(){
+  $('expTplSel').innerHTML = '<option value="">默认文件名（标题）</option>' +
+    expTpls().map((t,i)=>`<option value="${i}">${esc(t.name)}（${t.format}）</option>`).join('');
+}
+$('btnExpTplSave').onclick = () => {
+  const name = prompt('导出模板名称：', (collect().title || '公文') + '导出配置');
+  if(!name) return;
+  const list = expTpls();
+  list.push({name, format:'docx', pattern:'{title}', time:Date.now()});
+  localStorage.setItem('mzw_exptpl', JSON.stringify(list));
+  renderExpTpls();
+  toast('✓ 导出模板已保存');
+};
+function fileName(d, ext){
+  const sel = $('expTplSel').value;
+  const t = sel !== '' ? expTpls()[+sel] : null;
+  const pat = t ? (t.pattern || '{title}') : '{title}';
+  return pat.replace(/\{title\}/g, d.title || '公文')
+            .replace(/\{date\}/g, d.date || '')
+            .replace(/\{type\}/g, d.type || '') + ext;
+}
+
+/* ============================================================
+ * 导出历史（记录 / 统计 / 重新导出）
+ * ============================================================ */
+function histAll(){ return JSON.parse(localStorage.getItem('mzw_exphist') || '[]'); }
+function recordExport(d, format, ok, dur, size){
+  const h = histAll();
+  h.unshift({name: d.title || '公文', format, ok, dur: Math.round(dur||0), size: size||0,
+    time: Date.now(), state: snapState()});
+  if(h.length > 50) h.pop();
+  localStorage.setItem('mzw_exphist', JSON.stringify(h));
+}
+function renderHist(){
+  const h = histAll();
+  const okN = h.filter(x=>x.ok).length;
+  const avg = h.length ? Math.round(h.reduce((s,x)=>s+(x.dur||0),0)/h.length) : 0;
+  $('histStats').innerHTML =
+    `<div class="stat"><b>${h.length}</b><span>总导出次数</span></div>
+     <div class="stat"><b>${h.length ? Math.round(okN/h.length*100) : 0}%</b><span>成功率</span></div>
+     <div class="stat"><b>${avg}ms</b><span>平均耗时</span></div>`;
+  $('histList').innerHTML = h.length ? h.map((x,i)=>`
+    <div class="list-item">
+      <span class="tagc">${x.format}</span>
+      <span class="nm">${esc(x.name)}</span>
+      <span class="meta">${new Date(x.time).toLocaleString('zh-CN')}</span>
+      <span class="meta">${x.ok?'✓':'✕'}</span>
+      <button class="mini-btn" data-i="${i}">重新导出</button>
+    </div>`).join('') : '<div style="color:var(--dim);font-size:12px;text-align:center;padding:20px">暂无导出记录</div>';
+  $('histList').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const x = histAll()[+b.dataset.i];
+    applyState(x.state);
+    closeModal('modalHist');
+    guardedExport(x.format === 'pdf' ? 'pdf' : 'docx');
+  });
+}
+$('btnHistClear').onclick = () => { localStorage.removeItem('mzw_exphist'); renderHist(); toast('已清空'); };
+
+/* ============================================================
+ * 导出执行（Word / PDF）+ 导出前自动校验
+ * ============================================================ */
+async function doExport(kind){
+  const d = collect();
+  const t0 = performance.now();
+  try{
+    if(kind === 'docx'){
+      const blob = await buildDocxBlob(d);
+      downloadBlob(blob, fileName(d, '.docx'));
+      recordExport(d, 'docx', true, performance.now()-t0, blob.size);
+      toast('✓ Word 文档已生成并开始下载');
+    }else{
+      exportPDF(d);
+      recordExport(d, 'pdf', true, performance.now()-t0, 0);
+    }
+  }catch(e){
+    recordExport(d, kind, false, performance.now()-t0, 0);
+    toast('导出失败：' + e.message);
+  }
+}
+function guardedExport(kind){
+  const d = collect();
+  if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
+  const issues = runValidation(d);
+  const errs = issues.filter(i=>i.level==='err');
+  if(!errs.length){ doExport(kind); return; }
+  $('checkModalBody').innerHTML =
+    `<div style="font-size:12px;color:#94a3b8;margin-bottom:12px">检测到 ${errs.length} 个错误，建议修复后导出：</div>` +
+    issues.map(i=>`<div class="iss ${i.level==='err'?'err':'warn'}">${i.level==='err'?'✕':'⚠'} ${i.msg}</div>`).join('');
+  $('checkModalFoot').innerHTML = '';
+  const mk = (txt, cls, fn) => { const b = document.createElement('button');
+    b.className = 'btn ' + cls; b.textContent = txt; b.onclick = fn;
+    $('checkModalFoot').appendChild(b); };
+  mk('⚒ 修复后导出', 'btn-primary', () => {
+    applyFixes(runValidation(collect()));
+    closeModal('modalCheck');
+    const rest = runValidation(collect()).filter(i=>i.level==='err');
+    if(rest.length) toast('仍有 ' + rest.length + ' 项需手动处理，已继续导出');
+    doExport(kind);
+  });
+  mk('忽略错误导出', 'btn-ghost', () => { closeModal('modalCheck'); doExport(kind); });
+  mk('取消', 'btn-red', () => closeModal('modalCheck'));
+  openModal('modalCheck');
+}
+
+/* ---------- PDF 导出（打印窗口 → 另存为 PDF） ---------- */
+function exportPDF(d){
+  const pages = document.querySelectorAll('#paperScroll .pg .page');
+  if(!pages.length){ toast('请先输入公文内容'); return; }
+  const css = document.querySelector('style').textContent;
+  const w = window.open('', '_blank');
+  if(!w){ toast('弹窗被拦截，请允许弹出窗口后重试'); return; }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(d.title||'公文')}</title>
+    <style>${css}</style><style>
+    @page{size:A4;margin:0}
+    html,body{margin:0;background:#fff;overflow:visible}
+    header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast,.mask,#miniProg{display:none!important}
+    main{display:block;height:auto}.right{display:block;height:auto}
+    .paper-scroll{padding:0;display:block;overflow:visible}
+    .pg{width:auto!important;height:auto!important;page-break-after:always}
+    .pg .page{position:static;transform:none!important;box-shadow:none;margin:0}
+    </style></head><body><div class="paper-scroll">${
+      [...pages].map(p=>`<div class="pg">${p.outerHTML}</div>`).join('')
+    }</div></body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(()=> w.print(), 400);
+  toast('✓ 已打开打印窗口，请选择「另存为 PDF」');
+}
+
+/* ============================================================
+ * 模板库：16 文种预设模板一键加载
+ * ============================================================ */
+const TPL = (no,title,to,body,extra={}) => ({no,title,to,body,...extra});
+const TEMPLATES = {
+  '决议': TPL('×发〔2026〕1号','××委员会关于××重大事项的决议','各成员单位：',
+    '××会议于2026年×月×日举行，审议并通过了《××方案》。\n一、会议认为\n××工作取得显著成效，为高质量发展奠定了坚实基础。\n二、会议决定\n全面推进××改革，确保各项任务按期完成。'),
+  '决定': TPL('×发〔2026〕2号','××关于表彰××工作先进集体和先进个人的决定','各市、县，各部门：',
+    '近年来，××战线涌现出一批先进典型。\n一、授予称号\n授予××单位"××工作先进集体"称号。\n二、奖励办法\n对获奖单位和个人给予通报表彰和物质奖励。'),
+  '命令（令）': TPL('第×号','××人民政府令','',
+    '《××办法》已经2026年×月×日××会议审议通过，现予公布，自2026年×月×日起施行。\n市长 ×××\n2026年×月×日'),
+  '公报': TPL('第×期','××会议公报','',
+    '××会议于2026年×月×日在××举行。\n一、出席情况\n应到委员××名，实到××名，符合法定人数。\n二、审议事项\n会议审议通过了××报告和××决议。'),
+  '公告': TPL('××〔2026〕×号','××关于××事项的公告','',
+    '根据《××法》有关规定，现将有关事项公告如下。\n一、××事项\n自2026年×月×日起施行。\n二、其他事项\n特此公告。'),
+  '通告': TPL('×府通〔2026〕×号','××人民政府关于××管理的通告','',
+    '为加强××管理，维护公共秩序，现将有关事项通告如下。\n一、管理范围\n××区域范围内。\n二、管理措施\n自本通告发布之日起施行。'),
+  '意见': TPL('×发〔2026〕×号','××关于推进××工作的指导意见','各市、县，各部门：',
+    '为推进××工作，现提出如下意见。\n一、总体要求\n明确指导思想、基本原则和主要目标。\n二、重点任务\n（一）完善工作机制\n（二）强化要素保障\n三、组织实施\n各地各部门结合实际抓好落实。'),
+  '通知': TPL('×政发〔2026〕×号','××关于××工作的通知','各市、县人民政府，省政府各部门：',
+    '为推进××工作，现将有关事项通知如下。\n一、工作目标\n明确年度工作目标和考核要求。\n二、主要任务\n（一）抓好组织实施\n（二）强化督促检查\n三、工作要求\n各地各部门要高度重视，狠抓落实。'),
+  '通报': TPL('×通报〔2026〕×号','××关于××情况的通报','各市、县，各部门：',
+    '现将××情况通报如下。\n一、基本情况\n××工作总体进展顺利。\n二、存在问题\n个别单位进度滞后。\n三、下一步要求\n各地各部门要引以为戒，举一反三。'),
+  '报告': TPL('×政报〔2026〕×号','××关于××工作情况的报告','省人民政府：',
+    '现将××工作情况报告如下。\n一、工作进展\n各项任务按计划推进。\n二、主要做法\n（一）加强组织领导\n（二）创新工作机制\n三、下一步打算\n持续推进，确保完成年度目标。'),
+  '请示': TPL('×政请〔2026〕×号','××关于××事项的请示','省人民政府：',
+    '为推进××工作，现将有关事项请示如下。\n一、请示事项\n恳请批准××方案。\n二、理由依据\n××工作亟需政策支持。\n妥否，请批示。'),
+  '批复': TPL('×政复〔2026〕×号','××关于××请示的批复','××市人民政府：',
+    '你市《关于××事项的请示》（×政请〔2026〕×号）收悉。经研究，现批复如下。\n一、原则同意××方案。\n二、请你们加强组织领导，稳妥推进实施。\n此复。'),
+  '议案': TPL('×政议〔2026〕×号','××人民政府关于提请审议××的议案','市人民代表大会常务委员会：',
+    '根据《××法》有关规定，现将××议案提请审议。\n一、案由\n××工作需要法规保障。\n二、方案内容\n详见附件说明。\n请予审议。'),
+  '函': TPL('×函〔2026〕×号','××关于商洽××事项的函','××厅：',
+    '为推进××工作，现就有关事项函告如下。\n一、商洽事项\n请贵厅支持配合××工作。\n二、联系方式\n联系人：×××，联系电话：×××。\n专此函达，盼复。'),
+  '纪要': TPL('第×期','××工作会议纪要','',
+    '2026年×月×日，××同志主持召开××工作会议。现纪要如下。\n一、会议听取\n××部门关于××工作的汇报。\n二、会议明确\n（一）抓好任务落实\n（二）加强协调配合\n三、参会人员\n×××、×××、×××。'),
+  '通用': TPL('','××工作汇报材料','同志们：',
+    '现将××工作有关情况汇报如下。\n一、基本情况\n各项工作有序推进。\n二、存在问题\n（一）××方面仍需加强\n三、下一步安排\n突出重点，狠抓落实。'),
+};
+function renderTplGrid(){
+  $('tplGrid').innerHTML = TYPES.map(t=>`
+    <div class="tpl" data-n="${t.n}"><b>${t.n}</b><span>${esc(TEMPLATES[t.n].title)}</span></div>`).join('');
+  $('tplGrid').querySelectorAll('.tpl').forEach(el => el.onclick = () => {
+    const name = el.dataset.n;
+    const tp = TEMPLATES[name];
+    curType = name;
+    const t = TYPES.find(x=>x.n===name);
+    const plain = t.f === 'plain';
+    $('fLogo').classList.toggle('hidden', plain);
+    $('fNo').classList.toggle('hidden', plain);
+    $('fCc').classList.toggle('hidden', plain);
+    $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
+    if(!plain) $('inLogo').value = t.logo;
+    $('inNo').value = tp.no;
+    $('inTitle').value = tp.title;
+    $('inTo').value = tp.to;
+    $('inBody').value = tp.body;
+    $('inAttach').value = tp.attach || '';
+    $('inAttachBody').value = tp.attachBody || '';
+    if(tp.org) $('inOrg').value = tp.org;
+    $('inDate').value = todayCN();
+    $('inCc').value = tp.cc || '';
+    renderTypes(); renderPreview(); pushSnap();
+    closeModal('modalTpl');
+    toast('✓ 已加载「' + name + '」模板');
+  });
+}
+$('btnTpl').onclick = () => { renderTplGrid(); openModal('modalTpl'); };
+
+/* ============================================================
+ * 批量导出（ZIP + 进度 + 后台 + 断网暂停续传 + 优先级并发）
+ * ============================================================ */
+let batch = JSON.parse(localStorage.getItem('mzw_batch') || '[]');
+let batchPause = false, batchRunning = false;
+function saveBatch(){ localStorage.setItem('mzw_batch', JSON.stringify(batch)); }
+function stateToDoc(st){
+  const t = TYPES.find(x=>x.n===st.type) || TYPES[7];
+  const plain = t.f === 'plain';
+  return { type: st.type, t, plain,
+    logo: st.inLogo || '××××××文件', no: plain ? '' : normalizeDocNo(st.inNo || ''),
+    signatory: st.inSignatory || '', title: st.inTitle || '', to: st.inTo || '',
+    paras: (st.inBody || '').split('\n').map(s=>s.trim()).filter(s=>s),
+    attach: st.inAttach || '',
+    attachParas: (st.inAttachBody || '').split('\n').map(s=>s.trim()).filter(s=>s),
+    org: st.inOrg || '', date: st.inDate || todayCN(), cc: plain ? '' : (st.inCc || '') };
+}
+function renderBatchList(){
+  $('batchList').innerHTML = batch.length ? batch.map((it,i)=>`
+    <div class="list-item">
+      <button class="mini-btn" data-p="${i}">${it.pr ? '🔥高' : '普通'}</button>
+      <span class="nm">${esc(it.name)}</span>
+      <span class="meta">${it.type}</span>
+      <button class="mini-btn danger" data-d="${i}">删</button>
+    </div>`).join('') : '<div style="color:var(--dim);font-size:12px;text-align:center;padding:16px">队列为空，先加入当前公文</div>';
+  $('batchList').querySelectorAll('button').forEach(b => b.onclick = () => {
+    if(b.dataset.p !== undefined){ batch[+b.dataset.p].pr = batch[+b.dataset.p].pr ? 0 : 1; }
+    else batch.splice(+b.dataset.d, 1);
+    saveBatch(); renderBatchList();
+  });
+}
+$('btnBatchAdd').onclick = () => {
+  const d = collect();
+  if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
+  batch.push({id: Date.now(), name: d.title || '公文', type: d.type, state: snapState(), pr: 0});
+  saveBatch(); renderBatchList();
+  toast('✓ 已加入批量队列（共 ' + batch.length + ' 份）');
+};
+function setProgress(done, total, name, pct){
+  $('progTrack').style.display = 'block';
+  $('progTxt').style.display = 'flex';
+  const p = pct !== undefined ? pct : (total ? done/total*100 : 0);
+  $('progFill').style.width = p + '%';
+  $('progName').textContent = name || '';
+  $('progPct').textContent = Math.round(p) + '%（' + done + '/' + total + '）';
+  $('miniProgTxt').textContent = '批量导出中 ' + Math.round(p) + '%';
+}
+window.addEventListener('offline', () => { if(batchRunning){ batchPause = true; toast('⚠ 网络中断，批量导出已暂停'); } });
+window.addEventListener('online', () => { if(batchPause){ batchPause = false; toast('✓ 网络已恢复，继续导出（断点续传）'); } });
+$('btnBatchGo').onclick = async () => {
+  if(batchRunning){ toast('批量导出正在进行中'); return; }
+  if(!batch.length){ toast('队列为空'); return; }
+  batchRunning = true; batchPause = false;
+  const items = [...batch].sort((a,b)=> b.pr - a.pr);   // 高优先级优先
+  const zip = new JSZip();
+  const conc = Math.max(1, Math.min(3, +$('concNum').value || 2));
+  let idx = 0, done = 0, failed = 0;
+  setProgress(0, items.length, '准备中…', 0);
+  $('miniProg').classList.add('show');
+  const waitResume = () => new Promise(r => {
+    const tm = setInterval(()=>{ if(!batchPause){ clearInterval(tm); r(); } }, 400);
+  });
+  const worker = async () => {
+    while(idx < items.length){
+      if(batchPause) await waitResume();          // 断点续传：已完成项不重复
+      const it = items[idx++];
+      try{
+        setProgress(done, items.length, it.name);
+        const dd = stateToDoc(JSON.parse(it.state));
+        const blob = await buildDocxBlob(dd);
+        zip.file(fileName(dd, '.docx'), blob);
+        recordExport(dd, 'docx(zip)', true, 0, blob.size);
+      }catch(e){ failed++; recordExport({title: it.name}, 'docx(zip)', false, 0, 0); }
+      done++;
+      setProgress(done, items.length, it.name);
+      await new Promise(r => setTimeout(r, 30));   // 让出主线程保持界面响应
+    }
+  };
+  await Promise.all(Array.from({length: Math.min(conc, items.length)}, worker));
+  setProgress(done, items.length, '打包 ZIP…');
+  const zb = await zip.generateAsync({type:'blob'}, m => setProgress(done, items.length, '打包 ZIP…', m.percent));
+  const ts = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  downloadBlob(zb, '批量公文_' + ts + '.zip');
+  batchRunning = false;
+  $('miniProg').classList.remove('show');
+  toast(`✓ 批量导出完成：成功 ${done-failed} 份${failed ? '，失败 ' + failed + ' 份' : ''}`);
+  if(window.Notification && Notification.permission === 'granted')
+    new Notification('秒针公文智能体', {body: `批量导出完成：${done-failed} 份成功`});
+  else if(window.Notification && Notification.permission !== 'denied')
+    Notification.requestPermission();
+};
+$('btnBatchMin').onclick = () => {
+  closeModal('modalBatch');
+  if(batchRunning) toast('已在后台继续导出，完成后将通知你');
+};
+$('miniProg').onclick = () => { if(batchRunning) openModal('modalBatch'); };
+$('btnBatch').onclick = () => { renderBatchList(); openModal('modalBatch'); };
+$('btnHist').onclick = () => { renderHist(); openModal('modalHist'); };
+$('btnRuleLib').onclick = () => { renderLibList(); openModal('modalLib'); };
+
+/* ---------- 模态框通用 ---------- */
+function openModal(id){ $(id).classList.remove('hidden'); }
+function closeModal(id){ $(id).classList.add('hidden'); }
+document.querySelectorAll('[data-x]').forEach(x => x.onclick = () => closeModal(x.dataset.x));
+document.querySelectorAll('.mask').forEach(m => m.addEventListener('click', e => {
+  if(e.target === m && m.id !== 'modalBatch') m.classList.add('hidden');
+}));
+
+/* 表单联动实时预览 + 历史快照 */
 ['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inDate','inCc']
-  .forEach(id => $(id).addEventListener('input', renderPreview));
+  .forEach(id => $(id).addEventListener('input', () => { renderPreview(); pushSnap(); }));
 
 /* 发文字号失焦时自动规范为〔〕写法 */
 $('inNo').addEventListener('blur', () => {
@@ -1047,7 +1870,11 @@ $('inNo').addEventListener('blur', () => {
 /* ---------- 初始化 ---------- */
 $('inDate').value = todayCN();
 renderTypes();
+renderRuleList();
+renderExpTpls();
 renderPreview();
+undoStack.push(snapState());
+updateUndoUI();
 </script>
 </body>
 </html>
