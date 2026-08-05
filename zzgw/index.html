@@ -322,9 +322,9 @@
     main{display:block;height:auto}
     .right{display:block;height:auto}
     .paper-scroll{overflow:visible;padding:0;display:block}
-    .pg{width:auto!important;height:auto!important}
-    .pg .page{position:static;transform:none!important}
-    .page{box-shadow:none;margin:0 auto;page-break-after:always}
+    .pg{width:794px!important;height:auto!important;margin:0 auto;page-break-after:always}
+    .pg .page{position:relative!important;transform:none!important}
+    .page{box-shadow:none;margin:0 auto}
   }
 </style>
 </head>
@@ -1662,12 +1662,13 @@ function exportPDF(d){
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(d.title||'公文')}</title>
     <style>${css}</style><style>
     @page{size:A4;margin:0}
-    html,body{margin:0;background:#fff;overflow:visible}
+    html,body{margin:0;background:#fff;overflow:visible;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
     header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast,.mask,#miniProg{display:none!important}
     main{display:block;height:auto}.right{display:block;height:auto}
     .paper-scroll{padding:0;display:block;overflow:visible}
-    .pg{width:auto!important;height:auto!important;page-break-after:always}
-    .pg .page{position:static;transform:none!important;box-shadow:none;margin:0}
+    .pg{width:794px!important;height:auto!important;margin:0 auto;page-break-after:always}
+    .pg .page{position:relative!important;transform:none!important;box-shadow:none;margin:0}
     </style></head><body><div class="paper-scroll">${
       [...pages].map(p=>`<div class="pg">${p.outerHTML}</div>`).join('')
     }</div></body></html>`);
