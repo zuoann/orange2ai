@@ -146,8 +146,11 @@
     box-shadow:0 0 0 1px rgba(56,189,248,.15),0 20px 60px rgba(0,0,0,.6),0 0 80px rgba(34,211,238,.08);
     font-family:"方正仿宋_GBK","FangSong_GB2312","仿宋","FangSong",serif;
   }
-  .page-num{position:absolute;left:0;right:0;top:1052px;text-align:center;
+  /* 页码外侧对齐：奇数页居右空一字，偶数页居左空一字 */
+  .page-num{position:absolute;left:0;right:0;top:1052px;
     font-family:"Times New Roman","宋体","SimSun",serif;font-size:14pt;color:#000}
+  .page-num.odd{text-align:right;padding-right:117px}   /* 版心右缘(26mm)再空一字 */
+  .page-num.even{text-align:left;padding-left:87px}     /* 版心左缘(28mm)再空一字 */
   .gb-content{position:absolute;left:106px;top:140px;width:590px;bottom:102px}
   .fw-logo{text-align:center;color:var(--red);font-size:40pt;line-height:1.25;
     font-family:"方正小标宋简体","FZXiaoBiaoSong-B05S","小标宋体","STZhongsong","宋体",serif;
@@ -200,10 +203,10 @@
     box-shadow:0 0 30px rgba(34,211,238,.3);transition:all .35s}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* ---------- 公文表格（预览） ---------- */
-  .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:12pt;
+  /* ---------- 公文表格（GB/T 9704-2012：表内五号仿宋、表头黑体、居中、全边框） ---------- */
+  .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:10.5pt;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;color:#000}
-  .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;line-height:1.5}
+  .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;line-height:1.6}
   .gt th{font-family:"Times New Roman","方正黑体_GBK","黑体",sans-serif}
 
   /* ---------- 模态框 ---------- */
@@ -316,9 +319,12 @@
     .badge:not(.ver){display:none}
   }
 
+  /* 打印 / PDF 导出：整页 A4 无边距、保留红色元素 */
+  @page{size:A4;margin:0}
   @media print{
-    body{overflow:visible;background:#fff}
-    header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast{display:none!important}
+    body{overflow:visible;background:#fff;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast,.mask,#miniProg{display:none!important}
     main{display:block;height:auto}
     .right{display:block;height:auto}
     .paper-scroll{overflow:visible;padding:0;display:block}
@@ -597,6 +603,52 @@ function classify(p){
   if(/^[（(]\d+[)）]/.test(p)) return 'h4';
   return 'body';
 }
+/* ---------- 标题层级校验与自动修正 ----------
+ * 一级"一、" 二级"（一）" 三级"1." 四级"（1）"
+ * 自动规范标记写法、检查并重排序号（跳号/遗漏/错误自动修正） */
+function num2cn(n){
+  const C='〇一二三四五六七八九';
+  if(n<10) return C[n];
+  if(n===10) return '十';
+  if(n<20) return '十'+C[n%10];
+  const t=Math.floor(n/10), o=n%10;
+  return C[t]+'十'+(o?C[o]:'');
+}
+function cn2numH(s){
+  const d={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+  if(s==='十') return 10;
+  let m=s.match(/^十([一二三四五六七八九])$/); if(m) return 10+d[m[1]];
+  m=s.match(/^([一二三四五六七八九])十([一二三四五六七八九])?$/); if(m) return d[m[1]]*10+(m[2]?d[m[2]]:0);
+  return d[s]||null;
+}
+function fixHeadings(paras){
+  const issues=[]; const counters=[0,0,0,0];
+  const out = paras.map(p=>{
+    let lv=-1, num=null, rest='';
+    let m;
+    if(m=p.match(/^([一二三四五六七八九十]{1,3})\s*[、\.．，,]\s*/)){ lv=0; num=cn2numH(m[1]); rest=p.slice(m[0].length); }
+    else if(m=p.match(/^[（(]\s*([一二三四五六七八九十]{1,3})\s*[)）]\s*/)){ lv=1; num=cn2numH(m[1]); rest=p.slice(m[0].length); }
+    else if(m=p.match(/^[（(]\s*(\d{1,2})\s*[)）]\s*/)){ lv=3; num=+m[1]; rest=p.slice(m[0].length); }
+    else if(m=p.match(/^(\d{1,2})\s*[\.．、]\s*/)){ lv=2; num=+m[1]; rest=p.slice(m[0].length); }
+    if(lv===-1) return p;
+    counters[lv]++;
+    for(let k=lv+1;k<4;k++) counters[k]=0;
+    const exp=counters[lv];
+    const mark = lv===0 ? num2cn(exp)+'、' : lv===1 ? '（'+num2cn(exp)+'）'
+               : lv===2 ? exp+'.' : '（'+exp+'）';
+    const rebuilt = mark + rest;
+    if(rebuilt !== p){
+      if(num !== null && num !== exp)
+        issues.push(`第${'一二三四'[lv]}级标题序号有误：「${p.slice(0,12)}…」应为序号 ${lv<2?num2cn(exp):exp}`);
+      else
+        issues.push(`标题标记已规范：「${p.slice(0,10)}…」→「${mark}…」`);
+      return rebuilt;
+    }
+    return p;
+  });
+  return {paras: out, issues};
+}
+
 /* ---------- 表格识别：Markdown 表格行分组解析 ---------- */
 function isTableLine(s){ return /^\|.*\|\s*$/.test(s); }
 function parseTableRows(tl){
@@ -983,7 +1035,7 @@ function renderPreview(){
         ${pg.join('')}
         ${i===pages.length-1 && d.cc ? `<div class="cc bottom">抄送：${esc(d.cc)}。</div>` : ''}
       </div>
-      <div class="page-num">— ${i+1} —</div>
+      <div class="page-num ${(i+1)%2===1?'odd':'even'}">— ${i+1} —</div>
     </div></div>`).join('');
   fitPages();
 }
@@ -1121,7 +1173,7 @@ async function buildDocxBlob(d){
     rows: rows.map((r,ri)=> new TableRow({children: r.map(c=> new TableCell({
       margins:{top:60, bottom:60, left:100, right:100},
       children:[new Paragraph({alignment:AlignmentType.CENTER,
-        children:[run(c, ri===0?F_HEI:F_FS, 12)]})]
+        children:[run(c, ri===0?F_HEI:F_FS, 10.5)]})]
     }))}))
   });
   for(const b of iterBlocks(d.paras)){
@@ -1205,23 +1257,30 @@ async function buildDocxBlob(d){
     }));
   }
 
-  // 页码：四号半角宋体阿拉伯数字，左右各放一条一字线
-  const footer = new Footer({children:[new Paragraph({
-    alignment: AlignmentType.CENTER,
-    children:[new TextRun({children:['— ', PageNumber.CURRENT, ' —'], font:F_SONG, size:28})]
+  // 页码：四号半角宋体阿拉伯数字，左右各放一条一字线；
+  // 外侧对齐——奇数页居右空一字，偶数页居左空一字
+  const pnRun = () => new TextRun({children:['— ', PageNumber.CURRENT, ' —'], font:F_SONG, size:28});
+  const oddFooter = new Footer({children:[new Paragraph({
+    alignment: AlignmentType.RIGHT, indent:{right: PT(14)}, children:[pnRun()]
+  })]});
+  const evenFooter = new Footer({children:[new Paragraph({
+    alignment: AlignmentType.LEFT, indent:{left: PT(14)}, children:[pnRun()]
   })]});
 
   const docu = new Document({
     creator:'左岸',
     title:d.title || '公文',
+    evenAndOddHeaderAndFooters: true,
     sections:[{
       properties:{
         page:{
           size:{width: TW(210), height: TW(297)},
-          margin:{top: TW(37), bottom: TW(35), left: TW(28), right: TW(26)}
+          // 页边距 + 页眉距边界 1.5cm + 页脚距边界 2.8cm
+          margin:{top: TW(37), bottom: TW(35), left: TW(28), right: TW(26),
+                  header: TW(15), footer: TW(28)}
         }
       },
-      footers:{default: footer},
+      footers:{default: oddFooter, even: evenFooter},
       children
     }]
   });
@@ -1383,8 +1442,8 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 const DATE_STD = /^\d{4}年\d{1,2}月\d{1,2}日$/;
@@ -1419,6 +1478,15 @@ const RULES = [
     fix: () => { $('inTitle').value = $('inTitle').value.replace(/[。，、；：？！\s]+$/,''); }},
   {id:'r_tplen', name:'标题超过 50 字建议精简', lv:'warn',
     check: d => d.title.length > 50 ? '标题过长（' + d.title.length + ' 字）' : null},
+  {id:'r_headings', name:'正文标题层级：一、（一）1.（1）格式与序号', lv:'warn',
+    check: d => {
+      const r = fixHeadings(d.paras);
+      return r.issues.length ? `标题层级存在 ${r.issues.length} 处格式/序号问题（${r.issues[0]}${r.issues.length>1?' 等':''}）` : null;
+    },
+    fix: () => {
+      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inBody').value = fixHeadings(ps).paras.join('\n');
+    }},
 ];
 function ruleEnabled(r){
   if(ruleState.on && r.id in ruleState.on) return ruleState.on[r.id];
@@ -1652,30 +1720,16 @@ function guardedExport(kind){
   openModal('modalCheck');
 }
 
-/* ---------- PDF 导出（打印窗口 → 另存为 PDF） ---------- */
+/* ---------- PDF 导出（同源打印 → 另存为 PDF，版式与预览完全一致） ---------- */
 function exportPDF(d){
-  const pages = document.querySelectorAll('#paperScroll .pg .page');
-  if(!pages.length){ toast('请先输入公文内容'); return; }
-  const css = document.querySelector('style').textContent;
-  const w = window.open('', '_blank');
-  if(!w){ toast('弹窗被拦截，请允许弹出窗口后重试'); return; }
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(d.title||'公文')}</title>
-    <style>${css}</style><style>
-    @page{size:A4;margin:0}
-    html,body{margin:0;background:#fff;overflow:visible;
-      -webkit-print-color-adjust:exact;print-color-adjust:exact}
-    header,.left,.toolbar,.bg-grid,.bg-glow,.scanline,#toast,.mask,#miniProg{display:none!important}
-    main{display:block;height:auto}.right{display:block;height:auto}
-    .paper-scroll{padding:0;display:block;overflow:visible}
-    .pg{width:794px!important;height:auto!important;margin:0 auto;page-break-after:always}
-    .pg .page{position:relative!important;transform:none!important;box-shadow:none;margin:0}
-    </style></head><body><div class="paper-scroll">${
-      [...pages].map(p=>`<div class="pg">${p.outerHTML}</div>`).join('')
-    }</div></body></html>`);
-  w.document.close();
-  w.focus();
-  setTimeout(()=> w.print(), 400);
-  toast('✓ 已打开打印窗口，请选择「另存为 PDF」');
+  if(!document.querySelectorAll('#paperScroll .pg .page').length){ toast('请先输入公文内容'); return; }
+  const old = document.title;
+  document.title = (d.title || '公文');   // 打印对话框默认文件名
+  const restore = () => { document.title = old; };
+  window.addEventListener('afterprint', restore, {once:true});
+  window.print();                          // 阻塞式，对话框关闭后返回
+  setTimeout(restore, 500);
+  toast('✓ 在打印对话框中选择「另存为 PDF」即可');
 }
 
 /* ============================================================
