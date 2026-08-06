@@ -1098,7 +1098,7 @@ async function buildDocxBlob(d){
   const {
     Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
     PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
-    DocGridType
+    DocumentGridType
   } = docx;
 
   // 公文内西文与阿拉伯数字统一使用 Times New Roman（ascii/hAnsi），汉字用对应公文字体（eastAsia）
@@ -1314,7 +1314,7 @@ async function buildDocxBlob(d){
                   header: TW(15), footer: TW(28)}
         },
         // 文档网格：指定行网格和字符网格，每行 28 字符、每页 22 行
-        grid:{type: DocGridType.LINES_AND_CHARS, linePitch: 580, charSpace: 1786}
+        grid:{type: DocumentGridType.linesAndChars, linePitch: 580, charSpace: 1786}
       },
       footers:{default: oddFooter, even: evenFooter},
       children
