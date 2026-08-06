@@ -173,10 +173,12 @@
   .p.h1{font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
   .p.h2{font-family:"Times New Roman","方正楷体_GBK","楷体","KaiTi",serif}
   .p.h3,.p.h4{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
-  /* 附件说明：左空二字起排"附件："，回行/多附件时序号与"1."首字对齐（悬挂缩进） */
-  .attach{font-size:16pt;line-height:38.5px;margin-top:38.5px;padding-left:5em;text-indent:-3em;
-    font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
-  .attach.more{margin-top:0;padding-left:5em;text-indent:0}
+  /* 附件说明：左空二字起排"附件："，回行时与上一行附件名称首字对齐（悬挂缩进） */
+  .attach-box{position:relative;margin-top:38.5px;font-size:16pt;line-height:38.5px;
+    font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;padding-left:2em}
+  .attach-label{position:absolute;left:2em;top:0}
+  .attach-list{margin-left:3em}
+  .attach-item{margin-top:0}
   .signorg,.signdate{font-size:16pt;line-height:38.5px;text-align:right;margin-top:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   .signdate{margin-top:0}
@@ -185,9 +187,10 @@
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   /* 版记（抄送）置于最后一页版心最底部 */
   .cc.bottom{position:absolute;bottom:0;left:0;right:0;margin-top:0}
-  /* 附件页（GB 7.3.7）："附件"二字及顺序号三号黑体顶格，标题居中于第三行 */
+  /* 附件页（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，附件标题居中第三行 */
   .att-head{font-size:16pt;line-height:38.5px;text-indent:0;
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
+  .att-head .att-num{font-family:"Times New Roman","TNR",serif}
   .att-title{font-size:16pt;line-height:38.5px;text-align:center;text-indent:0;margin-top:38.5px;
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
   /* 页面缩放包装（自适应 PC / Pad / 移动端） */
@@ -655,6 +658,53 @@ function fixHeadings(paras){
   return {paras: out, issues};
 }
 
+/* ---------- 正文标题层级序数自动编排（GB/T 9704-2012 7.3.3）----------
+ * 结构层次序数严格依次为：一、→（一）→ 1. →（1）
+ * 智能解析/校验时：按"首次出现顺序"将文档中实际使用的标题标记形态映射到
+ * 规范序列，并依嵌套关系重新连续编号（遇到上级标题时下级序号归零）。
+ * 例：仅有"1."→统一改"一、二、三…"；"一、"+"1."→"一、"+"（一）"；
+ *     "一、"+"1."+"（1）"→"一、"+"（一）"+"1."。 */
+function detectHeadingShape(p){
+  let m;
+  if(m = p.match(/^([一二三四五六七八九十百零〇]{1,3})[、.．，,]\s*/)) return {shape:'A', rest:p.slice(m[0].length)};
+  if(m = p.match(/^[（(]\s*([一二三四五六七八九十百零〇]{1,3})\s*[)）]\s*/)) return {shape:'B', rest:p.slice(m[0].length)};
+  if(m = p.match(/^(\d{1,3})[.．、]\s*/)){
+    const rest = p.slice(m[0].length);
+    if(/^\d/.test(rest)) return null;            // 避免 "1.5倍" 这类小数被误判为标题
+    return {shape:'C', rest};
+  }
+  if(m = p.match(/^[（(]\s*(\d{1,3})\s*[)）]\s*/)) return {shape:'D', rest:p.slice(m[0].length)};
+  return null;
+}
+function normalizeHeadingLevels(lines){
+  // 1. 收集文档中实际出现的不同标记形态（首次出现顺序）
+  const shapes = [];
+  for(const l of lines){
+    const d = detectHeadingShape(l);
+    if(d && !shapes.includes(d.shape)) shapes.push(d.shape);
+  }
+  const map = {};
+  shapes.forEach((s, idx) => { map[s] = idx; });  // 首次出现顺序 → 规范层级 0..3
+  // 2. 依规范层级 + 嵌套关系重新连续编号
+  const counters = [0,0,0,0];
+  return lines.map(l=>{
+    const d = detectHeadingShape(l);
+    if(!d) return l;
+    const lv = map[d.shape];
+    if(lv === undefined) return l;
+    counters[lv]++;
+    for(let k = lv + 1; k < 4; k++) counters[k] = 0;  // 上级出现，下级序号归零
+    const n = counters[lv];
+    let mark, rest = d.rest;
+    if(lv === 0) mark = num2cn(n) + '、';
+    else if(lv === 1) mark = '（' + num2cn(n) + '）';
+    else if(lv === 2) mark = n + '.';
+    else mark = '（' + n + '）';
+    if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
+    return mark + rest;
+  });
+}
+
 /* ---------- 标点符号格式与完整性修复 ----------
  * 直引号→中文弯引号（成对交替）；“”‘’《》（）缺右半自动在句末补齐 */
 function fixPunct(s){
@@ -987,6 +1037,8 @@ function smartParse(text){
   /* ⑦ 回填各要素字段（解析时自动将 ASCII 连字符"-"规范为 一字线"—"） */
   $('inTitle').value = convDash(title);
   $('inTo').value = convDash(to);
+  // 正文标题层次自动校验编排（GB/T 9704-2012 结构层次序数：一、（一）1.（1））
+  body.splice(0, body.length, ...normalizeHeadingLevels(body));
   $('inBody').value = body.map(convDash).join('\n');
   $('inAttach').value = convDash(attach);
   if(attachParas.length){ $('inAttachBody').value = attachParas.map(convDash).join('\n'); found.push('附件内容'); }
@@ -1062,13 +1114,54 @@ function parseAttachList(attach){
     .map(s=>s.replace(/[。；;]+$/,''))
     .map((s,i)=> /^\d+\s*[\.、．]/.test(s) ? s.replace(/^(\d+)\s*[、．]\s*/, '$1.') : (i+1)+'.'+s);
 }
-/* 附件页头部（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，附件标题居中第三行 */
-function attachHeadHTML(attach){
-  if(!attach) return '';
-  const a = attachMeta(parseAttachList(attach)[0] || attach);
-  let h = `<div class="att-head">附件${a.num}</div>`;
+/* 附件说明中每个附件名称首字位置（用于回行悬挂缩进对齐），单位 em */
+function namePrefixEm(it){
+  const a = attachMeta(it);
+  if(!a.num) return 0;
+  // 数字(TNR)约 0.5em、点号约 0.5em、空格约 0.3em
+  return +(a.num.length * 0.5 + 0.5 + 0.3).toFixed(2);
+}
+/* 将附件内容按附件说明的标题拆分为每个附件独立的正文
+   （标题行若与附件说明标题一致则跳过，标题已在附件页眉呈现） */
+function splitAttachBodies(paras, items){
+  const titles = items.map(it => (it.title||'').replace(/[。\s]/g,''));
+  const bodies = items.map(()=>[]);
+  let matchedAny = false, cur = 0;
+  for(const p of paras){
+    const pn = p.replace(/[。\s]/g,'');
+    const idx = titles.findIndex(t => t && t === pn);
+    if(idx >= 0){ cur = idx; matchedAny = true; continue; }
+    bodies[cur].push(p);
+  }
+  if(!matchedAny && paras.length){
+    bodies[0] = paras.slice();
+    for(let i=1;i<bodies.length;i++) bodies[i] = bodies[i].length ? bodies[i] : [];
+  }
+  return bodies;
+}
+/* 附件页头部 HTML（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，顺序号用 Times New Roman */
+function attHeadHTML(a, isMulti){
+  if(!a) return '';
+  const num = (isMulti && a.num) ? `<span class="att-num">${esc(a.num)}</span>` : '';
+  let h = `<div class="att-head">附件${num}</div>`;
   if(a.title) h += `<div class="att-title">${esc(a.title)}</div>`;
   return h;
+}
+/* 估算附件占用的页数（每个附件另面编排，用于版记置底） */
+function estAttachPages(d){
+  const items = parseAttachList(d.attach).map(attachMeta);
+  if(!items.length && d.attachParas.length) items.push({num:'', title:''});
+  const bodies = splitAttachBodies(d.attachParas, items);
+  let pages = 0, used = 0, cap = 21;
+  items.forEach((a, k)=>{
+    const start = a.title ? 3 : 1;
+    if(used + start > cap && used){ pages++; used = 0; }
+    used += start;
+    (bodies[k]||[]).forEach(p=>{ const n = Math.ceil((wLen(p)+2)/CPL); if(used+n>cap){ pages++; used = 0; } used += n; });
+    if(k < items.length-1){ pages++; used = 0; } // 另面编排
+  });
+  if(used) pages++;
+  return pages;
 }
 
 /* 估算行数用于分页 */
@@ -1083,17 +1176,21 @@ function estLines(d){
   }
   const tail = [];
   const attachItems = parseAttachList(d.attach);
-  attachItems.forEach((it,i)=>{
-    tail.push(i===0
-      ? `<div class="attach">附件：${esc(it)}</div>`
-      : `<div class="attach more">${esc(it)}</div>`);
-  });
+  if(attachItems.length){
+    let desc = `<div class="attach-box"><span class="attach-label">附件：</span><div class="attach-list">`;
+    attachItems.forEach(it=>{
+      const np = namePrefixEm(it);
+      desc += `<div class="attach-item" style="padding-left:${np.toFixed(2)}em;text-indent:-${np.toFixed(2)}em">${esc(it)}</div>`;
+    });
+    desc += `</div></div>`;
+    tail.push(desc);
+  }
   // 附件说明后空 3 行再排发文机关署名（预留盖章空间）
   const gap = attachItems.length ? ' style="margin-top:115.5px"' : '';
   if(d.org) tail.push(`<div class="signorg"${gap}>${esc(d.org)}</div>`);
   tail.push(`<div class="signdate"${!d.org && gap ? gap : ''}>${esc(d.date)}</div>`);
   blocks.push({k:'tail', html:tail.join(''),
-    lines: (attachItems.length ? attachItems.length+1 : 0) + (attachItems.length?3:1) + (d.org?1:0) + 1 + 2});
+    lines: (attachItems.length ? attachItems.length : 0) + (attachItems.length?3:1) + (d.org?1:0) + 1 + 2});
   return blocks;
 }
 
@@ -1121,20 +1218,26 @@ function renderPreview(){
   }
   if(cur.length || !pages.length) pages.push(cur);
 
-  // 附件另面编排（版记之前）
-  if(d.attachParas.length){
-    const attBlocks = [{html: attachHeadHTML(d.attach), lines: (attachMeta(d.attach).title ? 3 : 1)}];
-    for(const b of iterBlocks(d.attachParas)){
-      if(b.t==='tb') attBlocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1});
-      else attBlocks.push({html:`<div class="p ${classify(b.s)}">${esc(b.s)}</div>`,
+  // 附件另面编排（每个附件独立成页，置版记之前）
+  const attItems = parseAttachList(d.attach).map(attachMeta);
+  if(!attItems.length && d.attachParas.length) attItems.push({num:'', title:''});
+  const attBodies = splitAttachBodies(d.attachParas, attItems);
+  const attIsMulti = attItems.length > 1;
+  for(let ai=0; ai<attItems.length; ai++){
+    const a = attItems[ai];
+    const blocks = [{html: attHeadHTML(a, attIsMulti), lines: a.title ? 3 : 1}];
+    const body = attBodies[ai] || [];
+    for(const b of iterBlocks(body)){
+      if(b.t==='tb') blocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1});
+      else blocks.push({html:`<div class="p ${classify(b.s)}">${esc(b.s)}</div>`,
         lines: Math.ceil((wLen(b.s)+2)/CPL)});
     }
-    cur = []; used = 0;
-    for(const b of attBlocks){
-      if(used + b.lines > 21 && cur.length){ pages.push(cur); cur = []; used = 0; }
-      cur.push(b.html); used += b.lines;
+    let cur2 = [], used2 = 0;
+    for(const b of blocks){
+      if(used2 + b.lines > 21 && cur2.length){ pages.push(cur2); cur2 = []; used2 = 0; }
+      cur2.push(b.html); used2 += b.lines;
     }
-    if(cur.length) pages.push(cur);
+    if(cur2.length) pages.push(cur2);
   }
   // 版记（抄送）置于最后一页版心最底部
   wrap.innerHTML = pages.map((pg,i)=>`
@@ -1183,6 +1286,7 @@ async function buildDocxBlob(d){
   const F_HEI  = {ascii:'Times New Roman', hAnsi:'Times New Roman', eastAsia:'方正黑体_GBK'};
   const F_KAI  = {ascii:'Times New Roman', hAnsi:'Times New Roman', eastAsia:'方正楷体_GBK'};
   const F_SONG = {ascii:'Times New Roman', hAnsi:'Times New Roman', eastAsia:'宋体'};
+  const F_NUM  = {ascii:'Times New Roman', hAnsi:'Times New Roman', eastAsia:'方正黑体_GBK'}; // 顺序号用 TNR
 
   const run = (text, font, pt, extra={}) =>
     new TextRun({text, font, size: Math.round(pt*2), ...extra});
@@ -1302,11 +1406,16 @@ async function buildDocxBlob(d){
   }
 
   // 附件说明：正文下空一行，左空二字起排"附件："；多附件另起一行，
-  // 序号首字与"1."对齐（悬挂缩进：左缩进5字、首行回退3字）
+  // 序号首字与"1."对齐；回行时与上一行附件名称首字对齐（悬挂缩进）
   const attachItems = parseAttachList(d.attach);
+  const L2 = PT(32), LABEL_W = PT(48); // 左空二字(2×16pt)、"附件："三字宽(3×16pt)
   attachItems.forEach((it, i) => {
+    const npTw = (attachMeta(it).num || '').length * 160 + 160 + 96; // "N." 宽(twips)：数字TNR~160、点~160、空格~96
+    const indent = i===0
+      ? {left: L2 + LABEL_W + npTw, hanging: LABEL_W + npTw}   // 首行落在左空二字处，回行对齐名称首字
+      : {left: L2 + LABEL_W + npTw, hanging: npTw};            // 续项"N."对齐"1."，回行对齐名称首字
     children.push(new Paragraph({
-      indent: i===0 ? {left: PT(80), hanging: PT(48)} : {left: PT(80)},
+      indent,
       spacing: i===0 ? {before: PT(28.9), ...line578} : {...line578},
       children:[run((i===0 ? '附件：' : '') + it, F_FS, 16)]
     }));
@@ -1329,25 +1438,34 @@ async function buildDocxBlob(d){
     children:[run(d.date, F_FS, 16)]
   }));
 
-  // 附件：另面编排（版记之前）。"附件"二字及顺序号三号黑体顶格第一行，
-  // 附件标题居中第三行，附件正文格式同公文正文
-  if(d.attachParas.length){
-    const a = attachMeta(parseAttachList(d.attach)[0] || d.attach);
-    children.push(new Paragraph({
-      pageBreakBefore: true,
-      spacing:{...line578},
-      children:[run('附件' + a.num, F_HEI, 16)]
-    }));
-    if(a.title){
+  // 附件：另面编排（版记之前）。每个附件独立成页；"附件"二字及顺序号三号黑体顶格第一行，
+  // 顺序号用 Times New Roman；附件标题居中第三行，附件正文格式同公文正文
+  if(d.attachParas.length || attachItems.length){
+    const attItems2 = attachItems.map(attachMeta);
+    if(!attItems2.length) attItems2.push({num:'', title:''});
+    const attBodies2 = splitAttachBodies(d.attachParas, attItems2);
+    const attMulti = attItems2.length > 1;
+    for(let ai=0; ai<attItems2.length; ai++){
+      const a = attItems2[ai];
+      const headRuns = [ run('附件', F_HEI, 16) ];
+      if(attMulti && a.num) headRuns.push(run(a.num, F_NUM, 16));
       children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing:{before: PT(28.9), ...line578},
-        children:[run(a.title, F_HEI, 16)]
+        pageBreakBefore: true,
+        spacing:{...line578},
+        children: headRuns
       }));
-    }
-    for(const b of iterBlocks(d.attachParas)){
-      if(b.t==='tb'){ children.push(docxTable(b.rows)); }
-      else children.push(bodyPara(b.s));
+      if(a.title){
+        children.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing:{before: PT(28.9), ...line578},
+          children:[run(a.title, F_HEI, 16)]
+        }));
+      }
+      const body = attBodies2[ai] || [];
+      for(const b of iterBlocks(body)){
+        if(b.t==='tb'){ children.push(docxTable(b.rows)); }
+        else children.push(bodyPara(b.s));
+      }
     }
   }
 
@@ -1360,9 +1478,9 @@ async function buildDocxBlob(d){
       const push = n => { if(used + n > cap){ pages++; used = 0; cap = 22; } used += n; };
       d.paras.forEach(p => push(Math.ceil((wLen(p)+2)/CPL)));
       push((attachItems.length ? attachItems.length+1 : 0) + (attachItems.length?3:1) + (d.org?1:0) + 1);
-      if(d.attachParas.length){
-        pages++; used = attachMeta(attachItems[0]||'').title ? 3 : 1; cap = 21;
-        d.attachParas.forEach(p => { const n = Math.ceil((wLen(p)+2)/CPL); if(used+n > cap){ pages++; used = 0; } used += n; });
+      if(d.attachParas.length || attachItems.length){
+        pages += estAttachPages(d);
+        used = 0; cap = 22;
       }
       free = Math.max(0, cap - used - 1); // 版记自身占 1 行
     }
@@ -1572,20 +1690,21 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_punct','r_dash'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_punct','r_color','r_dash'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_punct','r_dash'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_punct','r_color','r_dash'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
-const DATE_STD = /^\d{4}年\d{1,2}月\d{1,2}日$/;
+/* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
+const DATE_STD = /^\d{4}年(?!0\d)\d{1,2}月(?!0\d)\d{1,2}日$/;
 const RULES = [
   {id:'r_title', name:'标题必填', lv:'err',
     check: d => d.title ? null : '公文标题缺失',
     fix: () => { $('inTitle').value = '关于××工作的' + curType; }},
   {id:'r_body', name:'正文必填', lv:'err',
     check: d => d.paras.length ? null : '正文内容缺失'},
-  {id:'r_date', name:'成文日期必填且格式为"×年×月×日"', lv:'err',
+  {id:'r_date', name:'成文日期必填，阿拉伯数字标全且月日不编虚位', lv:'err',
     check: d => { if(!d.date) return '成文日期缺失';
-      return DATE_STD.test(d.date) ? null : '成文日期格式不规范：' + d.date; },
+      return DATE_STD.test(d.date) ? null : '成文日期格式不规范（应如 2026年8月6日，月日不编虚位）：' + d.date; },
     fix: () => { const r = parseDateLine($('inDate').value.trim());
       $('inDate').value = r ? r.date : todayCN(); }},
   {id:'r_to', name:'主送机关必填', lv:'err',
@@ -1641,6 +1760,17 @@ const RULES = [
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = fixHeadings(ps).paras.join('\n');
+    }},
+  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.（1））', lv:'warn',
+    check: d => {
+      const fixed = normalizeHeadingLevels(d.paras);
+      let ch = 0;
+      for(let i = 0; i < d.paras.length; i++) if(fixed[i] !== d.paras[i]) ch++;
+      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「（1）」依次编排` : null;
+    },
+    fix: () => {
+      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inBody').value = normalizeHeadingLevels(ps).join('\n');
     }},
 ];
 function ruleEnabled(r){
