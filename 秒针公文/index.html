@@ -381,7 +381,7 @@
       <div id="paneUpload" class="hidden">
         <div class="drop" id="dropZone">
           <div class="ico">📄</div>
-          <p>点击选择或拖拽文件到此处<br><b>支持 .txt / .docx / .md</b>（自动提取纯文本并净化无关符号）</p>
+          <p>点击选择或拖拽文件到此处<br><b>支持 .txt / .docx / .md</b>（自动提取正文与表格，净化无关符号）</p>
           <input type="file" id="fileInput" accept=".txt,.docx,.md,.markdown" style="display:none">
         </div>
         <div class="row mt">
@@ -682,7 +682,8 @@ function punctIssueCount(paras){
 }
 
 /* ---------- 表格识别：Markdown 表格行分组解析 ---------- */
-function isTableLine(s){ return /^\|.*\|\s*$/.test(s); }
+/* 表格行：以竖线开头且至少含两个竖线（兼容无尾竖线写法，如 "| 项目 | 说明"） */
+function isTableLine(s){ return /^\|.*\|/.test(s); }
 function parseTableRows(tl){
   return tl.map(l=>l.replace(/^\|/,'').replace(/\|\s*$/,'').split('|').map(c=>c.trim()))
     .filter(r=>!r.every(c=>/^[-:：\s]+$/.test(c)));
@@ -703,6 +704,48 @@ function tableHTML(rows){
   let h='<table class="gt">';
   rows.forEach((r,ri)=>{ h+='<tr>'+r.map(c=> ri===0?`<th>${esc(c)}</th>`:`<td>${esc(c)}</td>`).join('')+'</tr>'; });
   return h+'</table>';
+}
+/* 将 DOM <table> 转为 Markdown 管道格式（首行作为表头） */
+function tableToMd(tb){
+  const rows = [...tb.querySelectorAll('tr')].map(tr =>
+    [...tr.querySelectorAll('th,td')].map(td => (td.textContent||'').replace(/\s+/g,' ').trim())
+  ).filter(cells => cells.length);
+  return rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+}
+/* 将含表格的 HTML（上传 docx / 粘贴网页富文本）转为纯文本，
+   其中的 <table> 保留为 Markdown 管道格式并原位内联，其余元素按块级换行 */
+function htmlToText(node){
+  let out = '';
+  node.childNodes.forEach(c => {
+    if(c.nodeType === 3){ out += c.textContent; }
+    else if(c.nodeName === 'TABLE'){ out += '\n\n' + tableToMd(c) + '\n\n'; }
+    else if(c.nodeName === 'BR'){ out += '\n'; }
+    else {
+      const tag = (c.nodeName||'').toLowerCase();
+      const pre = (tag==='p'||tag==='div'||/^h[1-6]$/.test(tag)||tag==='li'||tag==='tr') ? '\n' : '';
+      out += pre + htmlToText(c);
+    }
+  });
+  return out;
+}
+/* 将制表符分隔的表格行（如从 Excel 复制）规范为 Markdown 管道格式，保持原文顺序内联呈现。
+   规则：连续两行及以上的制表符行，或单行含 3 列（≥2 个制表符）视为表格。 */
+function normalizeTableLines(lines){
+  const out = [];
+  const isRow = s => { const c = s.split('\t'); return c.length >= 2 && c.filter(x=>x.trim()).length >= 2; };
+  let i = 0;
+  while(i < lines.length){
+    if(isRow(lines[i])){
+      const grp = []; let j = i;
+      while(j < lines.length && isRow(lines[j])){ grp.push(lines[j].split('\t').map(x=>x.trim())); j++; }
+      if(grp.length >= 2 || grp[0].length >= 3){
+        grp.forEach(r => out.push('| ' + r.join(' | ') + ' |'));
+        i = j; continue;
+      }
+    }
+    out.push(lines[i]); i++;
+  }
+  return out;
 }
 function toast(msg){
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -806,12 +849,19 @@ function parseDateLine(l){
 }
 
 function smartParse(text){
+  // 若原文含 HTML 表格（粘贴网页/富文本），先转为 Markdown 管道格式，
+  // 避免被后续 cleanText 的标签清除逻辑破坏表格结构
+  if(/<table[\s\S]*?<\/table>/i.test(text)){
+    try{ text = htmlToText(new DOMParser().parseFromString(text, 'text/html').body); }catch(e){}
+  }
   let removed = 0;
   if($('ckClean') && $('ckClean').checked){
     const r = cleanText(text);
     text = r.text; removed = r.removed;
   }
-  const lines = text.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(s=>s);
+  let lines = text.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(s=>s);
+  // 制表符分隔表格（如 Excel 复制）规范为 Markdown 管道格式，保持原文顺序内联呈现
+  lines = normalizeTableLines(lines);
   if(!lines.length){ toast('未检测到有效文本'); return; }
   const found = [];
 
@@ -1356,8 +1406,16 @@ async function handleFile(f){
   try{
     if(f.name.toLowerCase().endsWith('.docx')){
       const buf = await f.arrayBuffer();
-      const r = await mammoth.extractRawText({arrayBuffer: buf});
-      $('rawText').value = r.value;
+      try{
+        // convertToHtml 保留表格结构；再将含表格的 HTML 转为纯文本（表格保留为 Markdown 管道格式）
+        const res = await mammoth.convertToHtml({arrayBuffer: buf});
+        $('rawText').value = htmlToText(new DOMParser().parseFromString(res.value, 'text/html').body)
+          .replace(/\n{3,}/g,'\n\n').replace(/[ \t]{2,}/g,' ').trim();
+      }catch(e){
+        // 失败时回退到纯文本提取
+        const r = await mammoth.extractRawText({arrayBuffer: buf});
+        $('rawText').value = r.value;
+      }
     }else{
       $('rawText').value = await f.text();
     }
