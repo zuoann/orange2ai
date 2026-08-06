@@ -665,8 +665,11 @@ function fixPunct(s){
     const miss = (t.split(l).length-1) - (t.split(r).length-1);
     for(let i=0; i<miss; i++) t = t.replace(/([。；！？])?$/, m => r + (m||''));
   }
-  return t;
+  // ASCII 连字符 "-" 统一改为一字线 "—"（公文规范：一字线用于破折、范围等）
+  return t.replace(/-/g, '—');
 }
+/* ASCII 连字符"-"→一字线"—" 的纯转换（供解析/规则复用） */
+function convDash(s){ return s.replace(/-/g, '—'); }
 function punctIssueCount(paras){
   let n = 0;
   for(const p of paras){
@@ -908,16 +911,16 @@ function smartParse(text){
     }
   }
 
-  /* ⑦ 回填各要素字段 */
-  $('inTitle').value = title;
-  $('inTo').value = to;
-  $('inBody').value = body.join('\n');
-  $('inAttach').value = attach;
-  if(attachParas.length){ $('inAttachBody').value = attachParas.join('\n'); found.push('附件内容'); }
+  /* ⑦ 回填各要素字段（解析时自动将 ASCII 连字符"-"规范为 一字线"—"） */
+  $('inTitle').value = convDash(title);
+  $('inTo').value = convDash(to);
+  $('inBody').value = body.map(convDash).join('\n');
+  $('inAttach').value = convDash(attach);
+  if(attachParas.length){ $('inAttachBody').value = attachParas.map(convDash).join('\n'); found.push('附件内容'); }
   if(attach) found.push('附件说明');
-  if(org){ $('inOrg').value = org; found.push('发文机关'); }
-  if(date){ $('inDate').value = date; found.push('成文日期'); }
-  if(cc) $('inCc').value = cc;
+  if(org){ $('inOrg').value = convDash(org); found.push('发文机关'); }
+  if(date){ $('inDate').value = convDash(date); found.push('成文日期'); }
+  if(cc) $('inCc').value = convDash(cc);
   renderPreview();
   if(typeof pushSnap === 'function') pushSnap();
   // 解析后自动执行格式校验，结果直达校验面板
@@ -1478,8 +1481,8 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_punct'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_punct','r_color'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_punct','r_dash'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_punct','r_color','r_dash'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 const DATE_STD = /^\d{4}年\d{1,2}月\d{1,2}日$/;
@@ -1522,6 +1525,19 @@ const RULES = [
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = ps.map(fixPunct).join('\n');
+    }},
+  {id:'r_dash', name:'连字符规范：ASCII 连字符"-"统一改为一字线"—"', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = s => { if(s) n += (s.match(/-/g) || []).length; };
+      scan(d.title); scan(d.to); scan(d.org); scan(d.no); scan(d.date); scan(d.cc); scan(d.attach);
+      d.paras.forEach(scan); d.attachParas.forEach(scan);
+      return n ? `检测到 ${n} 处 ASCII 连字符"-"，建议改为一字线"—"` : null;
+    },
+    fix: () => {
+      const conv = s => s.replace(/-/g, '—');
+      for(const id of ['inTitle','inTo','inOrg','inNo','inDate','inCc','inAttach','inBody','inAttachBody'])
+        if($(id).value) $(id).value = conv($(id).value);
     }},
   {id:'r_color', name:'正文文字颜色为黑色', lv:'warn',
     check: () => /color\s*[:=]|<font/i.test($('rawText').value)
