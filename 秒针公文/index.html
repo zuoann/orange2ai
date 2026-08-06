@@ -1129,40 +1129,69 @@ function namePrefixEm(it){
    “一、”“（一）”“1.”“（1）”+ 连字符“—”修复），使附件正文与正文
    格式、规范完全一致（GB/T 9704-2012 7.3.7：附件格式要求同正文） */
 function splitAttachBodies(paras, items){
-  const titles = items.map(it => (it.title||'').replace(/[。\s]/g,''));
-  const bodies = items.map(()=>[]);
-  let matchedAny = false, cur = 0;
-  for(const p of paras){
+  const norm1 = b => normalizeHeadingLevels(b.map(convDash));
+  const n = items.length;
+  if(n <= 1) return n ? [norm1(paras)] : [];
+
+  // 每个附件的匹配键：num（阿拉伯数字，无则 0）+ title（去标点空格）
+  const keys = items.map(it => ({ num: it.num ? +it.num : 0, title: (it.title||'').replace(/[。\s]/g,'') }));
+
+  // 判断某行是否为附件切分锚点：返回对应附件下标，否则 -1
+  const boundaryOf = p => {
     const pn = p.replace(/[。\s]/g,'');
     // ① 精确匹配附件说明标题（去标点空格后一致）
-    const idx = titles.findIndex(t => t && t === pn);
-    if(idx >= 0){ cur = idx; matchedAny = true; continue; }
-    // ② 锚点：“附件N”“附件 N”“附件N：”等序号标识行
-    const attNum = p.match(/^附件\s*(\d+)\b/);
-    if(attNum){
-      const k = items.findIndex(it => it.num && +it.num === +attNum[1]);
-      if(k >= 0){ cur = k; matchedAny = true; continue; }
+    let k = keys.findIndex(kk => kk.title && kk.title === pn);
+    if(k >= 0) return k;
+    // ② 锚点："附件N" / "附件 N" / "附件N：" / "附件一："（中文序号）等
+    const am = p.match(/^附件\s*([0-9一二三四五六七八九十百零]+)\s*[：:．.．]?\s*(.*)$/);
+    if(am){
+      const v = cn2num(am[1]); const rest = (am[2]||'').replace(/[。\s]/g,'');
+      k = keys.findIndex(kk =>
+        (kk.num && kk.num === v) ||
+        (rest && kk.title && (kk.title.includes(rest) || rest.includes(kk.title))));
+      if(k >= 0) return k;
     }
-    // ③ 锚点：“N.”“N、”“N．”序号行；仅当其后文本能与对应附件说明标题匹配时才切分，
-    //     避免把正文结构层次“1.加强领导”误判为附件锚点（GB 公文附件正文也用“1.”层级）
+    // ③ 锚点："N.""N、""N．"序号行；仅当其后文本与某附件说明标题匹配时才切分，
+    //     避免把附件正文内部的层级"2.分项说明"误判为附件锚点（GB 公文附件正文也用"1."层级）
     const nm = p.match(/^(\d+)\s*[\.、．]\s*(.*)$/);
     if(nm){
-      const n = +nm[1], rest = nm[2].replace(/[。\s]/g,'');
-      const k = items.findIndex(it => {
-        if(!(it.num && +it.num === n)) return false;
-        if(!rest) return true;
-        const t = (it.title||'').replace(/[。\s]/g,'');
-        return t && (t.includes(rest) || rest.includes(t));
-      });
-      if(k >= 0){ cur = k; matchedAny = true; continue; }
+      const rest = (nm[2]||'').replace(/[。\s]/g,'');
+      if(rest){
+        k = keys.findIndex(kk => kk.title && (kk.title.includes(rest) || rest.includes(kk.title)));
+        if(k >= 0) return k;
+      }
     }
+    // ④ 锚点：中文序数标题 "一、标题" "二、标题"；仅当其后文本与某附件说明标题匹配
+    //     （纯 "一、正文段落" 不会误判，因其文本不匹配任何附件标题）
+    const cm = p.match(/^([一二三四五六七八九十百]+)\s*[、.．]\s*(.*)$/);
+    if(cm){
+      const rest = (cm[2]||'').replace(/[。\s]/g,'');
+      if(rest){
+        k = keys.findIndex(kk => kk.title && (kk.title.includes(rest) || rest.includes(kk.title)));
+        if(k >= 0) return k;
+      }
+    }
+    return -1;
+  };
+
+  const bodies = items.map(()=>[]);
+  let cur = 0, matchedAny = false;
+  for(const p of paras){
+    const k = boundaryOf(p);
+    if(k >= 0){ cur = k; matchedAny = true; continue; }
     bodies[cur].push(p);
   }
+
+  // 兜底：全部正文均未出现任何锚点（如用户按附件顺序连续粘贴、未标"附件N"），
+  // 则按附件数量顺序均分，保证每个附件标题下都有对应正文（附件2/3/4…不再为空）
   if(!matchedAny && paras.length){
-    bodies[0] = paras.slice();
+    const per = Math.ceil(paras.length / n);
+    const b = items.map(()=>[]);
+    paras.forEach((p, i) => b[Math.min(n - 1, Math.floor(i / per))].push(p));
+    return b.map(norm1);
   }
   // 每个附件正文执行正文同款自动校验：标题层级编排 + 连字符修复
-  return bodies.map(b => normalizeHeadingLevels(b.map(convDash)));
+  return bodies.map(norm1);
 }
 /* 附件页头部 HTML（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，顺序号用 Times New Roman */
 function attHeadHTML(a, isMulti){
