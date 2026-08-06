@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>宝宝识字启蒙台</title>
+<style>
+  :root{
+    --orange:#E0A878; --blue:#9DBFD4; --green:#A7C9A0;
+    --yellow:#E8D7A0; --pink:#E2A9AE; --purple:#B6A8CE;
+    --bg:#F5F1E6; --card:#FBF8F0; --ink:#565047; --muted:#9C9384;
+    --line:#ECE3D2; --red:#CC8478;
+    --shadow:0 6px 18px rgba(180,150,110,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:18px; line-height:1.5;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom));
+  }
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:20; background:linear-gradient(120deg,var(--orange),var(--pink));
+    padding:14px 16px; padding-top:calc(14px + env(safe-area-inset-top));
+    color:#fff; box-shadow:var(--shadow);
+  }
+  .head-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .logo{width:30px;height:30px;flex:none;}
+  h1{font-size:21px;margin:0;font-weight:800;letter-spacing:.5px;}
+  .spacer{flex:1;}
+  .icon-btn{
+    border:none; background:rgba(255,255,255,.22); color:#fff; border-radius:14px;
+    min-height:44px; min-width:44px; padding:0 12px; font-size:16px; font-weight:700;
+    display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+  }
+  .icon-btn svg{width:20px;height:20px;}
+  /* mode tabs */
+  .tabs{display:flex; gap:8px; margin-top:12px;}
+  .tab{
+    flex:1; min-height:50px; border:none; border-radius:16px; font-size:18px; font-weight:800;
+    background:rgba(255,255,255,.25); color:#fff; cursor:pointer; transition:.15s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .tab.active{background:var(--card); color:var(--orange); box-shadow:var(--shadow);}
+  /* ---------- layout ---------- */
+  main{max-width:860px; margin:0 auto; padding:16px;}
+  section{display:none;}
+  section.show{display:block;}
+  .banner{
+    background:#FBEFD6; color:#9A7B3F; border:2px dashed var(--yellow);
+    border-radius:16px; padding:10px 14px; font-size:15px; margin-bottom:14px;
+  }
+  /* ---------- 今天要处理 ---------- */
+  .today-box{
+    background:linear-gradient(135deg,var(--card),#FBF3E6); border:2px solid var(--line);
+    border-radius:20px; padding:16px; margin-bottom:20px; box-shadow:var(--shadow);
+  }
+  .today-box h2{margin:0 0 4px; font-size:19px; display:flex; align-items:center; gap:8px;}
+  .today-sub{color:var(--muted); font-size:14px; margin:0 0 12px;}
+  .today-list{display:flex; flex-direction:column; gap:10px;}
+  .today-item{
+    display:flex; align-items:center; gap:12px; background:#fff; border-radius:16px;
+    padding:10px 14px; border:2px solid var(--line);
+  }
+  .today-item.overdue{border-color:var(--red); background:#FBEBE8;}
+  .ti-char{font-size:34px; font-weight:800; color:var(--orange); width:46px; text-align:center;}
+  .ti-info{flex:1;}
+  .ti-name{font-weight:700;}
+  .ti-py{color:var(--muted); font-size:14px;}
+  .ti-tag{font-size:12px; color:var(--red); font-weight:700;}
+  .done-btn{
+    border:none; background:var(--green); color:#fff; border-radius:14px;
+    min-height:50px; min-width:84px; font-size:16px; font-weight:800; cursor:pointer;
+  }
+  .done-btn:active{transform:scale(.96);}
+  .done-state{color:var(--green); font-weight:800; font-size:15px; padding:0 8px;}
+  /* ---------- 模块卡片 ---------- */
+  .module{
+    background:var(--card); border-radius:20px; padding:18px; margin-bottom:20px;
+    box-shadow:var(--shadow); border:1px solid #F0E8D8;
+  }
+  .module h2{margin:0 0 4px; font-size:20px; display:flex; align-items:center; gap:10px;}
+  .module h2 svg{width:26px;height:26px;}
+  .module .desc{color:var(--muted); font-size:14px; margin:0 0 14px;}
+  /* 象形字卡片 */
+  .card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px;}
+  .flip{background:transparent; perspective:900px; cursor:pointer;}
+  .flip-inner{
+    position:relative; width:100%; height:170px; transition:transform .5s; transform-style:preserve-3d;
+  }
+  .flip.flipped .flip-inner{transform:rotateY(180deg);}
+  .face{
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:18px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px;
+  }
+  .face.front{background:linear-gradient(140deg,var(--orange),var(--pink)); color:#fff;}
+  .face.back{background:#EFF4EC; color:var(--ink); transform:rotateY(180deg); border:2px solid #D8E6D2;}
+  .big-char{font-size:64px; font-weight:800; line-height:1;}
+  .card-py{font-size:15px; margin-top:6px; opacity:.95;}
+  .pic-svg{width:78px;height:78px;}
+  .card-word{font-size:14px; color:var(--blue); margin-top:8px; font-weight:700;}
+  .card-learned{position:absolute; top:8px; right:10px; color:var(--green); font-size:13px; font-weight:800;}
+  /* 组词练习 */
+  .quiz-char{font-size:60px; font-weight:800; color:var(--orange); text-align:center; margin:6px 0;}
+  .quiz-py{text-align:center; color:var(--muted); margin-bottom:14px;}
+  .quiz-tip{text-align:center; font-weight:700; margin-bottom:10px;}
+  .opt-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .opt{
+    border:none; border-radius:16px; min-height:56px; font-size:20px; font-weight:800;
+    background:#F3ECDC; color:var(--ink); cursor:pointer; transition:.12s;
+  }
+  .opt:active{transform:scale(.97);}
+  .opt.right{background:var(--green); color:#fff;}
+  .opt.wrong{background:var(--red); color:#fff;}
+  .opt:disabled{cursor:default;}
+  .quiz-next{
+    margin-top:14px; width:100%; border:none; background:var(--blue); color:#fff;
+    border-radius:16px; min-height:52px; font-size:18px; font-weight:800; cursor:pointer;
+  }
+  /* 闯关积分 */
+  .stars{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .star-num{font-size:40px; font-weight:800; color:var(--yellow);}
+  .progress{height:16px; background:#FFE9CF; border-radius:10px; overflow:hidden; margin:8px 0 4px;}
+  .progress > i{display:block; height:100%; background:linear-gradient(90deg,var(--orange),var(--pink));}
+  .prog-txt{font-size:13px; color:var(--muted);}
+  .reward-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:12px;}
+  .reward{
+    border:2px solid var(--line); border-radius:16px; padding:12px; text-align:center; background:#fff;
+  }
+  .reward svg{width:40px;height:40px;}
+  .reward .rn{font-weight:700; margin:6px 0 4px; font-size:15px;}
+  .reward .rc{color:var(--orange); font-weight:800; font-size:15px;}
+  .reward .ex{margin-top:8px; border:none; border-radius:12px; min-height:46px; width:100%;
+    background:var(--purple); color:#fff; font-weight:800; font-size:15px; cursor:pointer;}
+  .reward .ex:disabled{background:#E7E2F0; color:#B5AEC4;}
+  /* ---------- 家长模式 ---------- */
+  .lock-box{max-width:380px; margin:40px auto; text-align:center;}
+  .lock-box input{
+    width:100%; font-size:28px; text-align:center; letter-spacing:10px; padding:14px;
+    border:2px solid var(--line); border-radius:16px; margin:14px 0; min-height:56px;
+  }
+  .primary-btn{
+    border:none; background:var(--orange); color:#fff; border-radius:16px; min-height:54px;
+    width:100%; font-size:19px; font-weight:800; cursor:pointer;
+  }
+  .panel{background:var(--card); border-radius:18px; padding:16px; margin-bottom:16px; box-shadow:var(--shadow);}
+  .panel h3{margin:0 0 12px; font-size:17px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block; font-size:14px; color:var(--muted); margin-bottom:4px;}
+  .field input,.field select{
+    width:100%; font-size:16px; padding:12px; border:2px solid var(--line);
+    border-radius:12px; min-height:50px; background:#fff;
+  }
+  .small-btn{
+    border:none; background:var(--blue); color:#fff; border-radius:12px; min-height:48px;
+    padding:0 16px; font-size:16px; font-weight:700; cursor:pointer;
+  }
+  .danger-btn{background:var(--red);}
+  .list-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #F3EEE6; font-size:15px;}
+  .list-row:last-child{border-bottom:none;}
+  .row-main{flex:1;}
+  .row-actions{display:flex; gap:8px;}
+  .mini-btn{border:none; border-radius:10px; min-height:42px; padding:0 12px; font-size:14px; font-weight:700; cursor:pointer; background:var(--line); color:var(--ink);}
+  .mini-btn.ok{background:var(--green); color:#fff;}
+  .mini-btn.del{background:#FFE0E0; color:var(--red);}
+  /* ---------- modal ---------- */
+  .mask{position:fixed; inset:0; background:rgba(40,30,20,.45); display:none; z-index:50;
+    align-items:center; justify-content:center; padding:20px;}
+  .mask.show{display:flex;}
+  .sheet{background:#fff; border-radius:22px; padding:20px; width:100%; max-width:420px; max-height:86vh; overflow:auto;}
+  .sheet h3{margin:0 0 14px; font-size:19px;}
+  .sheet .row{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+  .sheet .row .small-btn{flex:1;}
+  .close-x{float:right; border:none; background:none; font-size:24px; color:var(--muted); cursor:pointer;}
+  .hint{font-size:13px; color:var(--muted); margin-top:8px;}
+  /* 移动端 */
+  @media(max-width:768px){
+    body{font-size:17px;}
+    main{padding:12px;}
+    .opt-grid{grid-template-columns:1fr 1fr;}
+    h1{font-size:19px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-row">
+    <svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z" fill="#fff"/></svg>
+    <h1>宝宝识字启蒙台</h1>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="backupBtn" aria-label="数据备份">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v10m0 0l-4-4m4 4l4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+      备份
+    </button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-mode="kid" id="tabKid"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" fill="currentColor"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg> 宝宝模式</button>
+    <button class="tab" data-mode="parent" id="tabParent"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3.5" fill="currentColor"/><circle cx="17" cy="9" r="2.6" fill="currentColor"/><path d="M4 21c0-3 2-5 5-5s5 2 5 5M14 21c0-2 1.5-4 3-4s3 2 3 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg> 家长模式</button>
+  </div>
+</header>
+
+<main>
+  <div class="banner" id="backupTip" style="display:none">数据已积累不少啦，建议点右上角「备份」导出一份 JSON 存好～</div>
+
+  <!-- ================= 宝宝模式 ================= -->
+  <section id="secKid" class="show">
+    <!-- 今天要处理 -->
+    <div class="today-box">
+      <h2>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z" fill="#E0A878"/></svg>
+        今天要处理
+      </h2>
+      <p class="today-sub" id="todayDate"></p>
+      <div class="today-list" id="todayList"></div>
+    </div>
+
+    <!-- 象形字卡片 -->
+    <div class="module">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="#E0A878" stroke-width="2"/><path d="M3 9h18" stroke="#E0A878" stroke-width="2"/></svg>
+        象形字卡片
+      </h2>
+      <p class="desc">点一下卡片，翻到背面看漂亮的象形图画，记住它吧！</p>
+      <div class="card-grid" id="cardGrid"></div>
+    </div>
+
+    <!-- 组词练习 -->
+    <div class="module">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10" stroke="#9DBFD4" stroke-width="2.2" stroke-linecap="round"/></svg>
+        组词练习
+      </h2>
+      <p class="desc">给下面的字，选出正确的词语，答对得小星星</p>
+      <div id="quizBox"></div>
+    </div>
+
+    <!-- 闯关积分 -->
+    <div class="module">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z" fill="#E8D7A0"/></svg>
+        闯关积分奖励
+      </h2>
+      <div class="stars">
+        <svg viewBox="0 0 24 24" width="40" height="40"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z" fill="#E8D7A0"/></svg>
+        <span class="star-num" id="starNum">0</span>
+        <span style="color:var(--muted);font-size:14px;">颗小星星</span>
+      </div>
+      <div class="progress"><i id="progBar" style="width:0%"></i></div>
+      <div class="prog-txt" id="progTxt">今天还没开始闯关哦～</div>
+      <div class="reward-grid" id="rewardGrid"></div>
+    </div>
+  </section>
+
+  <!-- ================= 家长模式 ================= -->
+  <section id="secParent">
+    <div id="lockView"></div>
+    <div id="manageView" style="display:none">
+      <div class="panel">
+        <h3><svg width="20" height="20" viewBox="0 0 24 24"><path d="M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2z" fill="#E0A878"/><path d="M5 4a2 2 0 00-2 2v14a2 2 0 012-2h2V4z" fill="#E6C39E"/></svg> 字库管理（共 <span id="wbCount">0</span> 字）</h3>
+        <div id="wordList"></div>
+        <details style="margin-top:10px;">
+          <summary style="cursor:pointer;font-weight:700;color:var(--blue);">+ 添加新字</summary>
+          <div class="field" style="margin-top:10px;"><label>汉字</label><input id="nwChar" maxlength="1" placeholder="如：火"></div>
+          <div class="field"><label>拼音</label><input id="nwPy" placeholder="如：huǒ"></div>
+          <div class="field"><label>象形图形</label>
+            <select id="nwPic">
+              <option value="sun">日（太阳）</option><option value="moon">月（月牙）</option>
+              <option value="mountain">山（山峰）</option><option value="water">水（波浪）</option>
+              <option value="fire">火（火苗）</option><option value="tree">木（树木）</option>
+              <option value="person">人（人形）</option><option value="mouth">口（嘴巴）</option>
+              <option value="field">田（田地）</option><option value="eye">目（眼睛）</option>
+            </select>
+          </div>
+          <div class="field"><label>组词（用空格分开，如：火山 火苗 大火）</label><input id="nwWords" placeholder="火山 火苗 着火"></div>
+          <button class="small-btn" id="addWord" style="width:100%">添加</button>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h3><svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" fill="#E2A9AE"/><path d="M12 9v11M12 9C12 5 8 5 8 8s4 1 4 1M12 9c0-3 4-3 4 0s-4 1-4 1" stroke="#E2A9AE" stroke-width="2" fill="none"/></svg> 奖励商城管理</h3>
+        <div id="rewardList"></div>
+        <details style="margin-top:10px;">
+          <summary style="cursor:pointer;font-weight:700;color:var(--blue);">+ 添加奖励</summary>
+          <div class="field" style="margin-top:10px;"><label>奖励名称</label><input id="nrName" placeholder="如：去公园玩"></div>
+          <div class="field"><label>需要星星数</label><input id="nrCost" type="number" min="1" placeholder="10"></div>
+          <button class="small-btn" id="addReward" style="width:100%">添加</button>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h3><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#A7C9A0"/><path d="M7 12l3 3 7-7" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> 兑换确认（宝宝申请的奖励）</h3>
+        <div id="redeemList"></div>
+      </div>
+
+      <div class="panel">
+        <h3><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4" fill="#B6A8CE"/><path d="M11 11l8 8M16 16l2-2M18 18l2-2" stroke="#B6A8CE" stroke-width="2" fill="none" stroke-linecap="round"/></svg> 密码与数据</h3>
+        <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="small-btn" id="changePw" style="flex:1">修改密码</button>
+          <button class="small-btn" id="relock" style="flex:1">退出锁定</button>
+        </div>
+        <p class="hint">密码仅防止宝宝误触，不是真正加密，请勿用于真实隐私。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 备份弹窗 -->
+<div class="mask" id="backupMask">
+  <div class="sheet">
+    <button class="close-x" data-close="backupMask">×</button>
+    <h3>数据备份</h3>
+    <p class="hint">数据只存在本机浏览器，换设备或清理缓存会丢失，记得常备份。</p>
+    <div class="row" style="margin-top:10px;">
+      <button class="small-btn" id="expBtn">导出 JSON</button>
+      <button class="small-btn" id="impBtn">导入恢复</button>
+    </div>
+    <input type="file" id="impFile" accept="application/json" style="display:none">
+    <button class="small-btn danger-btn" id="clearBtn" style="width:100%;margin-top:6px;">清空全部数据</button>
+    <p class="hint" id="backupMsg"></p>
+  </div>
+</div>
+
+<!-- 密码弹窗（设置/修改） -->
+<div class="mask" id="pwMask">
+  <div class="sheet">
+    <button class="close-x" data-close="pwMask">×</button>
+    <h3 id="pwTitle">设置家长密码</h3>
+    <p class="hint">设置 4 位数字密码，用于进入家长模式。</p>
+    <input type="number" id="pwInput" inputmode="numeric" maxlength="4" placeholder="4 位数字" style="width:100%;font-size:28px;text-align:center;letter-spacing:10px;padding:14px;border:2px solid var(--line);border-radius:16px;min-height:56px;margin:12px 0;">
+    <button class="primary-btn" id="pwSubmit">确定</button>
+    <p class="hint" id="pwMsg"></p>
+  </div>
+</div>
+
+<script>
+/* ============ 象形 SVG 库 ============ */
+const PICTO = {
+  sun:'<svg class="pic-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#E0A878" stroke-width="5"/><line x1="50" y1="22" x2="50" y2="78" stroke="#E0A878" stroke-width="5"/></svg>',
+  moon:'<svg class="pic-svg" viewBox="0 0 100 100"><path d="M62 18 A34 34 0 1 0 62 82 A26 26 0 1 1 62 18 Z" fill="#B6A8CE"/></svg>',
+  mountain:'<svg class="pic-svg" viewBox="0 0 100 100"><path d="M8 82 L34 28 L50 54 L66 24 L92 82 Z" fill="none" stroke="#A7C9A0" stroke-width="5" stroke-linejoin="round"/></svg>',
+  water:'<svg class="pic-svg" viewBox="0 0 100 100"><path d="M6 40 q12 -16 24 0 t24 0 t22 0" fill="none" stroke="#9DBFD4" stroke-width="5" stroke-linecap="round"/><path d="M6 62 q12 -16 24 0 t24 0 t22 0" fill="none" stroke="#9DBFD4" stroke-width="5" stroke-linecap="round"/></svg>',
+  fire:'<svg class="pic-svg" viewBox="0 0 100 100"><path d="M50 14 Q66 42 60 62 Q76 56 64 84 Q40 90 36 62 Q30 44 50 14 Z" fill="#CC8478"/></svg>',
+  tree:'<svg class="pic-svg" viewBox="0 0 100 100"><line x1="50" y1="34" x2="50" y2="86" stroke="#8B5A2B" stroke-width="6"/><path d="M50 34 Q24 34 22 56 Q40 50 50 44 Q60 50 78 56 Q76 34 50 34 Z" fill="#A7C9A0"/></svg>',
+  person:'<svg class="pic-svg" viewBox="0 0 100 100"><circle cx="50" cy="24" r="11" fill="#E0A878"/><path d="M50 36 L50 62 M50 46 L30 56 M50 46 L70 56 M50 62 L36 86 M50 62 L64 86" fill="none" stroke="#E0A878" stroke-width="5" stroke-linecap="round"/></svg>',
+  mouth:'<svg class="pic-svg" viewBox="0 0 100 100"><rect x="24" y="34" width="52" height="34" rx="10" fill="none" stroke="#E2A9AE" stroke-width="5"/></svg>',
+  field:'<svg class="pic-svg" viewBox="0 0 100 100"><rect x="22" y="28" width="56" height="48" rx="4" fill="none" stroke="#A7C9A0" stroke-width="5"/><line x1="50" y1="28" x2="50" y2="76" stroke="#A7C9A0" stroke-width="5"/><line x1="22" y1="52" x2="78" y2="52" stroke="#A7C9A0" stroke-width="5"/></svg>',
+  eye:'<svg class="pic-svg" viewBox="0 0 100 100"><rect x="28" y="24" width="44" height="56" rx="8" fill="none" stroke="#9DBFD4" stroke-width="5"/><line x1="28" y1="42" x2="72" y2="42" stroke="#9DBFD4" stroke-width="5"/><line x1="28" y1="62" x2="72" y2="62" stroke="#9DBFD4" stroke-width="5"/></svg>'
+};
+const REWARD_ICON = {
+  tv:'<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="13" rx="2" stroke="#B6A8CE" stroke-width="2"/><path d="M8 21h8" stroke="#B6A8CE" stroke-width="2"/></svg>',
+  cookie:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#E0A878" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="#E0A878"/><circle cx="14" cy="14" r="1.6" fill="#E0A878"/><circle cx="15" cy="9" r="1.2" fill="#E0A878"/></svg>',
+  park:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l4 7h-3v6h-2v-6H8z" fill="#A7C9A0"/><path d="M5 21h14" stroke="#8B5A2B" stroke-width="2"/></svg>'
+};
+
+/* ============ 存储 ============ */
+const KEY='wb_literacy_';
+function load(){ try{return JSON.parse(localStorage.getItem(KEY+'db')||'null');}catch(e){return null;} }
+function save(){ localStorage.setItem(KEY+'db', JSON.stringify(state)); }
+
+function dateStr(d){ d=d||new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function prettyDate(s){ const a=s.split('-'); return a[1]+'月'+a[2]+'日'; }
+
+/* ============ 预置数据 ============ */
+function defaultState(){
+  const words=[
+    {id:'w1',char:'日',pinyin:'rì',pic:'sun',words:['日月','日子','日光','日出']},
+    {id:'w2',char:'月',pinyin:'yuè',pic:'moon',words:['月亮','月牙','月光','满月']},
+    {id:'w3',char:'山',pinyin:'shān',pic:'mountain',words:['高山','山上','火山','山顶']},
+    {id:'w4',char:'水',pinyin:'shuǐ',pic:'water',words:['河水','开水','水果','喝水']},
+    {id:'w5',char:'火',pinyin:'huǒ',pic:'fire',words:['大火','火山','火苗','着火']},
+    {id:'w6',char:'木',pinyin:'mù',pic:'tree',words:['木头','树木','木马','木桥']},
+    {id:'w7',char:'人',pinyin:'rén',pic:'person',words:['大人','人们','好人','人口']},
+    {id:'w8',char:'口',pinyin:'kǒu',pic:'mouth',words:['入口','开口','口头','口才']},
+    {id:'w9',char:'田',pinyin:'tián',pic:'field',words:['田地','水田','农田','田里']},
+    {id:'w10',char:'目',pinyin:'mù',pic:'eye',words:['目光','双目','目的','耳目']}
+  ];
+  return {
+    password:null,
+    wordBank:words,
+    todayDate:dateStr(),
+    todayWords:['w1','w2','w3','w4','w5'],
+    overdue:['w6'], // 示例：昨天没学完的「木」，标红
+    learned:{}, // id -> true
+    points:0,
+    rewards:[
+      {id:'r1',name:'看一集动画片',cost:5,icon:'tv'},
+      {id:'r2',name:'吃一块小饼干',cost:3,icon:'cookie'},
+      {id:'r3',name:'去公园玩',cost:10,icon:'park'}
+    ],
+    redemptions:[] // {id,rewardId,date,status}
+  };
+}
+
+let state = load();
+if(!state){ state = defaultState(); save(); }
+
+/* 每日滚动：昨天没学完的滚到今天；每天取5个未学字 */
+function rollDay(){
+  const today=dateStr();
+  if(state.todayDate===today) return;
+  const unfinished=state.todayWords.filter(id=>!state.learned[id]);
+  state.overdue=[...new Set([...(state.overdue||[]),...unfinished])];
+  const learnedSet=new Set(Object.keys(state.learned));
+  const pool=state.wordBank.map(w=>w.id).filter(id=>!learnedSet.has(id));
+  state.todayWords=pool.slice(0,5);
+  state.todayDate=today;
+  save();
+}
+rollDay();
+
+function wordById(id){ return state.wordBank.find(w=>w.id===id); }
+
+/* ============ 渲染：宝宝模式 ============ */
+function renderToday(){
+  document.getElementById('todayDate').textContent='今天是 '+prettyDate(state.todayDate)+' · 每天学 5 个字';
+  const list=document.getElementById('todayList');
+  list.innerHTML='';
+  const all=[...state.todayWords.map(id=>({id,over:false})), ...(state.overdue||[]).map(id=>({id,over:true}))];
+  if(all.length===0){ list.innerHTML='<p class="today-sub">今天的字都学会啦，太棒了！</p>'; return; }
+  all.forEach(it=>{
+    const w=wordById(it.id); if(!w) return;
+    const done=!!state.learned[it.id];
+    const div=document.createElement('div');
+    div.className='today-item'+(it.over?' overdue':'');
+    div.innerHTML=
+      '<div class="ti-char">'+w.char+'</div>'+
+      '<div class="ti-info"><div class="ti-name">'+w.char+' 字'+(it.over?' <span class="ti-tag">昨天没学完</span>':'')+'</div>'+
+      '<div class="ti-py">'+w.pinyin+'</div></div>'+
+      (done?'<div class="done-state">已学会 ✓</div>'
+           :'<button class="done-btn" data-learn="'+it.id+'">学会啦</button>');
+    list.appendChild(div);
+  });
+}
+
+function renderCards(){
+  const grid=document.getElementById('cardGrid'); grid.innerHTML='';
+  const ids=[...(state.todayWords||[]),...(state.overdue||[])];
+  ids.forEach(id=>{
+    const w=wordById(id); if(!w) return;
+    const learned=!!state.learned[id];
+    const div=document.createElement('div');
+    div.className='flip';
+    div.innerHTML=
+      '<div class="flip-inner">'+
+        '<div class="face front"><span class="big-char">'+w.char+'</span><span class="card-py">'+w.pinyin+'</span>'+(learned?'<span class="card-learned">✓</span>':'')+'</div>'+
+        '<div class="face back">'+PICTO[w.pic]+(PICTO[w.pic]?'':'')+'<div class="card-word">'+(w.words[0]||'')+'</div>'+(learned?'<span class="card-learned">✓</span>':'')+'</div>'+
+      '</div>';
+    div.addEventListener('click',()=>div.classList.toggle('flipped'));
+    grid.appendChild(div);
+  });
+}
+
+/* 组词练习 */
+let quiz={idx:0,score:0};
+function buildQuiz(){
+  quiz={idx:0,score:0};
+  renderQuiz();
+}
+function renderQuiz(){
+  const box=document.getElementById('quizBox');
+  const ids=[...(state.todayWords||[]),...(state.overdue||[])];
+  if(quiz.idx>=ids.length){
+    box.innerHTML='<div class="quiz-tip" style="color:var(--green);font-size:18px;">组词练习完成！本次得 '+quiz.score+' 颗星星</div>';
+    return;
+  }
+  const w=wordById(ids[quiz.idx]); if(!w){ quiz.idx++; renderQuiz(); return; }
+  const correct=w.words[0];
+  const others=state.wordBank.filter(x=>x.id!==w.id).flatMap(x=>x.words);
+  const distract=[]; const seen=new Set();
+  while(distract.length<3 && others.length){
+    const t=others[Math.floor(Math.random()*others.length)];
+    if(t!==correct && !seen.has(t)){ seen.add(t); distract.push(t); }
+  }
+  let opts=[correct,...distract].sort(()=>Math.random()-0.5);
+  box.innerHTML=
+    '<div class="quiz-char">'+w.char+'</div>'+
+    '<div class="quiz-py">'+w.pinyin+' · 选出正确的词语</div>'+
+    '<div class="opt-grid" id="optGrid">'+opts.map(o=>'<button class="opt" data-opt="'+o+'">'+o+'</button>').join('')+'</div>';
+  box.querySelectorAll('.opt').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const chosen=b.dataset.opt;
+      box.querySelectorAll('.opt').forEach(x=>{
+        x.disabled=true;
+        if(x.dataset.opt===correct) x.classList.add('right');
+      });
+      if(chosen===correct){ b.classList.add('right'); quiz.score++; addPoints(1); }
+      else { b.classList.add('wrong'); }
+      const next=document.createElement('button');
+      next.className='quiz-next'; next.textContent='下一个 →';
+      next.onclick=()=>{ quiz.idx++; renderQuiz(); };
+      box.appendChild(next);
+    });
+  });
+}
+
+/* 闯关积分 */
+function addPoints(n){
+  state.points=(state.points||0)+n; save(); renderStars();
+}
+function renderStars(){
+  document.getElementById('starNum').textContent=state.points||0;
+  const total=(state.todayWords?.length||0)+(state.overdue?.length||0);
+  const done=total-([...(state.todayWords||[]),...(state.overdue||[])].filter(id=>!state.learned[id]).length);
+  const pct=total? Math.round(done/total*100):0;
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progTxt').textContent= total? ('今天已闯关 '+done+' / '+total+' 关（'+pct+'%）'):'今天没有任务啦';
+  // 奖励兑换可用性
+  document.querySelectorAll('#rewardGrid .ex').forEach(b=>{
+    const cost=+b.dataset.cost;
+    b.disabled=(state.points||0)<cost;
+  });
+}
+function renderRewards(){
+  const grid=document.getElementById('rewardGrid'); grid.innerHTML='';
+  (state.rewards||[]).forEach(r=>{
+    const div=document.createElement('div');
+    div.className='reward';
+    div.innerHTML=(REWARD_ICON[r.icon]||REWARD_ICON.park)+
+      '<div class="rn">'+r.name+'</div>'+
+      '<div class="rc">'+r.cost+' 星</div>'+
+      '<button class="ex" data-rid="'+r.id+'" data-cost="'+r.cost+'">申请兑换</button>';
+    grid.appendChild(div);
+  });
+  grid.querySelectorAll('.ex').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const cost=+b.dataset.cost;
+      if((state.points||0)<cost){ return; }
+      state.redemptions.push({id:'d'+Date.now(),rewardId:b.dataset.rid,date:dateStr(),status:'pending'});
+      save(); renderRedeem();
+      alert('已经向爸爸妈妈申请啦，等他们确认哦～');
+    });
+  });
+  renderStars();
+}
+
+/* ============ 家长模式 ============ */
+let pwMode='set'; // set | change
+function renderLock(){
+  const v=document.getElementById('lockView');
+  const m=document.getElementById('manageView');
+  if(!state.password){
+    v.style.display='block'; m.style.display='none';
+    v.innerHTML='<div class="lock-box"><h2 style="font-size:20px;">设置家长密码</h2>'+
+      '<p style="color:var(--muted)">第一次使用家长模式，请设置 4 位数字密码。</p>'+
+      '<input type="number" id="firstPw" inputmode="numeric" maxlength="4" placeholder="4 位数字" style="width:100%;font-size:28px;text-align:center;letter-spacing:10px;padding:14px;border:2px solid var(--line);border-radius:16px;min-height:56px;">'+
+      '<button class="primary-btn" id="setPw">设置并进入</button></div>';
+    document.getElementById('setPw').onclick=()=>{
+      const p=document.getElementById('firstPw').value;
+      if(!/^\d{4}$/.test(p)){ alert('请输入 4 位数字密码'); return; }
+      state.password=p; save(); renderLock();
+    };
+  } else {
+    v.style.display='block'; m.style.display='none';
+    v.innerHTML='<div class="lock-box"><h2 style="font-size:20px;">家长模式</h2>'+
+      '<p style="color:var(--muted)">请输入 4 位密码</p>'+
+      '<input type="number" id="chkPw" inputmode="numeric" maxlength="4" placeholder="****" style="width:100%;font-size:28px;text-align:center;letter-spacing:10px;padding:14px;border:2px solid var(--line);border-radius:16px;min-height:56px;">'+
+      '<button class="primary-btn" id="okPw">进入</button>'+
+      '<p class="hint" style="margin-top:10px;cursor:pointer;color:var(--red);" id="resetPw">忘记密码？清空数据重设</p></div>';
+    document.getElementById('okPw').onclick=()=>{
+      const p=document.getElementById('chkPw').value;
+      if(p===state.password){ v.style.display='none'; m.style.display='block'; renderManage(); }
+      else alert('密码不正确');
+    };
+    document.getElementById('resetPw').onclick=()=>{
+      if(confirm('这会清空全部数据（字库、积分、奖励）并重新设置密码，确定吗？')){
+        localStorage.removeItem(KEY+'db'); state=defaultState(); save(); renderLock();
+      }
+    };
+  }
+}
+function renderManage(){
+  document.getElementById('wbCount').textContent=state.wordBank.length;
+  // 字库
+  const wl=document.getElementById('wordList'); wl.innerHTML='';
+  state.wordBank.forEach(w=>{
+    const row=document.createElement('div'); row.className='list-row';
+    row.innerHTML='<div class="row-main"><b>'+w.char+'</b> '+w.pinyin+' · '+(w.words||[]).join('、')+'</div>'+
+      '<div class="row-actions"><button class="mini-btn del" data-delw="'+w.id+'">删除</button></div>';
+    wl.appendChild(row);
+  });
+  wl.querySelectorAll('[data-delw]').forEach(b=>b.onclick=()=>{
+    if(confirm('删除这个字？')){ state.wordBank=state.wordBank.filter(x=>x.id!==b.dataset.delw); save(); renderManage(); renderKidAll(); }
+  });
+  // 奖励
+  const rl=document.getElementById('rewardList'); rl.innerHTML='';
+  (state.rewards||[]).forEach(r=>{
+    const row=document.createElement('div'); row.className='list-row';
+    row.innerHTML='<div class="row-main"><b>'+r.name+'</b> · '+r.cost+' 星</div>'+
+      '<div class="row-actions"><button class="mini-btn del" data-delr="'+r.id+'">删除</button></div>';
+    rl.appendChild(row);
+  });
+  rl.querySelectorAll('[data-delr]').forEach(b=>b.onclick=()=>{
+    if(confirm('删除这个奖励？')){ state.rewards=state.rewards.filter(x=>x.id!==b.dataset.delr); save(); renderManage(); renderRewards(); }
+  });
+  renderRedeem();
+}
+function renderRedeem(){
+  const box=document.getElementById('redeemList'); if(!box) return; box.innerHTML='';
+  const pend=(state.redemptions||[]).filter(d=>d.status==='pending');
+  if(pend.length===0){ box.innerHTML='<p class="hint">暂无待确认的兑换申请。</p>'; return; }
+  pend.forEach(d=>{
+    const r=state.rewards.find(x=>x.id===d.rewardId); if(!r) return;
+    const row=document.createElement('div'); row.className='list-row';
+    row.innerHTML='<div class="row-main"><b>'+r.name+'</b> · '+r.cost+' 星 <span class="hint">('+d.date+')</span></div>'+
+      '<div class="row-actions"><button class="mini-btn ok" data-ok="'+d.id+'" data-cost="'+r.cost+'">确认</button>'+
+      '<button class="mini-btn del" data-no="'+d.id+'">拒绝</button></div>';
+    box.appendChild(row);
+  });
+  box.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{
+    const cost=+b.dataset.cost;
+    if((state.points||0)<cost){ alert('宝宝的星星不够啦，还差 '+(cost-(state.points||0))+' 颗'); return; }
+    state.points-=cost;
+    const d=state.redemptions.find(x=>x.id===b.dataset.ok); if(d) d.status='done';
+    save(); renderRedeem(); renderStars(); renderManage();
+  });
+  box.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>{
+    const d=state.redemptions.find(x=>x.id===b.dataset.no); if(d) d.status='rejected';
+    save(); renderRedeem();
+  });
+}
+
+/* ============ 事件绑定 ============ */
+function renderKidAll(){ renderToday(); renderCards(); renderStars(); renderRewards(); buildQuiz(); }
+
+// 模式切换
+document.getElementById('tabKid').onclick=()=>{
+  document.getElementById('tabKid').classList.add('active');
+  document.getElementById('tabParent').classList.remove('active');
+  document.getElementById('secKid').classList.add('show');
+  document.getElementById('secParent').classList.remove('show');
+  renderKidAll();
+};
+document.getElementById('tabParent').onclick=()=>{
+  document.getElementById('tabParent').classList.add('active');
+  document.getElementById('tabKid').classList.remove('active');
+  document.getElementById('secParent').classList.add('show');
+  document.getElementById('secKid').classList.remove('show');
+  renderLock();
+};
+
+// 学会啦（事件委托）
+document.getElementById('todayList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-learn]'); if(!b) return;
+  const id=b.dataset.learn;
+  state.learned[id]=true;
+  state.overdue=(state.overdue||[]).filter(x=>x!==id);
+  state.todayWords=state.todayWords.filter(x=>x!==id);
+  addPoints(1);
+  save(); renderToday(); renderCards(); renderStars(); buildQuiz();
+});
+
+// 添加字
+document.getElementById('addWord').onclick=()=>{
+  const c=document.getElementById('nwChar').value.trim();
+  const p=document.getElementById('nwPy').value.trim();
+  const pic=document.getElementById('nwPic').value;
+  const ws=document.getElementById('nwWords').value.trim().split(/\s+/).filter(Boolean);
+  if(!c||!p){ alert('请填写汉字和拼音'); return; }
+  state.wordBank.push({id:'w'+Date.now(),char:c,pinyin:p,pic,words:ws.length?ws:['—']});
+  save(); renderManage(); renderKidAll();
+  document.getElementById('nwChar').value='';document.getElementById('nwPy').value='';document.getElementById('nwWords').value='';
+};
+// 添加奖励
+document.getElementById('addReward').onclick=()=>{
+  const n=document.getElementById('nrName').value.trim();
+  const c=parseInt(document.getElementById('nrCost').value);
+  if(!n||!c){ alert('请填写名称和星星数'); return; }
+  state.rewards.push({id:'r'+Date.now(),name:n,cost:c,icon:'park'});
+  save(); renderManage(); renderRewards();
+  document.getElementById('nrName').value='';document.getElementById('nrCost').value='';
+};
+// 修改密码
+document.getElementById('changePw').onclick=()=>{
+  document.getElementById('pwTitle').textContent='修改家长密码';
+  document.getElementById('pwMsg').textContent='';
+  document.getElementById('pwInput').value='';
+  pwMode='change';
+  document.getElementById('pwMask').classList.add('show');
+  document.getElementById('pwSubmit').onclick=()=>{
+    const p=document.getElementById('pwInput').value;
+    if(!/^\d{4}$/.test(p)){ document.getElementById('pwMsg').textContent='请输入 4 位数字'; return; }
+    state.password=p; save(); document.getElementById('pwMask').classList.remove('show'); alert('密码已更新');
+  };
+};
+document.getElementById('relock').onclick=()=>{ renderLock(); };
+
+// 备份
+document.getElementById('backupBtn').onclick=()=>{ document.getElementById('backupMask').classList.add('show'); };
+document.querySelectorAll('[data-close]').forEach(x=>x.onclick=()=>document.getElementById(x.dataset.close).classList.remove('show'));
+document.getElementById('expBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='识字启蒙台备份_'+dateStr()+'.json'; a.click();
+  document.getElementById('backupMsg').textContent='已导出，请保存到手机或电脑。';
+};
+document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
+document.getElementById('impFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{ const d=JSON.parse(rd.result);
+      if(!d.wordBank) throw 0;
+      state=d; save(); document.getElementById('backupMsg').textContent='导入成功！';
+      renderKidAll(); if(document.getElementById('manageView').style.display!=='none') renderManage();
+    }catch(err){ document.getElementById('backupMsg').textContent='文件格式不对，导入失败。'; }
+  };
+  rd.readAsText(f);
+};
+document.getElementById('clearBtn').onclick=()=>{
+  if(confirm('确定清空全部数据吗？此操作不可恢复！')){
+    if(confirm('再确认一次：真的要清空所有字库、积分和奖励？')){
+      localStorage.removeItem(KEY+'db'); state=defaultState(); save();
+      document.getElementById('backupMsg').textContent='已清空，恢复为示例数据。';
+      renderKidAll(); renderLock();
+    }
+  }
+};
+
+// 备份提示（数据≥30条）
+(function(){
+  const cnt=(state.wordBank?.length||0)+(state.rewards?.length||0)+(state.redemptions?.length||0)+Object.keys(state.learned||{}).length;
+  if(cnt>=30) document.getElementById('backupTip').style.display='block';
+})();
+
+// 初始化
+renderKidAll();
+</script>
+</body>
+</html>
