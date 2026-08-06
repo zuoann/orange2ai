@@ -1041,7 +1041,10 @@ function smartParse(text){
   body.splice(0, body.length, ...normalizeHeadingLevels(body));
   $('inBody').value = body.map(convDash).join('\n');
   $('inAttach').value = convDash(attach);
-  if(attachParas.length){ $('inAttachBody').value = attachParas.map(convDash).join('\n'); found.push('附件内容'); }
+  if(attachParas.length){
+    $('inAttachBody').value = normalizeHeadingLevels(attachParas.map(convDash)).join('\n');
+    found.push('附件内容');
+  }
   if(attach) found.push('附件说明');
   if(org){ $('inOrg').value = convDash(org); found.push('发文机关'); }
   if(date){ $('inDate').value = convDash(date); found.push('成文日期'); }
@@ -1121,23 +1124,45 @@ function namePrefixEm(it){
   // 数字(TNR)约 0.5em、点号约 0.5em、空格约 0.3em
   return +(a.num.length * 0.5 + 0.5 + 0.3).toFixed(2);
 }
-/* 将附件内容按附件说明的标题拆分为每个附件独立的正文
-   （标题行若与附件说明标题一致则跳过，标题已在附件页眉呈现） */
+/* 将附件内容按附件说明的标题/序号自动拆分为每个附件独立的正文，
+   并对每个附件正文执行与公文正文相同的自动校验（结构层次序数编排
+   “一、”“（一）”“1.”“（1）”+ 连字符“—”修复），使附件正文与正文
+   格式、规范完全一致（GB/T 9704-2012 7.3.7：附件格式要求同正文） */
 function splitAttachBodies(paras, items){
   const titles = items.map(it => (it.title||'').replace(/[。\s]/g,''));
   const bodies = items.map(()=>[]);
   let matchedAny = false, cur = 0;
   for(const p of paras){
     const pn = p.replace(/[。\s]/g,'');
+    // ① 精确匹配附件说明标题（去标点空格后一致）
     const idx = titles.findIndex(t => t && t === pn);
     if(idx >= 0){ cur = idx; matchedAny = true; continue; }
+    // ② 锚点：“附件N”“附件 N”“附件N：”等序号标识行
+    const attNum = p.match(/^附件\s*(\d+)\b/);
+    if(attNum){
+      const k = items.findIndex(it => it.num && +it.num === +attNum[1]);
+      if(k >= 0){ cur = k; matchedAny = true; continue; }
+    }
+    // ③ 锚点：“N.”“N、”“N．”序号行；仅当其后文本能与对应附件说明标题匹配时才切分，
+    //     避免把正文结构层次“1.加强领导”误判为附件锚点（GB 公文附件正文也用“1.”层级）
+    const nm = p.match(/^(\d+)\s*[\.、．]\s*(.*)$/);
+    if(nm){
+      const n = +nm[1], rest = nm[2].replace(/[。\s]/g,'');
+      const k = items.findIndex(it => {
+        if(!(it.num && +it.num === n)) return false;
+        if(!rest) return true;
+        const t = (it.title||'').replace(/[。\s]/g,'');
+        return t && (t.includes(rest) || rest.includes(t));
+      });
+      if(k >= 0){ cur = k; matchedAny = true; continue; }
+    }
     bodies[cur].push(p);
   }
   if(!matchedAny && paras.length){
     bodies[0] = paras.slice();
-    for(let i=1;i<bodies.length;i++) bodies[i] = bodies[i].length ? bodies[i] : [];
   }
-  return bodies;
+  // 每个附件正文执行正文同款自动校验：标题层级编排 + 连字符修复
+  return bodies.map(b => normalizeHeadingLevels(b.map(convDash)));
 }
 /* 附件页头部 HTML（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，顺序号用 Times New Roman */
 function attHeadHTML(a, isMulti){
