@@ -147,7 +147,7 @@
     font-family:"方正仿宋_GBK","FangSong_GB2312","仿宋","FangSong",serif;
   }
   /* 页码外侧对齐：奇数页居右空一字，偶数页居左空一字 */
-  .page-num{position:absolute;left:0;right:0;top:1052px;
+  .page-num{position:absolute;left:0;right:0;top:1017px;   /* 一字线上距版心下边缘 7mm */
     font-family:"Times New Roman","宋体","SimSun",serif;font-size:14pt;color:#000}
   .page-num.odd{text-align:right;padding-right:117px}   /* 版心右缘(26mm)再空一字 */
   .page-num.even{text-align:left;padding-left:87px}     /* 版心左缘(28mm)再空一字 */
@@ -636,9 +636,13 @@ function fixHeadings(paras){
     const exp=counters[lv];
     const mark = lv===0 ? num2cn(exp)+'、' : lv===1 ? '（'+num2cn(exp)+'）'
                : lv===2 ? exp+'.' : '（'+exp+'）';
-    const rebuilt = mark + rest;
+    // 一级、二级标题末尾不加标点符号
+    const rest2 = lv<=1 ? rest.replace(/[。，、；：？！\s]+$/,'') : rest;
+    const rebuilt = mark + rest2;
     if(rebuilt !== p){
-      if(num !== null && num !== exp)
+      if(rest2 !== rest)
+        issues.push(`已删除${lv===0?'一':'二'}级标题末尾标点：「${p.slice(0,12)}…」`);
+      else if(num !== null && num !== exp)
         issues.push(`第${'一二三四'[lv]}级标题序号有误：「${p.slice(0,12)}…」应为序号 ${lv<2?num2cn(exp):exp}`);
       else
         issues.push(`标题标记已规范：「${p.slice(0,10)}…」→「${mark}…」`);
@@ -647,6 +651,31 @@ function fixHeadings(paras){
     return p;
   });
   return {paras: out, issues};
+}
+
+/* ---------- 标点符号格式与完整性修复 ----------
+ * 直引号→中文弯引号（成对交替）；“”‘’《》（）缺右半自动在句末补齐 */
+function fixPunct(s){
+  let t = s;
+  let open = true;
+  t = t.replace(/"/g, () => { const q = open ? '“' : '”'; open = !open; return q; });
+  open = true;
+  t = t.replace(/'/g, () => { const q = open ? '‘' : '’'; open = !open; return q; });
+  for(const [l, r] of [['“','”'],['‘','’'],['《','》'],['（','）']]){
+    const miss = (t.split(l).length-1) - (t.split(r).length-1);
+    for(let i=0; i<miss; i++) t = t.replace(/([。；！？])?$/, m => r + (m||''));
+  }
+  return t;
+}
+function punctIssueCount(paras){
+  let n = 0;
+  for(const p of paras){
+    if(/"|'/.test(p)){ n++; continue; }
+    for(const [l,r] of [['“','”'],['‘','’'],['《','》'],['（','）']]){
+      if(p.split(l).length !== p.split(r).length){ n++; break; }
+    }
+  }
+  return n;
 }
 
 /* ---------- 表格识别：Markdown 表格行分组解析 ---------- */
@@ -891,6 +920,10 @@ function smartParse(text){
   if(cc) $('inCc').value = cc;
   renderPreview();
   if(typeof pushSnap === 'function') pushSnap();
+  // 解析后自动执行格式校验，结果直达校验面板
+  if(typeof runValidation === 'function' && typeof showIssues === 'function'){
+    showIssues($('checkResult'), runValidation(collect()));
+  }
   toast('✓ 已识别：' + found.join('、') + (removed ? `｜净化 ${removed} 处符号` : ''));
 }
 
@@ -1064,7 +1097,8 @@ const PT = pt => Math.round(pt * 20);        // pt → twentieths
 async function buildDocxBlob(d){
   const {
     Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
-    PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType
+    PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
+    DocGridType
   } = docx;
 
   // 公文内西文与阿拉伯数字统一使用 Times New Roman（ascii/hAnsi），汉字用对应公文字体（eastAsia）
@@ -1278,7 +1312,9 @@ async function buildDocxBlob(d){
           // 页边距 + 页眉距边界 1.5cm + 页脚距边界 2.8cm
           margin:{top: TW(37), bottom: TW(35), left: TW(28), right: TW(26),
                   header: TW(15), footer: TW(28)}
-        }
+        },
+        // 文档网格：指定行网格和字符网格，每行 28 字符、每页 22 行
+        grid:{type: DocGridType.LINES_AND_CHARS, linePitch: 580, charSpace: 1786}
       },
       footers:{default: oddFooter, even: evenFooter},
       children
@@ -1442,8 +1478,8 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_punct'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_punct','r_color'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 const DATE_STD = /^\d{4}年\d{1,2}月\d{1,2}日$/;
@@ -1478,6 +1514,18 @@ const RULES = [
     fix: () => { $('inTitle').value = $('inTitle').value.replace(/[。，、；：？！\s]+$/,''); }},
   {id:'r_tplen', name:'标题超过 50 字建议精简', lv:'warn',
     check: d => d.title.length > 50 ? '标题过长（' + d.title.length + ' 字）' : null},
+  {id:'r_punct', name:'标点符号格式与完整性（引号书名号配对）', lv:'warn',
+    check: d => {
+      const n = punctIssueCount(d.paras);
+      return n ? `正文存在 ${n} 处标点格式/配对问题（如直引号、双引号未闭合）` : null;
+    },
+    fix: () => {
+      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inBody').value = ps.map(fixPunct).join('\n');
+    }},
+  {id:'r_color', name:'正文文字颜色为黑色', lv:'warn',
+    check: () => /color\s*[:=]|<font/i.test($('rawText').value)
+      ? '检测到原文含彩色文字标记，输出已统一为黑色' : null},
   {id:'r_headings', name:'正文标题层级：一、（一）1.（1）格式与序号', lv:'warn',
     check: d => {
       const r = fixHeadings(d.paras);
