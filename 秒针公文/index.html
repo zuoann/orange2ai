@@ -206,8 +206,10 @@
   /* ---------- 公文表格（GB/T 9704-2012：表内五号仿宋、表头黑体、居中、全边框） ---------- */
   .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:10.5pt;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;color:#000}
-  .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;line-height:1.6}
+  .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;vertical-align:middle;line-height:1.6}
   .gt th{font-family:"Times New Roman","方正黑体_GBK","黑体",sans-serif}
+  /* 单元格内文字超过 1 行：水平方向改为两端对齐，行距固定 18 磅 */
+  .gt td.gw,.gt th.gw{text-align:justify;text-justify:inter-ideograph;line-height:18pt}
 
   /* ---------- 模态框 ---------- */
   .mask{position:fixed;inset:0;z-index:60;display:grid;place-items:center;
@@ -700,9 +702,30 @@ function iterBlocks(paras){
   }
   return out;
 }
+/* 版心宽度（twips）= A4(210mm) - 左(28mm) - 右(26mm) ≈ 8844 */
+const BXW = 8844;
+/* 估算文字宽度（twips）：CJK/全角按 210twips、半角按 105twips（五号字） */
+function textWidthTwips(t){
+  let w = 0;
+  for(const ch of t) w += /[　-〿㐀-鿿＀-￯]/.test(ch) ? 210 : 105; // 全角/CJK 宽字符按 210twips
+  return w;
+}
+/* 单元格文字是否超过 1 行：含换行符、或按五号字估算宽度超过单元格可用宽度即视为多行 */
+function cellWraps(text, colW){
+  if(/\n/.test(text)) return true;
+  return textWidthTwips(text) > (colW - 200); // 减去单元格左右边距(各 100twips)
+}
 function tableHTML(rows){
+  const n = rows[0] ? rows[0].length : 0;
+  const colW = n ? Math.floor(BXW / n) : BXW;
   let h='<table class="gt">';
-  rows.forEach((r,ri)=>{ h+='<tr>'+r.map(c=> ri===0?`<th>${esc(c)}</th>`:`<td>${esc(c)}</td>`).join('')+'</tr>'; });
+  rows.forEach((r,ri)=>{
+    h += '<tr>' + r.map(c => {
+      const wrap = cellWraps(c, colW);
+      const tag = ri===0 ? 'th' : 'td';
+      return `<${tag}${wrap?' class="gw"':''}>${esc(c)}</${tag}>`;
+    }).join('') + '</tr>';
+  });
   return h+'</table>';
 }
 /* 将 DOM <table> 转为 Markdown 管道格式（首行作为表头） */
@@ -1151,7 +1174,7 @@ async function buildDocxBlob(d){
   const {
     Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
     PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
-    DocumentGridType
+    DocumentGridType, VerticalAlign
   } = docx;
 
   // 公文内西文与阿拉伯数字统一使用 Times New Roman（ascii/hAnsi），汉字用对应公文字体（eastAsia）
@@ -1254,15 +1277,25 @@ async function buildDocxBlob(d){
   };
   // 表格块（Markdown 表格 → Word 表格，首行表头方正黑体）
   const BD = {style:BorderStyle.SINGLE, size:4, color:'000000'};
-  const docxTable = rows => new Table({
-    width:{size:100, type:WidthType.PERCENTAGE},
-    borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
-    rows: rows.map((r,ri)=> new TableRow({children: r.map(c=> new TableCell({
-      margins:{top:60, bottom:60, left:100, right:100},
-      children:[new Paragraph({alignment:AlignmentType.CENTER,
-        children:[run(c, ri===0?F_HEI:F_FS, 10.5)]})]
-    }))}))
-  });
+  const docxTable = rows => {
+    const n = rows[0] ? rows[0].length : 0;
+    const colW = n ? Math.floor(BXW / n) : BXW;
+    return new Table({
+      width:{size:100, type:WidthType.PERCENTAGE},
+      borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
+      rows: rows.map((r,ri)=> new TableRow({children: r.map(c=> {
+        const wrap = cellWraps(c, colW);
+        const paraOpts = wrap
+          ? {alignment: AlignmentType.JUSTIFIED, spacing:{line: PT(18), lineRule: LineRuleType.EXACT}}
+          : {alignment: AlignmentType.CENTER};
+        return new TableCell({
+          margins:{top:60, bottom:60, left:100, right:100},
+          verticalAlign: VerticalAlign.CENTER,
+          children:[new Paragraph({...paraOpts, children:[run(c, ri===0?F_HEI:F_FS, 10.5)]})]
+        });
+      })}))
+    });
+  };
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb'){ children.push(docxTable(b.rows)); }
     else children.push(bodyPara(b.s));
