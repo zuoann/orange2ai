@@ -324,7 +324,7 @@ official-doc-formatter/
 └── README.md    # 本文档
 ```
 
-> 网页版（https://www.205099.xyz/hgw/）即由本目录的 `index.html` 单文件托管，无任何额外构建步骤。
+> 网页版 https://www.205099.xyz/hgw/ 即由本目录的  `index.html` 单文件托管，无任何额外构建步骤。
 
 ---
 
