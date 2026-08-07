@@ -699,8 +699,12 @@ function normalizeHeadingLevels(lines){
     const d = detectHeadingShape(l);
     if(d && !shapes.includes(d.shape)) shapes.push(d.shape);
   }
+  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"（1）"、且无一级"一、"时，
+  // "1."作为三级、"（1）"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为（1）（2）…
+  const hasA = shapes.includes('A'), hasC = shapes.includes('C'), hasD = shapes.includes('D');
   const map = {};
-  shapes.forEach((s, idx) => { map[s] = idx; });  // 首次出现顺序 → 规范层级 0..3
+  if(hasC && hasD && !hasA){ map.A = 0; map.B = 1; map.C = 2; map.D = 3; }
+  else shapes.forEach((s, idx) => { map[s] = idx; });  // 首次出现顺序 → 规范层级 0..3
   // 2. 依规范层级 + 嵌套关系重新连续编号
   const counters = [0,0,0,0];
   return lines.map(l=>{
@@ -719,6 +723,65 @@ function normalizeHeadingLevels(lines){
     if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
     return mark + rest;
   });
+}
+
+/* ---------- 标题冒号与层级智能处理（GB/T 9704-2012）----------
+ * headingLevelOf：按语义判定行的标题层级
+ *   0 一级"一、" / 1 二级"（一）" / 2 三级"1." / 3 四级"（1）" / -1 非标题
+ * fixHeadingColon：三级/四级标题中的冒号（末位或标题后）自动识别为句号
+ * splitHeadingInlineBody：一、/（一）标题后带冒号且其后无更深层级标题时，
+ *   将冒号后的内容拆为独立正文行（标题与正文各占一行）
+ * normalizeHeadings：组合上述处理 + 层级序数编排，供解析与一键修复复用 */
+function headingLevelOf(p){
+  if(/^[一二三四五六七八九十百]+[、.．，,]/.test(p)) return 0;
+  if(/^[（(][一二三四五六七八九十]+[)）]/.test(p)) return 1;
+  if(/^\d+[\.．、]/.test(p)) return 2;
+  if(/^[（(]\d+[)）]/.test(p)) return 3;
+  return -1;
+}
+function fixHeadingColon(lines){
+  return lines.map(l=>{
+    const lv = headingLevelOf(l);
+    const ci = l.search(/[:：]/);
+    if(ci < 0) return l;
+    if(lv === 2){                       // 三级"1."标题中的冒号识别为句号
+      const m = l.match(/^(\d+[\.．、].*?)([:：])(.*)$/);
+      if(m) return m[1] + '。' + m[3];
+    } else if(lv === 3){                // 四级"（1）"标题中的冒号识别为句号
+      const m = l.match(/^([（(]\d+[)）].*?)([:：])(.*)$/);
+      if(m) return m[1] + '。' + m[3];
+    }
+    return l;
+  });
+}
+function splitHeadingInlineBody(lines){
+  const out = [];
+  for(let i = 0; i < lines.length; i++){
+    const p = lines[i];
+    const lv = headingLevelOf(p);
+    if(lv !== 0 && lv !== 1){ out.push(p); continue; }   // 仅处理一、/（一）标题
+    const m = p.match(/^((?:[一二三四五六七八九十百]+[、.．，,])|(?:[（(][一二三四五六七八九十]+[)）]))(.*?)([:：])(.+)$/);
+    if(!m){ out.push(p); continue; }
+    const marker = m[1], title = m[2], rest = m[4];
+    if(!rest.trim()){ out.push(p); continue; }            // 冒号后无实质内容
+    // 本标题作用域：至下一个同级或更高级标题为止；域内若存在更深层级标题则不拆分
+    const deeper = lv + 1;
+    let hasDeeper = false;
+    for(let j = i + 1; j < lines.length; j++){
+      const lj = headingLevelOf(lines[j]);
+      if(lj === -1) continue;
+      if(lj <= lv) break;                                 // 遇到同级/更高级，作用域结束
+      if(lj === deeper){ hasDeeper = true; break; }
+    }
+    if(hasDeeper){ out.push(p); continue; }               // 其下有更深层级，保留原样
+    out.push((marker + title).replace(/[：:]+$/, '').trim());
+    out.push(rest.trim());
+  }
+  return out;
+}
+function normalizeHeadings(lines){
+  // 先按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），再统一层级序数编排
+  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines)));
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
@@ -1076,11 +1139,11 @@ function smartParse(text){
   $('inTitle').value = convDash(title);
   $('inTo').value = convDash(to);
   // 正文标题层次自动校验编排（GB/T 9704-2012 结构层次序数：一、（一）1.（1））
-  body.splice(0, body.length, ...normalizeHeadingLevels(body));
+  body.splice(0, body.length, ...normalizeHeadings(body));
   $('inBody').value = body.map(convDash).join('\n');
   $('inAttach').value = convDash(attach);
   if(attachParas.length){
-    $('inAttachBody').value = normalizeHeadingLevels(attachParas.map(convDash)).join('\n');
+    $('inAttachBody').value = normalizeHeadings(attachParas.map(convDash)).join('\n');
     found.push('附件内容');
   }
   if(attach) found.push('附件说明');
@@ -1167,7 +1230,7 @@ function namePrefixEm(it){
    “一、”“（一）”“1.”“（1）”+ 连字符“—”修复），使附件正文与正文
    格式、规范完全一致（GB/T 9704-2012 7.3.7：附件格式要求同正文） */
 function splitAttachBodies(paras, items){
-  const norm1 = b => normalizeHeadingLevels(b.map(convDash));
+  const norm1 = b => normalizeHeadings(b.map(convDash));
   const n = items.length;
   if(n <= 1) return n ? [norm1(paras)] : [];
 
@@ -1829,8 +1892,8 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_punct','r_dash','r_land'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_punct','r_color','r_dash','r_land'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_punct','r_dash','r_land'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_punct','r_color','r_dash','r_land'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -1909,7 +1972,30 @@ const RULES = [
     },
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inBody').value = normalizeHeadingLevels(ps).join('\n');
+      $('inBody').value = normalizeHeadings(ps).join('\n');
+    }},
+  {id:'r_headcolon', name:'标题冒号处理（二级拆为标题+正文；三级冒号改句号）', lv:'warn',
+    check: d => {
+      const cnt = arr => {
+        let n = 0;
+        for(const l of arr){
+          const lv = headingLevelOf(l);
+          if(lv === 2 || lv === 3){ if(/[:：]/.test(l)) n++; }       // 三/四级标题中的冒号→句号
+          else if(lv === 0 || lv === 1){                              // 一、/（一）标题后"标题：正文"同行
+            if(/^((?:[一二三四五六七八九十百]+[、.．，,])|(?:[（(][一二三四五六七八九十]+[)）]))(.*?)([:：])(.+)$/.test(l)) n++;
+          }
+        }
+        return n;
+      };
+      const n = cnt(d.paras) + cnt(d.attachParas);
+      if(!n) return null;
+      return `检测到 ${n} 处标题冒号不规范（二级标题「标题：正文」应拆分为标题与正文各一行；三级标题末位冒号应改为句号「。」）`;
+    },
+    fix: () => {
+      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inBody').value = normalizeHeadings(ps).join('\n');
+      const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inAttachBody').value = normalizeHeadings(ap).join('\n');
     }},
   {id:'r_land', name:'宽表格/超宽内容自动横排（GB/T 9704-2012 横向页）', lv:'info',
     check: d => {
