@@ -174,6 +174,8 @@
   .p.h1{font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
   .p.h2{font-family:"Times New Roman","方正楷体_GBK","楷体","KaiTi",serif}
   .p.h3,.p.h4{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
+  /* 二级标题内句号后文本：与正文同字体（仿宋） */
+  .p .body-f{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   /* 附件说明：左空二字起排"附件："，回行时与上一行附件名称首字对齐（悬挂缩进） */
   .attach-box{position:relative;margin-top:38.5px;font-size:16pt;line-height:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;padding-left:2em}
@@ -739,11 +741,17 @@ function headingLevelOf(p){
   if(/^[（(]\d+[)）]/.test(p)) return 3;
   return -1;
 }
+/* 时间表达中的冒号（如 12:00、10:40）：属时间而非标题分隔符，
+   不删除、不转句号、不拆分标题；半角冒号须修正为全角（公文规范） */
+function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
+function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
+function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/:/g, '：')); }
 function fixHeadingColon(lines){
   return lines.map(l=>{
     const lv = headingLevelOf(l);
     const ci = l.search(/[:：]/);
     if(ci < 0) return l;
+    if(colonIsTime(l, ci)) return l;    // 时间冒号（12:00 等）不转句号、不删除
     if(lv === 2){                       // 三级"1."标题中的冒号识别为句号
       const m = l.match(/^(\d+[\.．、].*?)([:：])(.*)$/);
       if(m) return m[1] + '。' + m[3];
@@ -762,6 +770,8 @@ function splitHeadingInlineBody(lines){
     if(lv !== 0 && lv !== 1){ out.push(p); continue; }   // 仅处理一、/（一）标题
     const m = p.match(/^((?:[一二三四五六七八九十百]+[、.．，,])|(?:[（(][一二三四五六七八九十]+[)）]))(.*?)([:：])(.+)$/);
     if(!m){ out.push(p); continue; }
+    const cp = p.indexOf(m[3]);
+    if(colonIsTime(p, cp)){ out.push(p); continue; }   // 时间冒号（12:00 等）不拆分标题
     const marker = m[1], title = m[2], rest = m[4];
     if(!rest.trim()){ out.push(p); continue; }            // 冒号后无实质内容
     // 本标题作用域：至下一个同级或更高级标题为止；域内若存在更深层级标题则不拆分
@@ -781,7 +791,8 @@ function splitHeadingInlineBody(lines){
 }
 function normalizeHeadings(lines){
   // 先按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），再统一层级序数编排
-  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines)));
+  // fixTimeColon：时间表达中的半角冒号（12:00）修正为全角（12：00），且不参与后续标题冒号处理
+  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(fixTimeColon))));
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
@@ -1320,13 +1331,24 @@ function estAttachPages(d){
 }
 
 /* 估算行数用于分页 */
+/* 正文段落 HTML：二级标题（（一））含句号时，句号前用楷体、句号后文本用仿宋
+   （与正文同字体，GB/T 9704-2012 二级标题内嵌说明性文字的字体规范）；其余整段按 classify 字体 */
+function paraHTML(s){
+  const k = classify(s);
+  if(k === 'h2'){
+    const ci = s.indexOf('。');
+    if(ci >= 0 && ci < s.length - 1 && s.slice(ci+1).trim())
+      return `<div class="p h2">${esc(s.slice(0, ci+1))}<span class="body-f">${esc(s.slice(ci+1))}</span></div>`;
+  }
+  return `<div class="p ${k}">${esc(s)}</div>`;
+}
 function estLines(d){
   const blocks = [];
   if(d.title) blocks.push({k:'title', lines: Math.ceil(wLen(d.title)/14) + 2});
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
-    else blocks.push({k:'p', html:`<div class="p ${classify(b.s)}">${esc(b.s)}</div>`,
+    else blocks.push({k:'p', html: paraHTML(b.s),
       lines: Math.ceil((wLen(b.s)+2)/CPL)});
   }
   const tail = [];
@@ -1391,7 +1413,7 @@ function renderPreview(){
     const body = attBodies[ai] || [];
     for(const b of iterBlocks(body)){
       if(b.t==='tb') ablocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
-      else ablocks.push({html:`<div class="p ${classify(b.s)}">${esc(b.s)}</div>`,
+      else ablocks.push({html: paraHTML(b.s),
         lines: Math.ceil((wLen(b.s)+2)/CPL)});
     }
     let cur2 = [], used2 = 0;
@@ -1545,12 +1567,19 @@ async function buildDocxBlob(d){
   const bodyPara = (p, extraOpts={}) => {
     const k = classify(p);
     const font = k==='h1' ? F_HEI : k==='h2' ? F_KAI : F_FS;
+    let kids;
+    if(k === 'h2'){
+      const ci = p.indexOf('。');
+      if(ci >= 0 && ci < p.length - 1 && p.slice(ci+1).trim())
+        kids = [run(p.slice(0, ci+1), F_KAI, 16), run(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
+      else kids = [run(p, font, 16)];
+    } else kids = [run(p, font, 16)];
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,   // 两端对齐
       indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
       spacing:{...line578},
       ...extraOpts,
-      children:[run(p, font, 16)]
+      children: kids
     });
   };
   // 表格块（Markdown 表格 → Word 表格，首行表头方正黑体）
@@ -1892,8 +1921,8 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_punct','r_dash','r_land'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_punct','r_color','r_dash','r_land'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_land'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_land'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -1980,9 +2009,12 @@ const RULES = [
         let n = 0;
         for(const l of arr){
           const lv = headingLevelOf(l);
-          if(lv === 2 || lv === 3){ if(/[:：]/.test(l)) n++; }       // 三/四级标题中的冒号→句号
-          else if(lv === 0 || lv === 1){                              // 一、/（一）标题后"标题：正文"同行
-            if(/^((?:[一二三四五六七八九十百]+[、.．，,])|(?:[（(][一二三四五六七八九十]+[)）]))(.*?)([:：])(.+)$/.test(l)) n++;
+          if(lv === 2 || lv === 3){
+            // 时间冒号（12:00 等）不计入"应改句号"
+            if(/[:：]/.test(l) && !hasTimeColon(l)) n++;
+          } else if(lv === 0 || lv === 1){                              // 一、/（一）标题后"标题：正文"同行
+            const m = l.match(/^((?:[一二三四五六七八九十百]+[、.．，,])|(?:[（(][一二三四五六七八九十]+[)）]))(.*?)([:：])(.+)$/);
+            if(m && !colonIsTime(l, l.indexOf(m[3]))) n++;
           }
         }
         return n;
@@ -1996,6 +2028,26 @@ const RULES = [
       $('inBody').value = normalizeHeadings(ps).join('\n');
       const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inAttachBody').value = normalizeHeadings(ap).join('\n');
+    }},
+  {id:'r_headtime', name:'标题中时间表示规范（半角冒号 12:00 → 全角 12：00）', lv:'warn',
+    check: d => {
+      const cnt = arr => {
+        let n = 0;
+        for(const l of arr){
+          // 仅标题行、且使用半角冒号表示时间（如 12:00）才需修正
+          if(headingLevelOf(l) >= 0 && /\d{1,2}:(?=\d{1,2})/.test(l)) n++;
+        }
+        return n;
+      };
+      const n = cnt(d.paras) + cnt(d.attachParas);
+      if(!n) return null;
+      return `检测到 ${n} 处标题中的时间使用了半角冒号（如 12:00），公文规范应使用全角冒号「：」（即 12：00），时间本身不删除`;
+    },
+    fix: () => {
+      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inBody').value = ps.map(fixTimeColon).join('\n');
+      const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      $('inAttachBody').value = ap.map(fixTimeColon).join('\n');
     }},
   {id:'r_land', name:'宽表格/超宽内容自动横排（GB/T 9704-2012 横向页）', lv:'info',
     check: d => {
