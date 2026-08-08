@@ -185,8 +185,6 @@
   .signorg,.signdate{font-size:16pt;line-height:38.5px;text-align:right;margin-top:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   .signdate{margin-top:0}
-  /* 通用(plain)文种有发文机关署名：署名与成文日期居中（对照署名位置居中对齐） */
-  .signorg.plain-sign,.signdate.plain-sign{text-align:center}
   .cc{font-size:14pt;line-height:1.8;border-top:1px solid #000;border-bottom:1px solid #000;
     padding:4px 1em;margin-top:60px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
@@ -1365,12 +1363,12 @@ function estLines(d){
     tail.push(desc);
   }
   // 发文机关署名位置编排（GB/T 9704-2012 · 党政机关公文格式规范）：
-  //  - 通用(plain)文种有署名：文章末尾空三行再署名，署名与成文日期均居中对齐；
-  //  - 红头文种有附件说明：附件说明后空三行再排署名（预留盖章空间），署名右空、以日期为准居中。
+  //  - 通用(plain)文种：有无附件说明均空三行再排署名，署名右对齐；
+  //  - 红头文种：有附件说明时空三行（预留盖章），否则空一行；署名右空、以日期为准居中。
   const plainSign = d.plain && d.org;
   const gapLines = (plainSign || attachItems.length) ? 3 : 1;
   const gap = ` style="margin-top:${(38.5*gapLines).toFixed(1)}px"`;
-  const signCls = plainSign ? ' plain-sign' : '';
+  const signCls = '';
   if(d.org) tail.push(`<div class="signorg${signCls}"${gap}>${esc(d.org)}</div>`);
   tail.push(`<div class="signdate${signCls}"${!d.org && gap ? gap : ''}>${esc(d.date)}</div>`);
   blocks.push({k:'tail', html:tail.join(''),
@@ -1633,20 +1631,20 @@ async function buildDocxBlob(d){
   });
 
   // 发文机关署名 + 成文日期（GB/T 9704-2012 · 党政机关公文格式规范）：
-  //  - 通用(plain)有署名：文章末尾空三行再署名，署名与成文日期均居中（对照署名位置居中对齐）；
-  //  - 红头文种有附件说明：附件说明后空三行再排署名（预留盖章），日期右空四字、署名以日期为准居中。
+  //  - 通用(plain)文种：有无附件说明均空三行再排署名，署名右对齐；
+  //  - 红头文种：有附件说明时空三行（预留盖章），否则空一行；日期右空四字、署名以日期为准居中。
   const plainSign = d.plain && d.org;
   const signGap = PT(28.9 * ((plainSign || attachItems.length) ? 3 : 1));
-  const signAlign = plainSign ? AlignmentType.CENTER : AlignmentType.RIGHT;
+  const signAlign = AlignmentType.RIGHT;
   if(d.org) children.push(new Paragraph({
     alignment: signAlign,
-    indent: plainSign ? undefined : {right: Math.max(0, Math.round(PT(64) + (wLen(d.date) - wLen(d.org)) * PT(16)))},
+    indent: {right: Math.max(0, Math.round(PT(64) + (wLen(d.date) - wLen(d.org)) * PT(16)))},
     spacing:{before: signGap, ...line578},
     children:[run(d.org, F_FS, 16)]
   }));
   children.push(new Paragraph({
     alignment: signAlign,
-    indent: plainSign ? undefined : {right: PT(64)},   // 红头文种：成文日期右空四字
+    indent: {right: PT(64)},   // 成文日期右空四字
     spacing:d.org ? {...line578} : {before: signGap, ...line578},
     children:[run(d.date, F_FS, 16)]
   }));
