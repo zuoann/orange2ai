@@ -185,6 +185,9 @@
   .signorg,.signdate{font-size:16pt;line-height:38.5px;text-align:right;margin-top:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   .signdate{margin-top:0}
+  .imgblk{text-align:center;margin:8px 0}
+  .imgc{display:inline-block;max-width:100%;line-height:0}
+  .imgc img{display:inline-block;vertical-align:middle;max-width:100%;max-height:360px;margin:0 4px;border:1px solid #ddd}
   .cc{font-size:14pt;line-height:1.8;border-top:1px solid #000;border-bottom:1px solid #000;
     padding:4px 1em;margin-top:60px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
@@ -576,6 +579,7 @@ const BODY_PX = 16 * 96 / 72;          // 21.33px
 const CPL = 28;                        // 每行字数
 
 const TYPES = [
+  {n:'通用',   c:'通用格式', f:'plain', logo:'',             d:'不携带红头标志、发文字号与抄送机关（版记），标题直接起排，适合一般场合的文书制作。'},
   {n:'决议',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于会议讨论通过的重大决策事项。'},
   {n:'决定',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于对重要事项作出决策和部署、奖惩有关单位及人员、变更或撤销下级机关不适当的决定事项。'},
   {n:'命令（令）',c:'下行文',f:'red',  logo:'××人民政府令',  d:'适用于公布行政法规和规章、宣布施行重大强制性措施、批准授予和晋升衔级、嘉奖有关单位及人员。'},
@@ -591,10 +595,9 @@ const TYPES = [
   {n:'议案',   c:'上行文', f:'red',    logo:'××××××文件',   d:'适用于各级人民政府按照法律程序向同级人民代表大会或者人民代表大会常务委员会提请审议事项。'},
   {n:'函',     c:'平行文', f:'letter', logo:'××××××（机关名称）', d:'适用于不相隶属机关之间商洽工作、询问和答复问题、请求批准和答复审批事项。<b>采用信函式格式</b>：武文线（上粗下细红色双线），发文字号居右顶格。'},
   {n:'纪要',   c:'会议纪要',f:'red',   logo:'××××××纪要',   d:'适用于记载会议主要情况和议定事项。标志由「会议名称+纪要」组成。'},
-  {n:'通用',   c:'通用格式', f:'plain', logo:'',             d:'不携带红头标志、发文字号与抄送机关（版记），标题直接起排，适合一般场合的文书制作。'},
 ];
 
-let curType = '通知';
+let curType = '通用';
 const $ = id => document.getElementById(id);
 
 /* ---------- 文种选择 ---------- */
@@ -845,12 +848,71 @@ function isWideTable(rows){
   }
   return total > BXW;
 }
+
+/* ---------- 图片识别与尺寸解析 ---------- */
+// 纯图片行（Markdown 语法）：![替代文字](图片地址)
+const IMG_RE = /^\s*!\[([^\]]*)\]\(([^)]+)\)\s*$/;
+
+// base64 → 字节数组（浏览器 / Node 通用）
+function b64ToBytes(b64){
+  const bin = atob(String(b64));
+  const a = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) a[i] = bin.charCodeAt(i);
+  return a;
+}
+// 字节数组 → base64（浏览器 / Node 通用）
+function bytesToB64(bytes){
+  let s = '';
+  for(let i=0;i<bytes.length;i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+// 解析图片自然尺寸（PNG / JPEG）；其余格式返回 null
+function imgDims(b){
+  if(b[0]===0x89 && b[1]===0x50){            // PNG：宽高存于 IHDR（偏移 16/20）
+    return {w:(b[16]<<24|b[17]<<16|b[18]<<8|b[19])>>>0, h:(b[20]<<24|b[21]<<16|b[22]<<8|b[23])>>>0};
+  }
+  if(b[0]===0xFF && b[1]===0xD8){            // JPEG：扫描 SOF 帧标记
+    let i=2;
+    while(i+9 < b.length){
+      if(b[i]!==0xFF){ i++; continue; }
+      const m = b[i+1];
+      if(m>=0xC0 && m<=0xCF && m!==0xC4 && m!==0xC8 && m!==0xCC)
+        return {w:(b[i+7]<<8|b[i+8])>>>0, h:(b[i+5]<<8|b[i+6])>>>0};
+      i += 2 + ((b[i+2]<<8|b[i+3])>>>0);
+    }
+  }
+  return null;
+}
+// 解析图片元信息：data URI 直接取字节与尺寸；http(s)/相对路径按扩展名推断类型
+function imgMeta(uri){
+  const m = String(uri).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if(m){
+    const bytes = b64ToBytes(m[2]);
+    const dim = imgDims(bytes);
+    return {type: m[1].replace('image/',''), b64: m[2], w: dim?dim.w:null, h: dim?dim.h:null, ok:true};
+  }
+  const ext = (String(uri).split('?')[0].match(/\.(png|jpe?g|gif|bmp|webp|svg)$/i)||[])[1];
+  const map = {png:'png', jpg:'jpg', jpeg:'jpg', gif:'gif', bmp:'bmp', webp:'webp', svg:'svg'};
+  return {type: map[(ext||'').toLowerCase()]||null, b64:null, w:null, h:null, ok: !!ext};
+}
+
 function iterBlocks(paras){
   const out=[]; let i=0, force=false;
   while(i<paras.length){
     const line = (paras[i]||'').trim();
     // 强制横排标记：独立的"横排"/"横向"/"【横排】"行，不渲染，仅作用于紧随其后的表格
     if(line==='横排' || line==='横向' || /^【?横(排|向)】?$/.test(line)){ force=true; i++; continue; }
+    // 图片：连续的 ![alt](url) 合并为一个图片组（默认居中、多图同高以保持比例一致）
+    if(IMG_RE.test(line)){
+      const items=[];
+      while(i<paras.length && IMG_RE.test((paras[i]||'').trim())){
+        const mm = (paras[i].trim()).match(IMG_RE);
+        items.push({url:mm[2], alt:mm[1]});
+        i++;
+      }
+      out.push({t:'imgs', items, wide:false});
+      continue;
+    }
     if(isTableLine(paras[i])){
       const tl=[];
       while(i<paras.length && isTableLine(paras[i])) tl.push(paras[i++]);
@@ -968,7 +1030,11 @@ function cleanText(raw){
     l = l.replace(/^\s{0,4}#{1,6}\s+/, () => { removed++; return ''; });
     l = l.replace(/^\s{0,4}>\s?/, () => { removed++; return ''; });
     l = l.replace(/^\s*[-*+]\s+/, () => { removed++; return ''; });
-    // 图片 ![alt](url) → 删除（先于链接处理）
+    // 图片 ![alt](url)：整行即图片则保留为图片块（先于链接处理，避免被链接规则破坏）；
+    // 混排中夹杂的图片标记则删除（避免与链接规则冲突）
+    if(/^\s*(!\[[^\]]*\]\([^)]+\)\s*)+\s*$/.test(l)){
+      out.push(l.trim()); continue;
+    }
     l = l.replace(/!\[[^\]]*\]\([^)]*\)/g, () => { removed++; return ''; });
     // 链接 [文字](url) → 保留文字
     l = l.replace(/\[([^\]]+)\]\([^)]*\)/g, (m, t) => { removed++; return t; });
@@ -1348,6 +1414,10 @@ function estLines(d){
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
+    else if(b.t==='imgs'){
+      const inner = b.items.map(it=>`<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`).join('');
+      blocks.push({k:'p', html:`<div class="imgblk"><div class="imgc">${inner}</div></div>`, lines: 9, img:true});
+    }
     else blocks.push({k:'p', html: paraHTML(b.s),
       lines: Math.ceil((wLen(b.s)+2)/CPL)});
   }
@@ -1370,7 +1440,13 @@ function estLines(d){
   const gap = ` style="margin-top:${(38.5*gapLines).toFixed(1)}px"`;
   const signCls = '';
   if(d.org) tail.push(`<div class="signorg${signCls}"${gap}>${esc(d.org)}</div>`);
-  tail.push(`<div class="signdate${signCls}"${!d.org && gap ? gap : ''}>${esc(d.date)}</div>`);
+  // 通用文种：成文日期以发文机关署名为基准居中对齐（日期中心对齐署名中心），日期紧贴署名下一行
+  let dateStyle = (!d.org && gap) ? gap : '';
+  if(plainSign){
+    const off = (wLen(d.org) - wLen(d.date)) / 2;
+    dateStyle = ` style="text-align:right;margin-right:${off.toFixed(2)}em"`;
+  }
+  tail.push(`<div class="signdate${signCls}"${dateStyle}>${esc(d.date)}</div>`);
   blocks.push({k:'tail', html:tail.join(''),
     lines: (attachItems.length ? attachItems.length : 0) + gapLines + (d.org?1:0) + 1 + 2});
   return blocks;
@@ -1418,6 +1494,10 @@ function renderPreview(){
     const body = attBodies[ai] || [];
     for(const b of iterBlocks(body)){
       if(b.t==='tb') ablocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
+      else if(b.t==='imgs'){
+        const inner = b.items.map(it=>`<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`).join('');
+        ablocks.push({html:`<div class="imgblk"><div class="imgc">${inner}</div></div>`, lines: 9});
+      }
       else ablocks.push({html: paraHTML(b.s),
         lines: Math.ceil((wLen(b.s)+2)/CPL)});
     }
@@ -1448,10 +1528,29 @@ function renderPreview(){
       <div class="page-num ${np}">— ${n} —</div>
     </div></div>`;
   }).join('');
+  fitImgRows();
   fitPages();
 }
 
 /* ---------- 预览缩放：A4 页面按容器宽度自适应（Pad/移动端） ---------- */
+function fitImgRows(){
+  document.querySelectorAll('.imgc').forEach(c=>{
+    const imgs=[...c.querySelectorAll('img')];
+    if(imgs.length<1) return;
+    const apply=()=>{
+      const hs=imgs.map(im=>im.naturalHeight||0).filter(Boolean);
+      if(!hs.length) return;
+      const H=Math.min(360, Math.max(...hs));
+      imgs.forEach(im=>{ if(im.naturalHeight){ im.style.height=H+'px'; im.style.width='auto'; } });
+    };
+    let loaded=0;
+    imgs.forEach(im=>{
+      if(im.complete && im.naturalWidth){ if(++loaded===imgs.length) apply(); }
+      else im.addEventListener('load', ()=>{ if(++loaded===imgs.length) apply(); });
+    });
+    if(loaded===imgs.length) apply();
+  });
+}
 function fitPages(){
   const sc = $('paperScroll');
   if(!sc) return;
@@ -1475,7 +1574,7 @@ const PT = pt => Math.round(pt * 20);        // pt → twentieths
 
 async function buildDocxBlob(d){
   const {
-    Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
+    Document, Packer, Paragraph, TextRun, AlignmentType, Footer, ImageRun,
     PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
     DocumentGridType, VerticalAlign, PageOrientation
   } = docx;
@@ -1609,8 +1708,42 @@ async function buildDocxBlob(d){
     });
   };
   const wideIdx = new Set();
+  const pushImgGroup = async items => {
+    const metas = [];
+    for(const it of items){
+      let m = imgMeta(it.url);
+      if(m.ok && !m.b64 && it.url){
+        try{
+          const resp = await fetch(it.url);
+          const buf = new Uint8Array(await resp.arrayBuffer());
+          const b64 = bytesToB64(buf);
+          const dim = imgDims(buf);
+          const ct = (resp.headers.get('content-type')||'').replace('image/','');
+          m = {type: ct||m.type||'png', b64, w: dim?dim.w:null, h: dim?dim.h:null, ok:true};
+        }catch(e){ m = {...m, ok:false}; }
+      }
+      if(m.ok) metas.push(m);
+    }
+    if(!metas.length) return;
+    const CONTENT_PX = 590;            // 版心宽 156mm ≈ 590px@96dpi
+    let H = 200;
+    const ratios = metas.filter(m=>m.w&&m.h).map(m=>m.w/m.h);
+    if(ratios.length){
+      let total = metas.reduce((s,m)=> s + (m.w&&m.h ? H*(m.w/m.h) : H), 0);
+      if(total > CONTENT_PX) H = Math.max(80, Math.round(H * CONTENT_PX / total));
+    }
+    const runs = metas.map(m=>{
+      const w = (m.w&&m.h) ? Math.round(H*m.w/m.h) : H;
+      const data = m.b64 || m.url;
+      try { return new ImageRun({ type: m.type || 'png', data, transformation:{width:w, height:H} }); }
+      catch(e){ return null; }
+    }).filter(Boolean);
+    if(runs.length) children.push(new Paragraph({
+      alignment: AlignmentType.CENTER, spacing:{before:PT(8), after:PT(8)}, children: runs }));
+  };
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
+    else if(b.t==='imgs'){ await pushImgGroup(b.items); }
     else children.push(bodyPara(b.s));
   }
 
@@ -1644,7 +1777,9 @@ async function buildDocxBlob(d){
   }));
   children.push(new Paragraph({
     alignment: signAlign,
-    indent: {right: PT(64)},   // 成文日期右空四字
+    indent: plainSign
+      ? {right: (wLen(d.org) - wLen(d.date)) * PT(16) / 2}   // 通用：成文日期以署名为基准居中（中心对齐署名中心）
+      : {right: PT(64)},   // 成文日期右空四字
     spacing:d.org ? {...line578} : {before: signGap, ...line578},
     children:[run(d.date, F_FS, 16)]
   }));
@@ -1675,6 +1810,7 @@ async function buildDocxBlob(d){
       const body = attBodies2[ai] || [];
       for(const b of iterBlocks(body)){
         if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
+        else if(b.t==='imgs'){ await pushImgGroup(b.items); }
         else children.push(bodyPara(b.s));
       }
     }
@@ -1927,9 +2063,9 @@ document.addEventListener('keydown', e=>{
  * 智能校验：规则 / 模式 / 一键修复 / 导入导出
  * ============================================================ */
 const MODE_RULES = {
-  loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_land'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_land'],
+  loose:    ['r_title','r_body','r_date','r_img'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_land','r_img'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_land','r_img'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -2075,6 +2211,17 @@ const RULES = [
       return autoLand
         ? `检测到 ${n} 处宽表格，已自动编排为横向页面（GB/T 9704-2012 横排：表格顶边朝向左订口、页码置于表格左侧）`
         : `检测到 ${n} 处宽表格，建议开启「宽表格/超宽内容自动横排」以免超出版心`;
+    }},
+  },
+  {id:'r_img', name:'图片校验识别（正文/附件图片默认居中、多图保持比例一致）', lv:'warn',
+    check: d => {
+      const imgs = [];
+      const grab = arr => arr.forEach(l => { const m = l.match(/!\[[^\]]*\]\(([^)]+)\)/); if(m) imgs.push(m[1]); });
+      grab(d.paras); grab(d.attachParas);
+      if(!imgs.length) return null;
+      const bad = imgs.filter(u => !/^(data:image\/|https?:\/\/|\/|\.\.?\/)/.test(u.trim())).length;
+      if(bad) return `检测到 ${imgs.length} 张图片，其中 ${bad} 张地址无效（须为 data:image/... 或 http(s) 链接）`;
+      return null;
     }},
 ];
 function ruleEnabled(r){
@@ -2396,7 +2543,7 @@ let batch = JSON.parse(localStorage.getItem('mzw_batch') || '[]');
 let batchPause = false, batchRunning = false;
 function saveBatch(){ localStorage.setItem('mzw_batch', JSON.stringify(batch)); }
 function stateToDoc(st){
-  const t = TYPES.find(x=>x.n===st.type) || TYPES[7];
+  const t = TYPES.find(x=>x.n===st.type) || TYPES[0];
   const plain = t.f === 'plain';
   return { type: st.type, t, plain,
     logo: st.inLogo || '××××××文件', no: plain ? '' : normalizeDocNo(st.inNo || ''),
