@@ -176,6 +176,13 @@
   .p.h3,.p.h4{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   /* 二级标题内句号后文本：与正文同字体（仿宋） */
   .p .body-f{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
+  /* 正文智能引号（‘’“”）：浏览器默认取字体栈首位的 Times New Roman，包裹 .q 改以正文公文字体优先，
+     使引号随正文同字体（仿宋/黑体/楷体），符合党政机关公文格式规范 */
+  .p .q{font-family:"方正仿宋_GBK","FangSong_GB2312","仿宋","Times New Roman",serif}
+  .p.h1 .q{font-family:"方正黑体_GBK","FZHei-B01","黑体","SimHei","Times New Roman",sans-serif}
+  .p.h2 .q{font-family:"方正楷体_GBK","楷体","KaiTi","Times New Roman",serif}
+  .p.h3 .q,.p.h4 .q{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif}
+  .body-f .q{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif}
   /* 附件说明：左空二字起排"附件："，回行时与上一行附件名称首字对齐（悬挂缩进） */
   .attach-box{position:relative;margin-top:38.5px;font-size:16pt;line-height:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;padding-left:2em}
@@ -185,6 +192,9 @@
   .signorg,.signdate{font-size:16pt;line-height:38.5px;text-align:right;margin-top:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   .signdate{margin-top:0}
+  .imgblk{text-align:center;margin:8px 0}
+  .imgc{display:inline-block;max-width:100%;line-height:0}
+  .imgc img{display:inline-block;vertical-align:middle;max-width:100%;max-height:360px;margin:0 4px;border:1px solid #ddd}
   .cc{font-size:14pt;line-height:1.8;border-top:1px solid #000;border-bottom:1px solid #000;
     padding:4px 1em;margin-top:60px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
@@ -194,8 +204,8 @@
   .att-head{font-size:16pt;line-height:38.5px;text-indent:0;
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
   .att-head .att-num{font-family:"Times New Roman","TNR",serif}
-  .att-title{font-size:16pt;line-height:38.5px;text-align:center;text-indent:0;margin-top:38.5px;
-    font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
+  .att-title{font-size:22pt;line-height:1.4;text-align:center;text-indent:0;margin-top:38.5px;
+    font-family:"方正小标宋简体","FZXiaoBiaoSong-B05S","小标宋体","STZhongsong","宋体",serif}
   /* 页面缩放包装（自适应 PC / Pad / 移动端） */
   .pg{position:relative;flex:none;width:794px;height:1122px}
   .pg .page{position:absolute;top:0;left:0;transform-origin:top left}
@@ -576,6 +586,7 @@ const BODY_PX = 16 * 96 / 72;          // 21.33px
 const CPL = 28;                        // 每行字数
 
 const TYPES = [
+  {n:'通用',   c:'通用格式', f:'plain', logo:'',             d:'不携带红头标志、发文字号与抄送机关（版记），标题直接起排，适合一般场合的文书制作。'},
   {n:'决议',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于会议讨论通过的重大决策事项。'},
   {n:'决定',   c:'下行文', f:'red',    logo:'××××××文件',   d:'适用于对重要事项作出决策和部署、奖惩有关单位及人员、变更或撤销下级机关不适当的决定事项。'},
   {n:'命令（令）',c:'下行文',f:'red',  logo:'××人民政府令',  d:'适用于公布行政法规和规章、宣布施行重大强制性措施、批准授予和晋升衔级、嘉奖有关单位及人员。'},
@@ -591,10 +602,9 @@ const TYPES = [
   {n:'议案',   c:'上行文', f:'red',    logo:'××××××文件',   d:'适用于各级人民政府按照法律程序向同级人民代表大会或者人民代表大会常务委员会提请审议事项。'},
   {n:'函',     c:'平行文', f:'letter', logo:'××××××（机关名称）', d:'适用于不相隶属机关之间商洽工作、询问和答复问题、请求批准和答复审批事项。<b>采用信函式格式</b>：武文线（上粗下细红色双线），发文字号居右顶格。'},
   {n:'纪要',   c:'会议纪要',f:'red',   logo:'××××××纪要',   d:'适用于记载会议主要情况和议定事项。标志由「会议名称+纪要」组成。'},
-  {n:'通用',   c:'通用格式', f:'plain', logo:'',             d:'不携带红头标志、发文字号与抄送机关（版记），标题直接起排，适合一般场合的文书制作。'},
 ];
 
-let curType = '通知';
+let curType = '通用';
 const $ = id => document.getElementById(id);
 
 /* ---------- 文种选择 ---------- */
@@ -658,7 +668,7 @@ function fixHeadings(paras){
     for(let k=lv+1;k<4;k++) counters[k]=0;
     const exp=counters[lv];
     const mark = lv===0 ? num2cn(exp)+'、' : lv===1 ? '（'+num2cn(exp)+'）'
-               : lv===2 ? exp+'.' : '（'+exp+'）';
+               : lv===2 ? exp+'.' : '('+exp+')';
     // 一级、二级标题末尾不加标点符号
     const rest2 = lv<=1 ? rest.replace(/[。，、；：？！\s]+$/,'') : rest;
     const rebuilt = mark + rest2;
@@ -701,8 +711,8 @@ function normalizeHeadingLevels(lines){
     const d = detectHeadingShape(l);
     if(d && !shapes.includes(d.shape)) shapes.push(d.shape);
   }
-  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"（1）"、且无一级"一、"时，
-  // "1."作为三级、"（1）"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为（1）（2）…
+  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"(1)"、且无一级"一、"时，
+  // "1."作为三级、"(1)"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为(1)(2)…
   const hasA = shapes.includes('A'), hasC = shapes.includes('C'), hasD = shapes.includes('D');
   const map = {};
   if(hasC && hasD && !hasA){ map.A = 0; map.B = 1; map.C = 2; map.D = 3; }
@@ -721,7 +731,7 @@ function normalizeHeadingLevels(lines){
     if(lv === 0) mark = num2cn(n) + '、';
     else if(lv === 1) mark = '（' + num2cn(n) + '）';
     else if(lv === 2) mark = n + '.';
-    else mark = '（' + n + '）';
+    else mark = '(' + n + ')';
     if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
     return mark + rest;
   });
@@ -742,10 +752,10 @@ function headingLevelOf(p){
   return -1;
 }
 /* 时间表达中的冒号（如 12:00、10:40）：属时间而非标题分隔符，
-   不删除、不转句号、不拆分标题；半角冒号须修正为全角（公文规范） */
+   不删除、不转句号、不拆分标题；全角冒号须修正为半角（公文规范：时间使用半角冒号） */
 function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
 function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
-function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/:/g, '：')); }
+function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/：/g, ':')); }
 function fixHeadingColon(lines){
   return lines.map(l=>{
     const lv = headingLevelOf(l);
@@ -791,27 +801,57 @@ function splitHeadingInlineBody(lines){
 }
 function normalizeHeadings(lines){
   // 先按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），再统一层级序数编排
-  // fixTimeColon：时间表达中的半角冒号（12:00）修正为全角（12：00），且不参与后续标题冒号处理
+  // fixTimeColon：时间表达中的全角冒号（12：00）修正为半角（12:00），且不参与后续标题冒号处理
   return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(fixTimeColon))));
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
- * 直引号→中文弯引号（成对交替）；“”‘’《》（）缺右半自动在句末补齐 */
-function fixPunct(s){
-  let t = s;
-  let open = true;
+ * 直引号→中文弯引号（成对交替）；书名号/括号缺右半自动在句末补齐；连接号交由 normDash 处理 */
+function fixQuotes(s){
+  let t = s, open = true;
   t = t.replace(/"/g, () => { const q = open ? '“' : '”'; open = !open; return q; });
   open = true;
   t = t.replace(/'/g, () => { const q = open ? '‘' : '’'; open = !open; return q; });
+  return t;
+}
+function fixPunct(s){
+  let t = fixQuotes(s);
   for(const [l, r] of [['“','”'],['‘','’'],['《','》'],['（','）']]){
     const miss = (t.split(l).length-1) - (t.split(r).length-1);
     for(let i=0; i<miss; i++) t = t.replace(/([。；！？])?$/, m => r + (m||''));
   }
-  // ASCII 连字符 "-" 统一改为一字线 "—"（公文规范：一字线用于破折、范围等）
-  return t.replace(/-/g, '—');
+  return t;
 }
-/* ASCII 连字符"-"→一字线"—" 的纯转换（供解析/规则复用） */
-function convDash(s){ return s.replace(/-/g, '—'); }
+/* 连接号智能规范：年份/时间/地域起止→一字线"—"；数值范围起止→浪纹"～" */
+function normDash(s){
+    const dashCore = t => {
+    const VC = '年|天|个|倍|万|亿|元|%|名|项|次|页|条|份|所|间|辆|台|人|吨|度|％|厘米|毫米|米|km|kg|℃|°C';
+    t = t.replace(/(\d{4})\s*年?\s*[-–—]\s*年?\s*(\d{4})/g, '$1—$2');                 // A 年份跨度（可选"年"）→ 一字线
+    t = t.replace(/(\d{4})\s*[-–]\s*(\d{1,2})\s*[-–]\s*(\d{1,2})/g, '$1—$2—$3');      // C 日期 YYYY-MM-DD → 一字线
+    t = t.replace(new RegExp(String.raw`(\d+(?:\.\d+)?[万千百十]?%?°?)\s*[-–]\s*(\d+(?:\.\d+)?[万千百十]?%?°?)(?=\s*(?:${VC}))`), '$1～$2'); // B 数值/数量/时长范围 → 浪纹
+    t = t.replace(/(\d+)\s*([月日])\s*[-–]\s*(\d+)\s*([月日])/g, '$1$2—$3$4');                // D 月/日跨度（3月-5月）→ 一字线
+    t = t.replace(/[一-鿿]{1,}\s*[-–—]\s*[一-鿿]{1,}/g, m => m.replace(/[-–—]/g,'—')); // E 地域/汉字序列 → 一字线
+    t = t.replace(/(\d+)\s*[-–]\s*(\d+)(?![\d.])/g, '$1—$2');                        // F 其余纯数字起止 → 一字线
+    return t;
+  };
+  // 保护 Markdown 图片/链接地址（data:、http(s):// 等可能含连字符），仅规范正文文字
+  const held = [];
+  s = s.replace(/(\((?:https?:\/\/|data:)[^)]*\))/g, m => { held.push(m); return '' + (held.length-1) + ''; });
+  s = dashCore(s);
+  s = s.replace(/(\d+)/g, (m, i) => held[+i]);
+  return s;
+}
+/* 并列成分间顿号删除：书名号《》或引号""包裹的并列项之间的顿号、逗号 */
+function normParallel(s){
+  const item = '《[^》]+》|“[^”]+”|‘[^’]+’';
+  return s.replace(new RegExp('('+item+')\\s*[、，,]\\s*(?=('+item+'))','g'), '$1');
+}
+/* 全字段轻量规范（标题/主送/署名/日期/附件说明等）：六角括号、时间半角冒号、连接号 */
+function normText(s){ return normBracket(fixTimeColon(normDash(s))); }
+/* 全文/附件规范：轻量规范 + 直引号→弯引号 + 并列顿号删除 */
+function normFull(s){ return normParallel(fixQuotes(normText(s))); }
+/* ASCII 连字符旧入口，现统一委托 normDash（兼容历史调用） */
+function convDash(s){ return normDash(s); }
 function punctIssueCount(paras){
   let n = 0;
   for(const p of paras){
@@ -845,12 +885,71 @@ function isWideTable(rows){
   }
   return total > BXW;
 }
+
+/* ---------- 图片识别与尺寸解析 ---------- */
+// 纯图片行（Markdown 语法）：![替代文字](图片地址)
+const IMG_RE = /^\s*!\[([^\]]*)\]\(([^)]+)\)\s*$/;
+
+// base64 → 字节数组（浏览器 / Node 通用）
+function b64ToBytes(b64){
+  const bin = atob(String(b64));
+  const a = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) a[i] = bin.charCodeAt(i);
+  return a;
+}
+// 字节数组 → base64（浏览器 / Node 通用）
+function bytesToB64(bytes){
+  let s = '';
+  for(let i=0;i<bytes.length;i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+// 解析图片自然尺寸（PNG / JPEG）；其余格式返回 null
+function imgDims(b){
+  if(b[0]===0x89 && b[1]===0x50){            // PNG：宽高存于 IHDR（偏移 16/20）
+    return {w:(b[16]<<24|b[17]<<16|b[18]<<8|b[19])>>>0, h:(b[20]<<24|b[21]<<16|b[22]<<8|b[23])>>>0};
+  }
+  if(b[0]===0xFF && b[1]===0xD8){            // JPEG：扫描 SOF 帧标记
+    let i=2;
+    while(i+9 < b.length){
+      if(b[i]!==0xFF){ i++; continue; }
+      const m = b[i+1];
+      if(m>=0xC0 && m<=0xCF && m!==0xC4 && m!==0xC8 && m!==0xCC)
+        return {w:(b[i+7]<<8|b[i+8])>>>0, h:(b[i+5]<<8|b[i+6])>>>0};
+      i += 2 + ((b[i+2]<<8|b[i+3])>>>0);
+    }
+  }
+  return null;
+}
+// 解析图片元信息：data URI 直接取字节与尺寸；http(s)/相对路径按扩展名推断类型
+function imgMeta(uri){
+  const m = String(uri).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if(m){
+    const bytes = b64ToBytes(m[2]);
+    const dim = imgDims(bytes);
+    return {type: m[1].replace('image/',''), b64: m[2], w: dim?dim.w:null, h: dim?dim.h:null, ok:true};
+  }
+  const ext = (String(uri).split('?')[0].match(/\.(png|jpe?g|gif|bmp|webp|svg)$/i)||[])[1];
+  const map = {png:'png', jpg:'jpg', jpeg:'jpg', gif:'gif', bmp:'bmp', webp:'webp', svg:'svg'};
+  return {type: map[(ext||'').toLowerCase()]||null, b64:null, w:null, h:null, ok: !!ext};
+}
+
 function iterBlocks(paras){
   const out=[]; let i=0, force=false;
   while(i<paras.length){
     const line = (paras[i]||'').trim();
     // 强制横排标记：独立的"横排"/"横向"/"【横排】"行，不渲染，仅作用于紧随其后的表格
     if(line==='横排' || line==='横向' || /^【?横(排|向)】?$/.test(line)){ force=true; i++; continue; }
+    // 图片：连续的 ![alt](url) 合并为一个图片组（默认居中、多图同高以保持比例一致）
+    if(IMG_RE.test(line)){
+      const items=[];
+      while(i<paras.length && IMG_RE.test((paras[i]||'').trim())){
+        const mm = (paras[i].trim()).match(IMG_RE);
+        items.push({url:mm[2], alt:mm[1]});
+        i++;
+      }
+      out.push({t:'imgs', items, wide:false});
+      continue;
+    }
     if(isTableLine(paras[i])){
       const tl=[];
       while(i<paras.length && isTableLine(paras[i])) tl.push(paras[i++]);
@@ -952,6 +1051,12 @@ function normalizeDocNo(s){
   t = t.replace(/((?:19|20)\d{2})\s*(\d)/, '〔$1〕$2');
   return t;
 }
+/* 六角括号规范化：正文/附件中误用空心方括号【】包裹发文字号年份的写法，统一为六角括号〔〕
+   曲农校发【2026】8号 / 【2026】第8号 / 根据…【2026】8号文件 → 曲农校发〔2026〕8号 … */
+function normBracket(s){
+  if(!s) return s;
+  return s.replace(/【\s*((?:19|20)\d{2})\s*】/g, '〔$1〕');
+}
 
 /* ---------- 文本净化：清除与公文无关的符号标记 ---------- */
 function cleanText(raw){
@@ -968,7 +1073,11 @@ function cleanText(raw){
     l = l.replace(/^\s{0,4}#{1,6}\s+/, () => { removed++; return ''; });
     l = l.replace(/^\s{0,4}>\s?/, () => { removed++; return ''; });
     l = l.replace(/^\s*[-*+]\s+/, () => { removed++; return ''; });
-    // 图片 ![alt](url) → 删除（先于链接处理）
+    // 图片 ![alt](url)：整行即图片则保留为图片块（先于链接处理，避免被链接规则破坏）；
+    // 混排中夹杂的图片标记则删除（避免与链接规则冲突）
+    if(/^\s*(!\[[^\]]*\]\([^)]+\)\s*)+\s*$/.test(l)){
+      out.push(l.trim()); continue;
+    }
     l = l.replace(/!\[[^\]]*\]\([^)]*\)/g, () => { removed++; return ''; });
     // 链接 [文字](url) → 保留文字
     l = l.replace(/\[([^\]]+)\]\([^)]*\)/g, (m, t) => { removed++; return t; });
@@ -1124,9 +1233,9 @@ function smartParse(text){
         if(t0 && l.replace(/[。\s]/g,'') === t0.replace(/[。\s]/g,'')) continue; // 与附件说明标题重复则跳过
         if(!attach){ attach = '1.' + l; continue; } // 无附件说明时，首行作为附件标题
       }
-      attachParas.push(l); continue;
+      attachParas.push(normFull(l)); continue;
     }
-    body.push(l);
+    body.push(normFull(l));
   }
 
   /* ⑥ 落款：尾部 4 行内识别成文日期（阿拉伯/汉字数字/点线分隔）与发文机关署名（可与日期同行） */
@@ -1146,21 +1255,21 @@ function smartParse(text){
     }
   }
 
-  /* ⑦ 回填各要素字段（解析时自动将 ASCII 连字符"-"规范为 一字线"—"） */
-  $('inTitle').value = convDash(title);
-  $('inTo').value = convDash(to);
-  // 正文标题层次自动校验编排（GB/T 9704-2012 结构层次序数：一、（一）1.（1））
+  /* ⑦ 回填各要素字段（解析时自动规范：六角括号、时间半角冒号、连接号、直引号→弯引号、并列顿号删除） */
+  $('inTitle').value = normText(title);
+  $('inTo').value = normText(to);
+  // 正文标题层次自动校验编排（GB/T 9704-2012 结构层次序数：一、（一）1.(1)）
   body.splice(0, body.length, ...normalizeHeadings(body));
-  $('inBody').value = body.map(convDash).join('\n');
-  $('inAttach').value = convDash(attach);
+  $('inBody').value = body.map(normText).join('\n');
+  $('inAttach').value = normText(attach);
   if(attachParas.length){
-    $('inAttachBody').value = normalizeHeadings(attachParas.map(convDash)).join('\n');
+    $('inAttachBody').value = normalizeHeadings(attachParas.map(normText)).join('\n');
     found.push('附件内容');
   }
   if(attach) found.push('附件说明');
-  if(org){ $('inOrg').value = convDash(org); found.push('发文机关'); }
-  if(date){ $('inDate').value = convDash(date); found.push('成文日期'); }
-  if(cc) $('inCc').value = convDash(cc);
+  if(org){ $('inOrg').value = normText(org); found.push('发文机关'); }
+  if(date){ $('inDate').value = normText(date); found.push('成文日期'); }
+  if(cc) $('inCc').value = normText(cc);
   renderPreview();
   if(typeof pushSnap === 'function') pushSnap();
   // 解析后自动执行格式校验，结果直达校验面板
@@ -1194,6 +1303,9 @@ function collect(){
 
 /* ---------- 预览渲染 ---------- */
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// 智能引号（‘’“” U+2018–U+201D）浏览器优先以字体栈首位的 Times New Roman 呈现，
+// 与正文中文字体不统一。用中文公文字体优先的 .q 包裹，使其随正文同字体。
+function qspan(html){ return html.replace(/[‘’“”]/g, m => `<span class="q">${m}</span>`); }
 
 function headerHTML(d){
   if(d.plain) return '';   // 通用格式：无红头标志与发文字号
@@ -1338,9 +1450,9 @@ function paraHTML(s){
   if(k === 'h2'){
     const ci = s.indexOf('。');
     if(ci >= 0 && ci < s.length - 1 && s.slice(ci+1).trim())
-      return `<div class="p h2">${esc(s.slice(0, ci+1))}<span class="body-f">${esc(s.slice(ci+1))}</span></div>`;
+      return `<div class="p h2">${qspan(esc(s.slice(0, ci+1)))}<span class="body-f">${qspan(esc(s.slice(ci+1)))}</span></div>`;
   }
-  return `<div class="p ${k}">${esc(s)}</div>`;
+  return `<div class="p ${k}">${qspan(esc(s))}</div>`;
 }
 function estLines(d){
   const blocks = [];
@@ -1348,6 +1460,10 @@ function estLines(d){
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
+    else if(b.t==='imgs'){
+      const inner = b.items.map(it=>`<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`).join('');
+      blocks.push({k:'p', html:`<div class="imgblk"><div class="imgc">${inner}</div></div>`, lines: 9, img:true});
+    }
     else blocks.push({k:'p', html: paraHTML(b.s),
       lines: Math.ceil((wLen(b.s)+2)/CPL)});
   }
@@ -1370,7 +1486,13 @@ function estLines(d){
   const gap = ` style="margin-top:${(38.5*gapLines).toFixed(1)}px"`;
   const signCls = '';
   if(d.org) tail.push(`<div class="signorg${signCls}"${gap}>${esc(d.org)}</div>`);
-  tail.push(`<div class="signdate${signCls}"${!d.org && gap ? gap : ''}>${esc(d.date)}</div>`);
+  // 通用文种：成文日期以发文机关署名为基准居中对齐（日期中心对齐署名中心），日期紧贴署名下一行
+  let dateStyle = (!d.org && gap) ? gap : '';
+  if(plainSign){
+    const off = (wLen(d.org) - wLen(d.date)) / 2;
+    dateStyle = ` style="text-align:right;margin-right:${off.toFixed(2)}em"`;
+  }
+  tail.push(`<div class="signdate${signCls}"${dateStyle}>${esc(d.date)}</div>`);
   blocks.push({k:'tail', html:tail.join(''),
     lines: (attachItems.length ? attachItems.length : 0) + gapLines + (d.org?1:0) + 1 + 2});
   return blocks;
@@ -1418,6 +1540,10 @@ function renderPreview(){
     const body = attBodies[ai] || [];
     for(const b of iterBlocks(body)){
       if(b.t==='tb') ablocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
+      else if(b.t==='imgs'){
+        const inner = b.items.map(it=>`<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`).join('');
+        ablocks.push({html:`<div class="imgblk"><div class="imgc">${inner}</div></div>`, lines: 9});
+      }
       else ablocks.push({html: paraHTML(b.s),
         lines: Math.ceil((wLen(b.s)+2)/CPL)});
     }
@@ -1448,10 +1574,29 @@ function renderPreview(){
       <div class="page-num ${np}">— ${n} —</div>
     </div></div>`;
   }).join('');
+  fitImgRows();
   fitPages();
 }
 
 /* ---------- 预览缩放：A4 页面按容器宽度自适应（Pad/移动端） ---------- */
+function fitImgRows(){
+  document.querySelectorAll('.imgc').forEach(c=>{
+    const imgs=[...c.querySelectorAll('img')];
+    if(imgs.length<1) return;
+    const apply=()=>{
+      const hs=imgs.map(im=>im.naturalHeight||0).filter(Boolean);
+      if(!hs.length) return;
+      const H=Math.min(360, Math.max(...hs));
+      imgs.forEach(im=>{ if(im.naturalHeight){ im.style.height=H+'px'; im.style.width='auto'; } });
+    };
+    let loaded=0;
+    imgs.forEach(im=>{
+      if(im.complete && im.naturalWidth){ if(++loaded===imgs.length) apply(); }
+      else im.addEventListener('load', ()=>{ if(++loaded===imgs.length) apply(); });
+    });
+    if(loaded===imgs.length) apply();
+  });
+}
 function fitPages(){
   const sc = $('paperScroll');
   if(!sc) return;
@@ -1475,7 +1620,7 @@ const PT = pt => Math.round(pt * 20);        // pt → twentieths
 
 async function buildDocxBlob(d){
   const {
-    Document, Packer, Paragraph, TextRun, AlignmentType, Footer,
+    Document, Packer, Paragraph, TextRun, AlignmentType, Footer, ImageRun,
     PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
     DocumentGridType, VerticalAlign, PageOrientation
   } = docx;
@@ -1490,6 +1635,29 @@ async function buildDocxBlob(d){
 
   const run = (text, font, pt, extra={}) =>
     new TextRun({text, font, size: Math.round(pt*2), ...extra});
+
+  // 智能引号（‘’“” U+2018–U+201D）属 hAnsi 范围，Word 默认以 hAnsi 字体(Times New Roman) 呈现，
+  // 与相邻汉字(方正仿宋_GBK)字体不统一。拆为独立 run，并将其 hAnsi 亦指向中文公文字体，
+  // 使引号随正文用仿宋/黑体/楷体（党政机关公文格式：引号作汉字标点应随正文同字体）。
+  const Q_RE = /[‘’“”]/;
+  function splitRuns(s, font, pt, extra={}){
+    const east = font.eastAsia;
+    const runs = [];
+    let buf = '', bufQ = null;
+    const flush = () => {
+      if(!buf) return;
+      runs.push(bufQ ? run(buf, {...font, hAnsi: east}, pt, extra) : run(buf, font, pt, extra));
+      buf = ''; bufQ = null;
+    };
+    for(const ch of s){
+      const q = Q_RE.test(ch);
+      if(bufQ === null){ bufQ = q; buf += ch; }
+      else if(q === bufQ){ buf += ch; }
+      else { flush(); bufQ = q; buf += ch; }
+    }
+    flush();
+    return runs;
+  }
 
   const line578 = {line: PT(28.9), lineRule: LineRuleType.EXACT};
   const letter = d.t.f === 'letter';
@@ -1576,9 +1744,9 @@ async function buildDocxBlob(d){
     if(k === 'h2'){
       const ci = p.indexOf('。');
       if(ci >= 0 && ci < p.length - 1 && p.slice(ci+1).trim())
-        kids = [run(p.slice(0, ci+1), F_KAI, 16), run(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
-      else kids = [run(p, font, 16)];
-    } else kids = [run(p, font, 16)];
+        kids = [...splitRuns(p.slice(0, ci+1), F_KAI, 16), ...splitRuns(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
+      else kids = splitRuns(p, font, 16);
+    } else kids = splitRuns(p, font, 16);
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,   // 两端对齐
       indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
@@ -1603,14 +1771,48 @@ async function buildDocxBlob(d){
         return new TableCell({
           margins:{top:60, bottom:60, left:100, right:100},
           verticalAlign: VerticalAlign.CENTER,
-          children:[new Paragraph({...paraOpts, children:[run(c, ri===0?F_HEI:F_FS, 10.5)]})]
+          children:[new Paragraph({...paraOpts, children: splitRuns(c, ri===0?F_HEI:F_FS, 10.5)})]
         });
       })}))
     });
   };
   const wideIdx = new Set();
+  const pushImgGroup = async items => {
+    const metas = [];
+    for(const it of items){
+      let m = imgMeta(it.url);
+      if(m.ok && !m.b64 && it.url){
+        try{
+          const resp = await fetch(it.url);
+          const buf = new Uint8Array(await resp.arrayBuffer());
+          const b64 = bytesToB64(buf);
+          const dim = imgDims(buf);
+          const ct = (resp.headers.get('content-type')||'').replace('image/','');
+          m = {type: ct||m.type||'png', b64, w: dim?dim.w:null, h: dim?dim.h:null, ok:true};
+        }catch(e){ m = {...m, ok:false}; }
+      }
+      if(m.ok) metas.push(m);
+    }
+    if(!metas.length) return;
+    const CONTENT_PX = 590;            // 版心宽 156mm ≈ 590px@96dpi
+    let H = 200;
+    const ratios = metas.filter(m=>m.w&&m.h).map(m=>m.w/m.h);
+    if(ratios.length){
+      let total = metas.reduce((s,m)=> s + (m.w&&m.h ? H*(m.w/m.h) : H), 0);
+      if(total > CONTENT_PX) H = Math.max(80, Math.round(H * CONTENT_PX / total));
+    }
+    const runs = metas.map(m=>{
+      const w = (m.w&&m.h) ? Math.round(H*m.w/m.h) : H;
+      const data = m.b64 || m.url;
+      try { return new ImageRun({ type: m.type || 'png', data, transformation:{width:w, height:H} }); }
+      catch(e){ return null; }
+    }).filter(Boolean);
+    if(runs.length) children.push(new Paragraph({
+      alignment: AlignmentType.CENTER, spacing:{before:PT(8), after:PT(8)}, children: runs }));
+  };
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
+    else if(b.t==='imgs'){ await pushImgGroup(b.items); }
     else children.push(bodyPara(b.s));
   }
 
@@ -1626,7 +1828,7 @@ async function buildDocxBlob(d){
     children.push(new Paragraph({
       indent,
       spacing: i===0 ? {before: PT(28.9), ...line578} : {...line578},
-      children:[run((i===0 ? '附件：' : '') + it, F_FS, 16)]
+      children: splitRuns((i===0 ? '附件：' : '') + it, F_FS, 16)
     }));
   });
 
@@ -1644,7 +1846,9 @@ async function buildDocxBlob(d){
   }));
   children.push(new Paragraph({
     alignment: signAlign,
-    indent: {right: PT(64)},   // 成文日期右空四字
+    indent: plainSign
+      ? {right: (wLen(d.org) - wLen(d.date)) * PT(16) / 2}   // 通用：成文日期以署名为基准居中（中心对齐署名中心）
+      : {right: PT(64)},   // 成文日期右空四字
     spacing:d.org ? {...line578} : {before: signGap, ...line578},
     children:[run(d.date, F_FS, 16)]
   }));
@@ -1669,12 +1873,13 @@ async function buildDocxBlob(d){
         children.push(new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing:{before: PT(28.9), ...line578},
-          children:[run(a.title, F_HEI, 16)]
+          children:[run(a.title, F_BS, 22)]
         }));
       }
       const body = attBodies2[ai] || [];
       for(const b of iterBlocks(body)){
         if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
+        else if(b.t==='imgs'){ await pushImgGroup(b.items); }
         else children.push(bodyPara(b.s));
       }
     }
@@ -1702,7 +1907,7 @@ async function buildDocxBlob(d){
         top:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1},
         bottom:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1}
       },
-      children:[run('抄送：'+d.cc+'。', F_FS, 14)]
+      children: splitRuns('抄送：'+d.cc+'。', F_FS, 14)
     }));
   }
 
@@ -1927,9 +2132,9 @@ document.addEventListener('keydown', e=>{
  * 智能校验：规则 / 模式 / 一键修复 / 导入导出
  * ============================================================ */
 const MODE_RULES = {
-  loose:    ['r_title','r_body','r_date'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_land'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_land'],
+  loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_parallel','r_land','r_img','r_bracket'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_parallel','r_land','r_img','r_bracket'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -1967,30 +2172,33 @@ const RULES = [
     check: d => d.title.length > 50 ? '标题过长（' + d.title.length + ' 字）' : null},
   {id:'r_punct', name:'标点符号格式与完整性（引号书名号配对）', lv:'warn',
     check: d => {
-      const n = punctIssueCount(d.paras);
-      return n ? `正文存在 ${n} 处标点格式/配对问题（如直引号、双引号未闭合）` : null;
+      let n = punctIssueCount(d.paras);
+      if(d.attachParas && d.attachParas.length) n += punctIssueCount(d.attachParas);
+      return n ? `正文/附件存在 ${n} 处标点格式/配对问题（如直引号未转为弯引号、引号书名号未闭合）` : null;
     },
     fix: () => {
-      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inBody').value = ps.map(fixPunct).join('\n');
+      for(const id of ['inBody','inAttachBody']){
+        if(!$(id).value) continue;
+        const ps = $(id).value.split('\n').map(s=>s.trim()).filter(s=>s);
+        $(id).value = ps.map(fixPunct).join('\n');
+      }
     }},
-  {id:'r_dash', name:'连字符规范：ASCII 连字符"-"统一改为一字线"—"', lv:'warn',
+  {id:'r_dash', name:'连接号规范：时间/地域起止用一字线"—"、数值范围用浪纹"～"（ASCII 连字符"-"自动规范）', lv:'warn',
     check: d => {
       let n = 0;
       const scan = s => { if(s) n += (s.match(/-/g) || []).length; };
       scan(d.title); scan(d.to); scan(d.org); scan(d.no); scan(d.date); scan(d.cc); scan(d.attach);
       d.paras.forEach(scan); d.attachParas.forEach(scan);
-      return n ? `检测到 ${n} 处 ASCII 连字符"-"，建议改为一字线"—"` : null;
+      return n ? `检测到 ${n} 处 ASCII 连字符"-"，建议规范为时间/地域起止一字线"—"或数值范围浪纹"～"` : null;
     },
     fix: () => {
-      const conv = s => s.replace(/-/g, '—');
       for(const id of ['inTitle','inTo','inOrg','inNo','inDate','inCc','inAttach','inBody','inAttachBody'])
-        if($(id).value) $(id).value = conv($(id).value);
+        if($(id).value) $(id).value = $(id).value.split('\n').map(x=>normDash(x)).join('\n');
     }},
   {id:'r_color', name:'正文文字颜色为黑色', lv:'warn',
     check: () => /color\s*[:=]|<font/i.test($('rawText').value)
       ? '检测到原文含彩色文字标记，输出已统一为黑色' : null},
-  {id:'r_headings', name:'正文标题层级：一、（一）1.（1）格式与序号', lv:'warn',
+  {id:'r_headings', name:'正文标题层级：一、（一）1.(1)格式与序号', lv:'warn',
     check: d => {
       const r = fixHeadings(d.paras);
       return r.issues.length ? `标题层级存在 ${r.issues.length} 处格式/序号问题（${r.issues[0]}${r.issues.length>1?' 等':''}）` : null;
@@ -1999,12 +2207,12 @@ const RULES = [
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = fixHeadings(ps).paras.join('\n');
     }},
-  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.（1））', lv:'warn',
+  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.(1)）', lv:'warn',
     check: d => {
       const fixed = normalizeHeadingLevels(d.paras);
       let ch = 0;
       for(let i = 0; i < d.paras.length; i++) if(fixed[i] !== d.paras[i]) ch++;
-      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「（1）」依次编排` : null;
+      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「(1)」依次编排` : null;
     },
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
@@ -2036,25 +2244,18 @@ const RULES = [
       const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inAttachBody').value = normalizeHeadings(ap).join('\n');
     }},
-  {id:'r_headtime', name:'标题中时间表示规范（半角冒号 12:00 → 全角 12：00）', lv:'warn',
+  {id:'r_headtime', name:'时间冒号规范（全角 12：00 → 半角 12:00）', lv:'warn',
     check: d => {
-      const cnt = arr => {
-        let n = 0;
-        for(const l of arr){
-          // 仅标题行、且使用半角冒号表示时间（如 12:00）才需修正
-          if(headingLevelOf(l) >= 0 && /\d{1,2}:(?=\d{1,2})/.test(l)) n++;
-        }
-        return n;
-      };
-      const n = cnt(d.paras) + cnt(d.attachParas);
-      if(!n) return null;
-      return `检测到 ${n} 处标题中的时间使用了半角冒号（如 12:00），公文规范应使用全角冒号「：」（即 12：00），时间本身不删除`;
+      const re = /\d{1,2}：(?=\d{1,2})/;
+      let n = 0;
+      const scan = arr => arr.forEach(l => { if(l && re.test(l)) n++; });
+      scan([d.title,d.to,d.org,d.no,d.date,d.cc,d.attach]);
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处时间使用了全角冒号（如 12：00），公文规范时间应使用半角冒号「:」（即 12:00），时间本身不删除` : null;
     },
     fix: () => {
-      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inBody').value = ps.map(fixTimeColon).join('\n');
-      const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inAttachBody').value = ap.map(fixTimeColon).join('\n');
+      const fields = ['inTitle','inTo','inOrg','inNo','inDate','inCc','inAttach','inBody','inAttachBody'];
+      for(const id of fields) if($(id).value) $(id).value = $(id).value.split('\n').map(x=>fixTimeColon(x)).join('\n');
     }},
   {id:'r_land', name:'宽表格/超宽内容自动横排（GB/T 9704-2012 横向页）', lv:'info',
     check: d => {
@@ -2075,6 +2276,39 @@ const RULES = [
       return autoLand
         ? `检测到 ${n} 处宽表格，已自动编排为横向页面（GB/T 9704-2012 横排：表格顶边朝向左订口、页码置于表格左侧）`
         : `检测到 ${n} 处宽表格，建议开启「宽表格/超宽内容自动横排」以免超出版心`;
+    }},
+  {id:'r_img', name:'图片校验识别（正文/附件图片默认居中、多图保持比例一致）', lv:'warn',
+    check: d => {
+      const imgs = [];
+      const grab = arr => arr.forEach(l => { const m = l.match(/!\[[^\]]*\]\(([^)]+)\)/); if(m) imgs.push(m[1]); });
+      grab(d.paras); grab(d.attachParas);
+      if(!imgs.length) return null;
+      const bad = imgs.filter(u => !/^(data:image\/|https?:\/\/|\/|\.\.?\/)/.test(u.trim())).length;
+      if(bad) return `检测到 ${imgs.length} 张图片，其中 ${bad} 张地址无效（须为 data:image/... 或 http(s) 链接）`;
+      return null;
+    }},
+  {id:'r_bracket', name:'六角括号规范：发文字号年份须用六角括号〔〕（勿用空心方括号【】）', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = arr => arr.forEach(l => { if(l) n += (l.match(/【/g) || []).length; });
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处空心方括号【】（含发文字号年份写法如【2026】8号），公文规范应使用六角括号〔〕` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody'])
+        if($(id).value) $(id).value = $(id).value.replace(/【/g,'〔').replace(/】/g,'〕');
+    }},
+  {id:'r_parallel', name:'并列书名号/引号间顿号删除（《红楼梦》、《水浒传》→《红楼梦》《水浒传》）', lv:'warn',
+    check: d => {
+      const re = /(《[^》]+》|“[^”]+”|‘[^’]+’)\s*[、，,]\s*(?=(?:《[^》]+》|“[^”]+”|‘[^’]+’))/;
+      let n = 0;
+      const scan = arr => arr.forEach(l => { if(l && re.test(l)) n++; });
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处标有书名号/引号的并列成分之间含顿号，应删除（如《红楼梦》、《水浒传》→《红楼梦》《水浒传》）` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody'])
+        if($(id).value) $(id).value = $(id).value.split('\n').map(x=>normParallel(x)).join('\n');
     }},
 ];
 function ruleEnabled(r){
@@ -2396,7 +2630,7 @@ let batch = JSON.parse(localStorage.getItem('mzw_batch') || '[]');
 let batchPause = false, batchRunning = false;
 function saveBatch(){ localStorage.setItem('mzw_batch', JSON.stringify(batch)); }
 function stateToDoc(st){
-  const t = TYPES.find(x=>x.n===st.type) || TYPES[7];
+  const t = TYPES.find(x=>x.n===st.type) || TYPES[0];
   const plain = t.f === 'plain';
   return { type: st.type, t, plain,
     logo: st.inLogo || '××××××文件', no: plain ? '' : normalizeDocNo(st.inNo || ''),
