@@ -197,8 +197,8 @@
   .att-head{font-size:16pt;line-height:38.5px;text-indent:0;
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
   .att-head .att-num{font-family:"Times New Roman","TNR",serif}
-  .att-title{font-size:16pt;line-height:38.5px;text-align:center;text-indent:0;margin-top:38.5px;
-    font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
+  .att-title{font-size:22pt;line-height:1.4;text-align:center;text-indent:0;margin-top:38.5px;
+    font-family:"方正小标宋简体","FZXiaoBiaoSong-B05S","小标宋体","STZhongsong","宋体",serif}
   /* 页面缩放包装（自适应 PC / Pad / 移动端） */
   .pg{position:relative;flex:none;width:794px;height:1122px}
   .pg .page{position:absolute;top:0;left:0;transform-origin:top left}
@@ -661,7 +661,7 @@ function fixHeadings(paras){
     for(let k=lv+1;k<4;k++) counters[k]=0;
     const exp=counters[lv];
     const mark = lv===0 ? num2cn(exp)+'、' : lv===1 ? '（'+num2cn(exp)+'）'
-               : lv===2 ? exp+'.' : '（'+exp+'）';
+               : lv===2 ? exp+'.' : '('+exp+')';
     // 一级、二级标题末尾不加标点符号
     const rest2 = lv<=1 ? rest.replace(/[。，、；：？！\s]+$/,'') : rest;
     const rebuilt = mark + rest2;
@@ -704,8 +704,8 @@ function normalizeHeadingLevels(lines){
     const d = detectHeadingShape(l);
     if(d && !shapes.includes(d.shape)) shapes.push(d.shape);
   }
-  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"（1）"、且无一级"一、"时，
-  // "1."作为三级、"（1）"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为（1）（2）…
+  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"(1)"、且无一级"一、"时，
+  // "1."作为三级、"(1)"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为(1)(2)…
   const hasA = shapes.includes('A'), hasC = shapes.includes('C'), hasD = shapes.includes('D');
   const map = {};
   if(hasC && hasD && !hasA){ map.A = 0; map.B = 1; map.C = 2; map.D = 3; }
@@ -724,7 +724,7 @@ function normalizeHeadingLevels(lines){
     if(lv === 0) mark = num2cn(n) + '、';
     else if(lv === 1) mark = '（' + num2cn(n) + '）';
     else if(lv === 2) mark = n + '.';
-    else mark = '（' + n + '）';
+    else mark = '(' + n + ')';
     if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
     return mark + rest;
   });
@@ -745,10 +745,10 @@ function headingLevelOf(p){
   return -1;
 }
 /* 时间表达中的冒号（如 12:00、10:40）：属时间而非标题分隔符，
-   不删除、不转句号、不拆分标题；半角冒号须修正为全角（公文规范） */
+   不删除、不转句号、不拆分标题；全角冒号须修正为半角（公文规范：时间使用半角冒号） */
 function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
 function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
-function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/:/g, '：')); }
+function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/：/g, ':')); }
 function fixHeadingColon(lines){
   return lines.map(l=>{
     const lv = headingLevelOf(l);
@@ -794,27 +794,57 @@ function splitHeadingInlineBody(lines){
 }
 function normalizeHeadings(lines){
   // 先按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），再统一层级序数编排
-  // fixTimeColon：时间表达中的半角冒号（12:00）修正为全角（12：00），且不参与后续标题冒号处理
+  // fixTimeColon：时间表达中的全角冒号（12：00）修正为半角（12:00），且不参与后续标题冒号处理
   return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(fixTimeColon))));
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
- * 直引号→中文弯引号（成对交替）；“”‘’《》（）缺右半自动在句末补齐 */
-function fixPunct(s){
-  let t = s;
-  let open = true;
+ * 直引号→中文弯引号（成对交替）；书名号/括号缺右半自动在句末补齐；连接号交由 normDash 处理 */
+function fixQuotes(s){
+  let t = s, open = true;
   t = t.replace(/"/g, () => { const q = open ? '“' : '”'; open = !open; return q; });
   open = true;
   t = t.replace(/'/g, () => { const q = open ? '‘' : '’'; open = !open; return q; });
+  return t;
+}
+function fixPunct(s){
+  let t = fixQuotes(s);
   for(const [l, r] of [['“','”'],['‘','’'],['《','》'],['（','）']]){
     const miss = (t.split(l).length-1) - (t.split(r).length-1);
     for(let i=0; i<miss; i++) t = t.replace(/([。；！？])?$/, m => r + (m||''));
   }
-  // ASCII 连字符 "-" 统一改为一字线 "—"（公文规范：一字线用于破折、范围等）
-  return t.replace(/-/g, '—');
+  return t;
 }
-/* ASCII 连字符"-"→一字线"—" 的纯转换（供解析/规则复用） */
-function convDash(s){ return s.replace(/-/g, '—'); }
+/* 连接号智能规范：年份/时间/地域起止→一字线"—"；数值范围起止→浪纹"～" */
+function normDash(s){
+    const dashCore = t => {
+    const VC = '年|天|个|倍|万|亿|元|%|名|项|次|页|条|份|所|间|辆|台|人|吨|度|％|厘米|毫米|米|km|kg|℃|°C';
+    t = t.replace(/(\d{4})\s*年?\s*[-–—]\s*年?\s*(\d{4})/g, '$1—$2');                 // A 年份跨度（可选"年"）→ 一字线
+    t = t.replace(/(\d{4})\s*[-–]\s*(\d{1,2})\s*[-–]\s*(\d{1,2})/g, '$1—$2—$3');      // C 日期 YYYY-MM-DD → 一字线
+    t = t.replace(new RegExp(String.raw`(\d+(?:\.\d+)?[万千百十]?%?°?)\s*[-–]\s*(\d+(?:\.\d+)?[万千百十]?%?°?)(?=\s*(?:${VC}))`), '$1～$2'); // B 数值/数量/时长范围 → 浪纹
+    t = t.replace(/(\d+)\s*([月日])\s*[-–]\s*(\d+)\s*([月日])/g, '$1$2—$3$4');                // D 月/日跨度（3月-5月）→ 一字线
+    t = t.replace(/[一-鿿]{1,}\s*[-–—]\s*[一-鿿]{1,}/g, m => m.replace(/[-–—]/g,'—')); // E 地域/汉字序列 → 一字线
+    t = t.replace(/(\d+)\s*[-–]\s*(\d+)(?![\d.])/g, '$1—$2');                        // F 其余纯数字起止 → 一字线
+    return t;
+  };
+  // 保护 Markdown 图片/链接地址（data:、http(s):// 等可能含连字符），仅规范正文文字
+  const held = [];
+  s = s.replace(/(\((?:https?:\/\/|data:)[^)]*\))/g, m => { held.push(m); return '' + (held.length-1) + ''; });
+  s = dashCore(s);
+  s = s.replace(/(\d+)/g, (m, i) => held[+i]);
+  return s;
+}
+/* 并列成分间顿号删除：书名号《》或引号""包裹的并列项之间的顿号、逗号 */
+function normParallel(s){
+  const item = '《[^》]+》|“[^”]+”|‘[^’]+’';
+  return s.replace(new RegExp('('+item+')\\s*[、，,]\\s*(?=('+item+'))','g'), '$1');
+}
+/* 全字段轻量规范（标题/主送/署名/日期/附件说明等）：六角括号、时间半角冒号、连接号 */
+function normText(s){ return normBracket(fixTimeColon(normDash(s))); }
+/* 全文/附件规范：轻量规范 + 直引号→弯引号 + 并列顿号删除 */
+function normFull(s){ return normParallel(fixQuotes(normText(s))); }
+/* ASCII 连字符旧入口，现统一委托 normDash（兼容历史调用） */
+function convDash(s){ return normDash(s); }
 function punctIssueCount(paras){
   let n = 0;
   for(const p of paras){
@@ -1014,6 +1044,12 @@ function normalizeDocNo(s){
   t = t.replace(/((?:19|20)\d{2})\s*(\d)/, '〔$1〕$2');
   return t;
 }
+/* 六角括号规范化：正文/附件中误用空心方括号【】包裹发文字号年份的写法，统一为六角括号〔〕
+   曲农校发【2026】8号 / 【2026】第8号 / 根据…【2026】8号文件 → 曲农校发〔2026〕8号 … */
+function normBracket(s){
+  if(!s) return s;
+  return s.replace(/【\s*((?:19|20)\d{2})\s*】/g, '〔$1〕');
+}
 
 /* ---------- 文本净化：清除与公文无关的符号标记 ---------- */
 function cleanText(raw){
@@ -1190,9 +1226,9 @@ function smartParse(text){
         if(t0 && l.replace(/[。\s]/g,'') === t0.replace(/[。\s]/g,'')) continue; // 与附件说明标题重复则跳过
         if(!attach){ attach = '1.' + l; continue; } // 无附件说明时，首行作为附件标题
       }
-      attachParas.push(l); continue;
+      attachParas.push(normFull(l)); continue;
     }
-    body.push(l);
+    body.push(normFull(l));
   }
 
   /* ⑥ 落款：尾部 4 行内识别成文日期（阿拉伯/汉字数字/点线分隔）与发文机关署名（可与日期同行） */
@@ -1212,21 +1248,21 @@ function smartParse(text){
     }
   }
 
-  /* ⑦ 回填各要素字段（解析时自动将 ASCII 连字符"-"规范为 一字线"—"） */
-  $('inTitle').value = convDash(title);
-  $('inTo').value = convDash(to);
-  // 正文标题层次自动校验编排（GB/T 9704-2012 结构层次序数：一、（一）1.（1））
+  /* ⑦ 回填各要素字段（解析时自动规范：六角括号、时间半角冒号、连接号、直引号→弯引号、并列顿号删除） */
+  $('inTitle').value = normText(title);
+  $('inTo').value = normText(to);
+  // 正文标题层次自动校验编排（GB/T 9704-2012 结构层次序数：一、（一）1.(1)）
   body.splice(0, body.length, ...normalizeHeadings(body));
-  $('inBody').value = body.map(convDash).join('\n');
-  $('inAttach').value = convDash(attach);
+  $('inBody').value = body.map(normText).join('\n');
+  $('inAttach').value = normText(attach);
   if(attachParas.length){
-    $('inAttachBody').value = normalizeHeadings(attachParas.map(convDash)).join('\n');
+    $('inAttachBody').value = normalizeHeadings(attachParas.map(normText)).join('\n');
     found.push('附件内容');
   }
   if(attach) found.push('附件说明');
-  if(org){ $('inOrg').value = convDash(org); found.push('发文机关'); }
-  if(date){ $('inDate').value = convDash(date); found.push('成文日期'); }
-  if(cc) $('inCc').value = convDash(cc);
+  if(org){ $('inOrg').value = normText(org); found.push('发文机关'); }
+  if(date){ $('inDate').value = normText(date); found.push('成文日期'); }
+  if(cc) $('inCc').value = normText(cc);
   renderPreview();
   if(typeof pushSnap === 'function') pushSnap();
   // 解析后自动执行格式校验，结果直达校验面板
@@ -1804,7 +1840,7 @@ async function buildDocxBlob(d){
         children.push(new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing:{before: PT(28.9), ...line578},
-          children:[run(a.title, F_HEI, 16)]
+          children:[run(a.title, F_BS, 22)]
         }));
       }
       const body = attBodies2[ai] || [];
@@ -2063,9 +2099,9 @@ document.addEventListener('keydown', e=>{
  * 智能校验：规则 / 模式 / 一键修复 / 导入导出
  * ============================================================ */
 const MODE_RULES = {
-  loose:    ['r_title','r_body','r_date','r_img'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_land','r_img'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_land','r_img'],
+  loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_parallel','r_land','r_img','r_bracket'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_parallel','r_land','r_img','r_bracket'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -2103,30 +2139,33 @@ const RULES = [
     check: d => d.title.length > 50 ? '标题过长（' + d.title.length + ' 字）' : null},
   {id:'r_punct', name:'标点符号格式与完整性（引号书名号配对）', lv:'warn',
     check: d => {
-      const n = punctIssueCount(d.paras);
-      return n ? `正文存在 ${n} 处标点格式/配对问题（如直引号、双引号未闭合）` : null;
+      let n = punctIssueCount(d.paras);
+      if(d.attachParas && d.attachParas.length) n += punctIssueCount(d.attachParas);
+      return n ? `正文/附件存在 ${n} 处标点格式/配对问题（如直引号未转为弯引号、引号书名号未闭合）` : null;
     },
     fix: () => {
-      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inBody').value = ps.map(fixPunct).join('\n');
+      for(const id of ['inBody','inAttachBody']){
+        if(!$(id).value) continue;
+        const ps = $(id).value.split('\n').map(s=>s.trim()).filter(s=>s);
+        $(id).value = ps.map(fixPunct).join('\n');
+      }
     }},
-  {id:'r_dash', name:'连字符规范：ASCII 连字符"-"统一改为一字线"—"', lv:'warn',
+  {id:'r_dash', name:'连接号规范：时间/地域起止用一字线"—"、数值范围用浪纹"～"（ASCII 连字符"-"自动规范）', lv:'warn',
     check: d => {
       let n = 0;
       const scan = s => { if(s) n += (s.match(/-/g) || []).length; };
       scan(d.title); scan(d.to); scan(d.org); scan(d.no); scan(d.date); scan(d.cc); scan(d.attach);
       d.paras.forEach(scan); d.attachParas.forEach(scan);
-      return n ? `检测到 ${n} 处 ASCII 连字符"-"，建议改为一字线"—"` : null;
+      return n ? `检测到 ${n} 处 ASCII 连字符"-"，建议规范为时间/地域起止一字线"—"或数值范围浪纹"～"` : null;
     },
     fix: () => {
-      const conv = s => s.replace(/-/g, '—');
       for(const id of ['inTitle','inTo','inOrg','inNo','inDate','inCc','inAttach','inBody','inAttachBody'])
-        if($(id).value) $(id).value = conv($(id).value);
+        if($(id).value) $(id).value = $(id).value.split('\n').map(x=>normDash(x)).join('\n');
     }},
   {id:'r_color', name:'正文文字颜色为黑色', lv:'warn',
     check: () => /color\s*[:=]|<font/i.test($('rawText').value)
       ? '检测到原文含彩色文字标记，输出已统一为黑色' : null},
-  {id:'r_headings', name:'正文标题层级：一、（一）1.（1）格式与序号', lv:'warn',
+  {id:'r_headings', name:'正文标题层级：一、（一）1.(1)格式与序号', lv:'warn',
     check: d => {
       const r = fixHeadings(d.paras);
       return r.issues.length ? `标题层级存在 ${r.issues.length} 处格式/序号问题（${r.issues[0]}${r.issues.length>1?' 等':''}）` : null;
@@ -2135,12 +2174,12 @@ const RULES = [
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = fixHeadings(ps).paras.join('\n');
     }},
-  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.（1））', lv:'warn',
+  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.(1)）', lv:'warn',
     check: d => {
       const fixed = normalizeHeadingLevels(d.paras);
       let ch = 0;
       for(let i = 0; i < d.paras.length; i++) if(fixed[i] !== d.paras[i]) ch++;
-      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「（1）」依次编排` : null;
+      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「(1)」依次编排` : null;
     },
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
@@ -2172,25 +2211,18 @@ const RULES = [
       const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inAttachBody').value = normalizeHeadings(ap).join('\n');
     }},
-  {id:'r_headtime', name:'标题中时间表示规范（半角冒号 12:00 → 全角 12：00）', lv:'warn',
+  {id:'r_headtime', name:'时间冒号规范（全角 12：00 → 半角 12:00）', lv:'warn',
     check: d => {
-      const cnt = arr => {
-        let n = 0;
-        for(const l of arr){
-          // 仅标题行、且使用半角冒号表示时间（如 12:00）才需修正
-          if(headingLevelOf(l) >= 0 && /\d{1,2}:(?=\d{1,2})/.test(l)) n++;
-        }
-        return n;
-      };
-      const n = cnt(d.paras) + cnt(d.attachParas);
-      if(!n) return null;
-      return `检测到 ${n} 处标题中的时间使用了半角冒号（如 12:00），公文规范应使用全角冒号「：」（即 12：00），时间本身不删除`;
+      const re = /\d{1,2}：(?=\d{1,2})/;
+      let n = 0;
+      const scan = arr => arr.forEach(l => { if(l && re.test(l)) n++; });
+      scan([d.title,d.to,d.org,d.no,d.date,d.cc,d.attach]);
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处时间使用了全角冒号（如 12：00），公文规范时间应使用半角冒号「:」（即 12:00），时间本身不删除` : null;
     },
     fix: () => {
-      const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inBody').value = ps.map(fixTimeColon).join('\n');
-      const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
-      $('inAttachBody').value = ap.map(fixTimeColon).join('\n');
+      const fields = ['inTitle','inTo','inOrg','inNo','inDate','inCc','inAttach','inBody','inAttachBody'];
+      for(const id of fields) if($(id).value) $(id).value = $(id).value.split('\n').map(x=>fixTimeColon(x)).join('\n');
     }},
   {id:'r_land', name:'宽表格/超宽内容自动横排（GB/T 9704-2012 横向页）', lv:'info',
     check: d => {
@@ -2221,6 +2253,29 @@ const RULES = [
       const bad = imgs.filter(u => !/^(data:image\/|https?:\/\/|\/|\.\.?\/)/.test(u.trim())).length;
       if(bad) return `检测到 ${imgs.length} 张图片，其中 ${bad} 张地址无效（须为 data:image/... 或 http(s) 链接）`;
       return null;
+    }},
+  {id:'r_bracket', name:'六角括号规范：发文字号年份须用六角括号〔〕（勿用空心方括号【】）', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = arr => arr.forEach(l => { if(l) n += (l.match(/【/g) || []).length; });
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处空心方括号【】（含发文字号年份写法如【2026】8号），公文规范应使用六角括号〔〕` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody'])
+        if($(id).value) $(id).value = $(id).value.replace(/【/g,'〔').replace(/】/g,'〕');
+    }},
+  {id:'r_parallel', name:'并列书名号/引号间顿号删除（《红楼梦》、《水浒传》→《红楼梦》《水浒传》）', lv:'warn',
+    check: d => {
+      const re = /(《[^》]+》|“[^”]+”|‘[^’]+’)\s*[、，,]\s*(?=(?:《[^》]+》|“[^”]+”|‘[^’]+’))/;
+      let n = 0;
+      const scan = arr => arr.forEach(l => { if(l && re.test(l)) n++; });
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处标有书名号/引号的并列成分之间含顿号，应删除（如《红楼梦》、《水浒传》→《红楼梦》《水浒传》）` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody'])
+        if($(id).value) $(id).value = $(id).value.split('\n').map(x=>normParallel(x)).join('\n');
     }},
 ];
 function ruleEnabled(r){
