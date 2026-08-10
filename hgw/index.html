@@ -176,6 +176,13 @@
   .p.h3,.p.h4{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   /* 二级标题内句号后文本：与正文同字体（仿宋） */
   .p .body-f{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
+  /* 正文智能引号（‘’“”）：浏览器默认取字体栈首位的 Times New Roman，包裹 .q 改以正文公文字体优先，
+     使引号随正文同字体（仿宋/黑体/楷体），符合党政机关公文格式规范 */
+  .p .q{font-family:"方正仿宋_GBK","FangSong_GB2312","仿宋","Times New Roman",serif}
+  .p.h1 .q{font-family:"方正黑体_GBK","FZHei-B01","黑体","SimHei","Times New Roman",sans-serif}
+  .p.h2 .q{font-family:"方正楷体_GBK","楷体","KaiTi","Times New Roman",serif}
+  .p.h3 .q,.p.h4 .q{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif}
+  .body-f .q{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif}
   /* 附件说明：左空二字起排"附件："，回行时与上一行附件名称首字对齐（悬挂缩进） */
   .attach-box{position:relative;margin-top:38.5px;font-size:16pt;line-height:38.5px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;padding-left:2em}
@@ -1296,6 +1303,9 @@ function collect(){
 
 /* ---------- 预览渲染 ---------- */
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// 智能引号（‘’“” U+2018–U+201D）浏览器优先以字体栈首位的 Times New Roman 呈现，
+// 与正文中文字体不统一。用中文公文字体优先的 .q 包裹，使其随正文同字体。
+function qspan(html){ return html.replace(/[‘’“”]/g, m => `<span class="q">${m}</span>`); }
 
 function headerHTML(d){
   if(d.plain) return '';   // 通用格式：无红头标志与发文字号
@@ -1440,9 +1450,9 @@ function paraHTML(s){
   if(k === 'h2'){
     const ci = s.indexOf('。');
     if(ci >= 0 && ci < s.length - 1 && s.slice(ci+1).trim())
-      return `<div class="p h2">${esc(s.slice(0, ci+1))}<span class="body-f">${esc(s.slice(ci+1))}</span></div>`;
+      return `<div class="p h2">${qspan(esc(s.slice(0, ci+1)))}<span class="body-f">${qspan(esc(s.slice(ci+1)))}</span></div>`;
   }
-  return `<div class="p ${k}">${esc(s)}</div>`;
+  return `<div class="p ${k}">${qspan(esc(s))}</div>`;
 }
 function estLines(d){
   const blocks = [];
@@ -1626,6 +1636,29 @@ async function buildDocxBlob(d){
   const run = (text, font, pt, extra={}) =>
     new TextRun({text, font, size: Math.round(pt*2), ...extra});
 
+  // 智能引号（‘’“” U+2018–U+201D）属 hAnsi 范围，Word 默认以 hAnsi 字体(Times New Roman) 呈现，
+  // 与相邻汉字(方正仿宋_GBK)字体不统一。拆为独立 run，并将其 hAnsi 亦指向中文公文字体，
+  // 使引号随正文用仿宋/黑体/楷体（党政机关公文格式：引号作汉字标点应随正文同字体）。
+  const Q_RE = /[‘’“”]/;
+  function splitRuns(s, font, pt, extra={}){
+    const east = font.eastAsia;
+    const runs = [];
+    let buf = '', bufQ = null;
+    const flush = () => {
+      if(!buf) return;
+      runs.push(bufQ ? run(buf, {...font, hAnsi: east}, pt, extra) : run(buf, font, pt, extra));
+      buf = ''; bufQ = null;
+    };
+    for(const ch of s){
+      const q = Q_RE.test(ch);
+      if(bufQ === null){ bufQ = q; buf += ch; }
+      else if(q === bufQ){ buf += ch; }
+      else { flush(); bufQ = q; buf += ch; }
+    }
+    flush();
+    return runs;
+  }
+
   const line578 = {line: PT(28.9), lineRule: LineRuleType.EXACT};
   const letter = d.t.f === 'letter';
   const children = [];
@@ -1711,9 +1744,9 @@ async function buildDocxBlob(d){
     if(k === 'h2'){
       const ci = p.indexOf('。');
       if(ci >= 0 && ci < p.length - 1 && p.slice(ci+1).trim())
-        kids = [run(p.slice(0, ci+1), F_KAI, 16), run(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
-      else kids = [run(p, font, 16)];
-    } else kids = [run(p, font, 16)];
+        kids = [...splitRuns(p.slice(0, ci+1), F_KAI, 16), ...splitRuns(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
+      else kids = splitRuns(p, font, 16);
+    } else kids = splitRuns(p, font, 16);
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,   // 两端对齐
       indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
@@ -1738,7 +1771,7 @@ async function buildDocxBlob(d){
         return new TableCell({
           margins:{top:60, bottom:60, left:100, right:100},
           verticalAlign: VerticalAlign.CENTER,
-          children:[new Paragraph({...paraOpts, children:[run(c, ri===0?F_HEI:F_FS, 10.5)]})]
+          children:[new Paragraph({...paraOpts, children: splitRuns(c, ri===0?F_HEI:F_FS, 10.5)})]
         });
       })}))
     });
@@ -1795,7 +1828,7 @@ async function buildDocxBlob(d){
     children.push(new Paragraph({
       indent,
       spacing: i===0 ? {before: PT(28.9), ...line578} : {...line578},
-      children:[run((i===0 ? '附件：' : '') + it, F_FS, 16)]
+      children: splitRuns((i===0 ? '附件：' : '') + it, F_FS, 16)
     }));
   });
 
@@ -1874,7 +1907,7 @@ async function buildDocxBlob(d){
         top:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1},
         bottom:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1}
       },
-      children:[run('抄送：'+d.cc+'。', F_FS, 14)]
+      children: splitRuns('抄送：'+d.cc+'。', F_FS, 14)
     }));
   }
 
