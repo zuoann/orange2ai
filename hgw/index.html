@@ -1349,7 +1349,10 @@ function fixHeadings(paras){
     for(let k=lv+1;k<4;k++) counters[k]=0;
     const exp=counters[lv];
     const mark = formatLevelMark(lv, exp);
-    const rest2 = lv<=1 ? it.rest.replace(/[。，、；：？！\s]+$/,'') : it.rest;
+    // 一、二级标题：独占一行时末尾不加标点；后接排正文时该段末尾须加句号
+    const rest2 = lv<=1
+      ? (headInlineBody(it.rest) ? endWithPeriod(it.rest) : it.rest.replace(/[。，、；：？！\s]+$/,''))
+      : it.rest;
     const rebuilt = mark + rest2;
     if(rebuilt === p0) return p0;
 
@@ -1357,7 +1360,9 @@ function fixHeadings(paras){
     const naturalLv = it.shape === 'A' ? 0 : it.shape === 'B' ? 1 : it.shape === 'C' ? 2 : 3;
     const shapeChanged = (lv !== naturalLv);
     if(rest2 !== it.rest)
-      issues.push(`已删除${lv===0?'一':'二'}级标题末尾标点：「${p0.slice(0,12)}…」`);
+      issues.push(headInlineBody(it.rest)
+        ? `${lv===0?'一':'二'}级标题接排正文，已在段末补句号：「${p0.slice(0,12)}…」`
+        : `已删除${lv===0?'一':'二'}级标题末尾标点：「${p0.slice(0,12)}…」`);
     else if(it.shape === 'IR' || shapeChanged)
       issues.push(`不规范标题序号已校正：「${p0.slice(0,10)}…」→「${mark}…」`);
     else if(it.num !== null && it.num !== exp)
@@ -1483,7 +1488,10 @@ function normalizeHeadingLevels(lines){
     const n = counters[lv];
     const mark = formatLevelMark(lv, n);   // 统一经 formatLevelMark 生成（四级为全角（n））
     let rest = it.rest;
-    if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
+    if(lv <= 1){
+      // 一、二级标题：独占一行时末尾不加标点；后接排正文时该段末尾须加句号
+      rest = headInlineBody(rest) ? endWithPeriod(rest) : rest.replace(/[。，、；：？！\s]+$/, '');
+    }
     return mark + rest;
   });
 }
@@ -1508,6 +1516,32 @@ function headingLevelOf(p){
 function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
 function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
 function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?:[:：]\d{1,2})?/g, t => t.replace(/：/g, ':')); }
+/* ---------- 标题接排正文：段末句号（GB/T 9704-2012 7.3.3）----------
+ * 规范：一级/二级标题独占一行时末尾不加标点；标题后接着排印正文的，该段为完整段落，末尾须加句号。
+ * headInlineBody：判定「序号+标题短语」之后是否还接排有实质正文。
+ *   以首个非时间的句末分隔符（。！？；：）为界，其后仍有内容即为接排；分隔符位于末尾则为纯标题。
+ * endWithPeriod：段末补句号；已有句末标点则保留，末尾为逗号/顿号/冒号则改为句号，
+ *   末尾为闭合引号/书名号/括号时在其内侧判断（如「…“双高计划”」→「…“双高计划”。」）。 */
+function headInlineBody(rest){
+  if(!rest) return null;
+  const re = /[。！？；:：]/g;
+  let m;
+  while((m = re.exec(rest)) !== null){
+    if((m[0] === ':' || m[0] === '：') && colonIsTime(rest, m.index)) continue;   // 时间冒号不是标题分隔符
+    const tail = rest.slice(m.index + 1).trim();
+    return tail ? {title: rest.slice(0, m.index), sep: m[0], tail} : null;
+  }
+  return null;
+}
+function endWithPeriod(s){
+  const t = String(s).replace(/\s+$/, '');
+  if(!t) return s;
+  if(/[。！？；…]$/.test(t)) return t;                                   // 已有句末标点
+  if(/[”’》）)】」』]$/.test(t))                                         // 闭合符号：看其内侧
+    return /[。！？；…][”’》）)】」』]+$/.test(t) ? t : t + '。';
+  if(/[，、：:]$/.test(t)) return t.replace(/[，、：:]+$/, '。');          // 末尾逗号/顿号/冒号 → 句号
+  return t + '。';
+}
 function fixHeadingColon(lines){
   return lines.map(l=>{
     const lv = headingLevelOf(l);
@@ -1543,7 +1577,7 @@ function splitHeadingInlineBody(lines){
     }
     if(hasDeeper){ out.push(p); continue; }               // 其下有更深层级，保留原样
     out.push((marker + title).replace(/[：:]+$/, '').trim());
-    out.push(rest.trim());
+    out.push(endWithPeriod(rest.trim()));   // 标题后接排的正文独立成段，段末补句号
   }
   return out;
 }
@@ -3529,9 +3563,9 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_issue','r_typo','r_numuse'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
@@ -3671,6 +3705,30 @@ const RULES = [
       $('inBody').value = normalizeHeadings(ps).join('\n');
       const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inAttachBody').value = normalizeHeadings(ap).join('\n');
+    }},
+  {id:'r_headinline', name:'标题接排正文段末句号（一、/（一）标题后接排正文的，该段末尾加句号）', lv:'warn',
+    check: d => {
+      const cnt = arr => {
+        let n = 0;
+        for(const l of arr){
+          const lv = headingLevelOf(l);
+          if(lv !== 0 && lv !== 1) continue;
+          const sh = detectHeadingShape(l);
+          if(!sh) continue;
+          const inl = headInlineBody(sh.rest);
+          if(inl && endWithPeriod(sh.rest) !== sh.rest) n++;
+        }
+        return n;
+      };
+      const n = cnt(d.paras) + cnt(d.attachParas || []);
+      return n ? `检测到 ${n} 处标题后接排正文的段落末尾缺少句号（GB/T 9704-2012 7.3.3：标题独占一行时末尾不加标点，接排正文的该段末尾应加句号）` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody']){
+        const v = $(id).value; if(!v) continue;
+        const ps = v.split('\n').map(s=>s.trim()).filter(s=>s);
+        $(id).value = normalizeHeadings(ps).join('\n');
+      }
     }},
   {id:'r_headtime', name:'时间冒号规范（全角 12：00 → 半角 12:00）', lv:'warn',
     check: d => {
