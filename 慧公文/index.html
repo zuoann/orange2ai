@@ -406,6 +406,29 @@
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   /* 版记（抄送）置于最后一页版心最底部 */
   .cc.bottom{position:absolute;bottom:0;left:0;right:0;margin-top:0}
+  /* ---------- 版头要素（GB/T 9704-2012 · 7.2）：份号 / 密级与保密期限 / 紧急程度 ---------- */
+  /* 版心左上角顶格，自上而下分行；三号黑体 */
+  .vhead{position:absolute;left:0;top:0;font-size:16pt;line-height:1.6;
+    font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
+  .vhead .vh-item{white-space:nowrap}
+  .fw-logo.has-vh{margin-top:96px}   /* 已占用版头三行时，红头相应下移 */
+  /* ---------- 版记（GB/T 9704-2012 · 7.5） ---------- */
+  .banji{font-size:14pt;line-height:1.75;
+    font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
+  .banji.bottom{position:absolute;bottom:0;left:0;right:0}
+  .bj-line{height:0;border-top:1px solid #000}
+  .bj-cc{padding:2px 1em;text-indent:0}                 /* 抄送：左右各空一字 */
+  .bj-cc .bj-lb{float:left}
+  .bj-cc .bj-tx{display:block;margin-left:4em}          /* 回行与冒号后首字对齐 */
+  .bj-issue{display:flex;justify-content:space-between;padding:2px 1em}   /* 印发机关左空一字、印发日期右空一字 */
+  /* ---------- 印章与成文日期套印示意（7.3.5） ---------- */
+  .seal-wrap{position:relative}
+  .seal-mark{position:absolute;right:38px;top:-52px;width:150px;height:150px;border-radius:50%;
+    border:3px solid var(--red);color:var(--red);display:grid;place-items:center;
+    font-size:11pt;letter-spacing:1px;text-align:center;opacity:.5;pointer-events:none;
+    font-family:"方正小标宋简体","小标宋体",serif}
+  .seal-mark::after{content:'★';position:absolute;font-size:22pt;opacity:.75}
+  .signdate.no-seal{padding-right:4em}   /* 不加盖印章：成文日期右空四字 */
   /* 附件页（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，附件标题居中第三行 */
   .att-head{font-size:16pt;line-height:38.5px;text-indent:0;
     font-family:"Times New Roman","方正黑体_GBK","FZHei-B01","黑体","SimHei",sans-serif}
@@ -478,6 +501,66 @@
   .iss.info{background:rgba(var(--cyan-rgb),.08);border:1px solid rgba(var(--cyan-rgb),.3);color:var(--cyan)}
   .iss.ok{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}
   #checkResult{margin-top:12px}
+
+  /* 校验修复记录面板 */
+  .log-stat{margin-top:10px;font-size:11.5px;color:var(--muted-c);line-height:1.7;
+    padding:8px 10px;border-radius:8px;border:1px solid rgba(100,116,139,.2);background:var(--tile);min-height:18px}
+  .log-stat b{color:var(--cyan)}
+  .log-stat .e{color:#fca5a5}
+  .log-stat .w{color:#fcd34d}
+  .log-stat a{text-decoration:none;cursor:pointer}
+  .log-bar{display:flex;gap:8px;align-items:center;margin:14px 0 10px}
+  .lg-chip{padding:4px 12px;border-radius:99px;font-size:11px;cursor:pointer;user-select:none;
+    border:1px solid rgba(100,116,139,.3);color:var(--muted-c);background:var(--tile);transition:all .2s}
+  .lg-chip.on{border-color:var(--cyan);color:var(--cyan);background:rgba(var(--cyan-rgb),.12)}
+  .log-list{max-height:52vh;overflow-y:auto;padding:2px}
+  /* 版式体检 */
+  .ly-diagram{background:rgba(var(--cyan-rgb),.05);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:14px}
+  .ly-list{display:flex;flex-direction:column;gap:8px}
+  .ly-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2)}
+  .ly-item .ic{flex:0 0 auto;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700}
+  .ly-item.ok .ic{background:rgba(34,197,94,.16);color:#4ade80}
+  .ly-item.na .ic{background:rgba(250,204,21,.16);color:#facc15}
+  .ly-item .main{flex:1;min-width:0}
+  .ly-item .lb{font-size:13px;font-weight:600;color:var(--txt)}
+  .ly-item .vl{margin-left:8px;font-weight:400;color:var(--cyan);font-size:12px}
+  .ly-item .nt{font-size:11.5px;color:var(--muted-c);line-height:1.6;margin-top:2px}
+  .log-item{display:flex;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:8px;
+    border:1px solid rgba(100,116,139,.2);background:var(--tile);font-size:12px;line-height:1.6}
+  .log-item .ic{width:22px;height:22px;flex:none;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700}
+  .log-item.fix .ic{background:rgba(52,211,153,.14);color:#6ee7b7}
+  .log-item.check .ic{background:rgba(var(--cyan-rgb),.1);color:var(--cyan)}
+  .log-item.err .ic{background:rgba(230,0,18,.14);color:#fca5a5}
+  .log-item.warn .ic{background:rgba(245,158,11,.14);color:#fcd34d}
+  .log-item.info .ic{background:rgba(139,92,246,.14);color:#c4b5fd}
+  .log-item .main{flex:1;min-width:0}
+  .log-item .cat{color:var(--txt);font-weight:600;font-size:12.5px}
+  .log-item .cat .tag{font-size:10px;font-weight:400;padding:1px 7px;border-radius:99px;margin-left:6px;
+    background:rgba(100,116,139,.2);color:var(--muted-c)}
+  .log-item .diff{margin-top:4px;color:var(--dim);word-break:break-all}
+  .log-item .diff .b{color:#fca5a5;text-decoration:line-through;opacity:.8}
+  .log-item .diff .a{color:#6ee7b7}
+  .log-item .diff .arr{color:var(--muted-c);margin:0 5px}
+  /* 原文对照 diff */
+  .diff2{display:flex;align-items:stretch;gap:8px;margin-bottom:10px}
+  .diff2 .d-side{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--panel2);overflow:hidden}
+  .diff2 .dh{font-size:11px;color:var(--muted-c);padding:6px 10px;border-bottom:1px solid var(--line);background:rgba(var(--cyan-rgb),.05)}
+  .diff2 .dt{padding:9px 10px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+  .diff2 .d-b .dt{color:#fca5a5}
+  .diff2 .d-a .dt{color:#6ee7b7}
+  .diff2 .d-arr{flex:0 0 auto;display:grid;place-items:center;color:var(--muted-c);font-size:16px}
+  /* 质量看板 */
+  .qd-chart{display:flex;flex-direction:column;gap:9px}
+  .qd-row{display:flex;align-items:center;gap:10px}
+  .qd-rank{flex:0 0 auto;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:rgba(var(--cyan-rgb),.14);color:var(--cyan)}
+  .qd-main{flex:1;min-width:0}
+  .qd-cat{font-size:11px;color:var(--muted-c)}
+  .qd-bar{height:8px;border-radius:5px;background:rgba(var(--cyan-rgb),.12);overflow:hidden;margin:3px 0}
+  .qd-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:5px}
+  .qd-label{font-size:12px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qd-num{flex:0 0 auto;font-weight:700;color:var(--cyan);font-size:13px}
+  .qd-foot{margin-top:14px;font-size:12px;color:var(--muted-c)}
+  .log-empty{text-align:center;color:var(--dim);font-size:12px;padding:36px 0}
 
   /* 模板库 / 规则库 / 历史 列表 */
   .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -766,6 +849,24 @@
 
     <div class="card">
       <h2><span class="num">03</span>公文要素校核<span class="tag">ELEMENTS</span></h2>
+      <div class="row" id="fVersionHead">
+        <div class="field"><label>份号<small>版心左上角第一行，6 位</small></label>
+          <input type="text" id="inCopyNo" placeholder="如：000001（涉密必填）"></div>
+        <div class="field"><label>密级与保密期限<small>第二行，顶格</small></label>
+          <select id="inSecret">
+            <option value="">不标注</option><option value="秘密">秘密</option>
+            <option value="机密">机密</option><option value="绝密">绝密</option>
+          </select></div>
+      </div>
+      <div class="row" id="fVersionHead2">
+        <div class="field"><label>保密期限<small>如 5年，与密级用★连接</small></label>
+          <input type="text" id="inSecretTerm" placeholder="如：5年（可留空）"></div>
+        <div class="field"><label>紧急程度<small>第三行，顶格</small></label>
+          <select id="inUrgent">
+            <option value="">不标注</option><option value="特急">特急</option>
+            <option value="加急">加急</option><option value="特提">特提</option>
+          </select></div>
+      </div>
       <div class="field" id="fLogo"><label>发文机关标志（红头）<small>红色小标宋，居中</small></label>
         <input type="text" id="inLogo" value="××××××文件"></div>
       <div class="field" id="fNo"><label>发文字号<small>三号仿宋；政发202611号 / (2026) / &lt;2026&gt; 等写法自动规范为〔2026〕</small></label>
@@ -786,8 +887,19 @@
         <div class="field"><label>发文机关署名</label><input type="text" id="inOrg" placeholder="如：××省人民政府"></div>
         <div class="field"><label>成文日期</label><input type="text" id="inDate"></div>
       </div>
+      <div class="field" id="fSeal"><label>用印方式<small>GB/T 9704-2012 · 7.3.5｜加盖印章时印章下沿距正文，不加盖时成文日期右空四字</small></label>
+        <select id="inSeal">
+          <option value="seal">加盖发文机关印章（单一机关）</option>
+          <option value="none">不加盖印章（成文日期右空四字）</option>
+        </select></div>
       <div class="field" id="fCc"><label>抄送机关<small>可选，版记部分，四号仿宋</small></label>
         <input type="text" id="inCc" placeholder="如：省委办公厅，省人大常委会办公厅"></div>
+      <div class="row" id="fIssue">
+        <div class="field"><label>印发机关<small>版记末行左空一字</small></label>
+          <input type="text" id="inIssuer" placeholder="如：××省人民政府办公厅"></div>
+        <div class="field"><label>印发日期<small>版记末行右空一字</small></label>
+          <input type="text" id="inIssueDate" placeholder="如：2026年8月10日"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -799,10 +911,14 @@
       </div>
       <label class="clean-opt"><input type="checkbox" id="ckLand" checked>
         <span>宽表格/超宽内容自动横排 <i>GB/T 9704-2012 横向页：表格顶边朝左订口、页码置于表格左侧</i></span></label>
+      <label class="clean-opt"><input type="checkbox" id="ckSeal" checked>
+        <span>显示印章套印位置示意 <i>GB/T 9704-2012 · 7.3.5：单一机关行文加盖印章，骑年盖月、印章下沿距成文日期；示意图仅用于预览定位，不写入导出文件</i></span></label>
       <div class="rules" id="ruleList"></div>
       <div class="row mt">
         <button class="btn btn-ghost" id="btnCheck">⚔ 立即校验</button>
         <button class="btn btn-ghost" id="btnFixAll">⚒ 一键修复</button>
+        <button class="btn btn-ghost" id="btnLayout">📐 版式体检</button>
+        <button class="btn btn-ghost" id="btnStats">📊 质量看板</button>
       </div>
       <div class="row mt">
         <button class="btn btn-ghost" id="btnRuleLib">☰ 规则库</button>
@@ -811,6 +927,12 @@
         <input type="file" id="ruleFile" accept=".json" style="display:none">
       </div>
       <div id="checkResult"></div>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnLog">📋 校验修复记录</button>
+        <button class="btn btn-ghost" id="btnLogClear">🧹 清空记录</button>
+        <button class="btn btn-ghost" id="btnDiff">🔍 原文对照</button>
+      </div>
+      <div id="logStat" class="log-stat">本次暂无校验修复记录</div>
     </div>
 
     <div class="card">
@@ -867,6 +989,28 @@
   </div>
 </div>
 
+<!-- 校验修复记录 -->
+<div class="mask hidden" id="modalLog">
+  <div class="modal" style="max-width:700px">
+    <div class="m-head">📋 校验修复记录<span class="x" data-x="modalLog">✕</span></div>
+    <div class="m-body">
+      <div id="logModalStat" class="log-stat" style="margin-bottom:8px"></div>
+      <div class="log-bar" id="logChips">
+        <div class="lg-chip on" data-f="all">全部</div>
+        <div class="lg-chip" data-f="fix">修复</div>
+        <div class="lg-chip" data-f="check">校验</div>
+      </div>
+      <div class="log-list" id="fixLogList"></div>
+    </div>
+    <div class="m-foot" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-primary" id="btnLogExpTxt">⬇ 导出 TXT</button>
+      <button class="btn btn-ghost" id="btnLogExpJson">⬇ 导出 JSON</button>
+      <button class="btn btn-ghost" id="btnLogExpHtml">⬇ 导出 HTML</button>
+      <button class="btn btn-red" id="btnLogClear2" style="margin-left:auto">🧹 清空</button>
+    </div>
+  </div>
+</div>
+
 <!-- 团队规则库 -->
 <div class="mask hidden" id="modalLib">
   <div class="modal">
@@ -918,6 +1062,60 @@
   </div>
 </div>
 
+<!-- 版式体检 -->
+<div class="mask hidden" id="modalLayout">
+  <div class="modal" style="max-width:680px">
+    <div class="m-head">📐 版式体检 · GB/T 9704-2012 6 版式 / 7.6 页码<span class="x" data-x="modalLayout">✕</span></div>
+    <div class="m-body">
+      <div id="layoutStat" class="log-stat" style="margin-bottom:10px"></div>
+      <div id="layoutBody"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" id="btnLayoutClose" data-x="modalLayout" style="margin-left:auto">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 原文对照 diff -->
+<div class="mask hidden" id="modalDiff">
+  <div class="modal" style="max-width:760px">
+    <div class="m-head">🔍 原文对照 · 修正前后比对<span class="x" data-x="modalDiff">✕</span></div>
+    <div class="m-body">
+      <div id="diffStat" class="log-stat" style="margin-bottom:10px"></div>
+      <div id="diffBody"></div>
+    </div>
+    <div class="m-foot" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="btnDiffExpTxt">⬇ 导出 TXT</button>
+      <button class="btn btn-ghost" id="btnDiffExpHtml">⬇ 导出 HTML</button>
+      <button class="btn btn-primary" id="btnDiffClose" data-x="modalDiff" style="margin-left:auto">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 草稿恢复 -->
+<div class="mask hidden" id="modalRestore">
+  <div class="modal" style="max-width:440px">
+    <div class="m-head">📝 草稿恢复<span class="x" data-x="modalRestore">✕</span></div>
+    <div class="m-body" id="restoreBody"></div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" id="btnDiscardDraft">放弃草稿</button>
+      <button class="btn btn-primary" id="btnRestoreDraft" style="margin-left:auto">恢复草稿</button>
+    </div>
+  </div>
+</div>
+
+<!-- 质量看板 -->
+<div class="mask hidden" id="modalStats">
+  <div class="modal" style="max-width:640px">
+    <div class="m-head">📊 质量看板 · 高频错误统计<span class="x" data-x="modalStats">✕</span></div>
+    <div class="m-body"><div id="statsBody"></div></div>
+    <div class="m-foot" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="btnStatsExp">⬇ 导出 JSON</button>
+      <button class="btn btn-red" id="btnClearStats" style="margin-left:auto">🧹 清空统计</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
  * GB/T 9704-2012 公文排版引擎
@@ -962,6 +1160,7 @@ function renderTypes(){
     $('fLogo').classList.toggle('hidden', plain);
     $('fNo').classList.toggle('hidden', plain);
     $('fCc').classList.toggle('hidden', plain);
+    ['fVersionHead','fVersionHead2','fIssue','fSeal'].forEach(x => $(x).classList.toggle('hidden', plain));
     $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
     renderTypes(); renderPreview(); pushSnap();
   });
@@ -1001,7 +1200,8 @@ function cn2numH(s){
  * 规范结构层次序数仅四级：「一、」→「（一）」→「1.」→「(1)」。
  * 文稿中常见的字母序号（A. / a) /（B））、圈号（①②③ / ⑴⑵ / ⒈⒉ / ⒜Ⓐⓐ / ❶➀）、
  * 罗马数字（Ⅰ Ⅱ Ⅲ / I. II. III.）与天干（甲、乙、丙）均不属规范序数，
- * 统一识别为半角括号阿拉伯数字 (n)，再由层级编排按嵌套关系重新连续编号。
+ * 统一识别为半圆括号阿拉伯数字 (n)，再由层级编排按嵌套关系重新连续编号。
+ * 注：最终渲染的四级序号使用全角「（n）」（见 formatLevelMark / normFourthParen），此处仅作检测态。
  * 注：此处数值仅作占位，后续必被 counters 重排，故字母与罗马数字取值重叠
  *     （如 I 既是字母 9 又是罗马 1）不影响最终结果。 */
 function ordOfChar(ch){
@@ -1030,59 +1230,146 @@ function ordTokenVal(t){
   if(/^[A-Za-z]$/.test(t)) return t.toUpperCase().charCodeAt(0) - 64;
   return null;                                            // 如 "APP、" "IT、" 等非序号词不改
 }
-function normHeadOrd(p){
-  if(!p) return p;
+/* 识别不规范标题序号（A. ① Ⅰ 甲、 等），返回 {n, rest} 或 null；rest 为序号之后的正文 */
+function irregularHead(p0){
+  if(!p0) return null;
   let m;
   // ① 符号型序号（①⑴⒈ⒶⅠ❶ 等）：标记自明，其后分隔符可有可无
-  if(m = p.match(/^[\s\u3000]*([\u2160-\u216B\u2170-\u217B\u2460-\u24E9\u2776-\u2793\u3251-\u325F\u32B1-\u32BF])[\s\u3000]*[、.．，,)）]?[\s\u3000]*(?=\S)/)){
-    const n = ordOfChar(m[1]), rest = p.slice(m[0].length);
+  if(m = p0.match(/^[\s\u3000]*([\u2160-\u216B\u2170-\u217B\u2460-\u24E9\u2776-\u2793\u3251-\u325F\u32B1-\u32BF])[\s\u3000]*[、.．，,)）]?[\s\u3000]*(?=\S)/)){
+    const n = ordOfChar(m[1]), rest = p0.slice(m[0].length);
     // 后接同类符号（如"①②③三种情形"）属正文列举而非标题，不改
-    if(n && ordOfChar(rest.charAt(0)) === null) return '(' + n + ')' + rest;
+    if(n && ordOfChar(rest.charAt(0)) === null) return {n, rest};
   }
   // ② 括号包裹的字母／罗马数字／天干：（A）(a) (III) （甲）
-  if(m = p.match(/^[\s\u3000]*[（(][\s\u3000]*([A-Za-z]{1,4}|[甲乙丙丁戊己庚辛壬癸])[\s\u3000]*[)）][\s\u3000]*(?=\S)/)){
+  if(m = p0.match(/^[\s\u3000]*[（(][\s\u3000]*([A-Za-z]{1,4}|[甲乙丙丁戊己庚辛壬癸])[\s\u3000]*[)）][\s\u3000]*(?=\S)/)){
     const n = ordTokenVal(m[1]);
-    if(n) return '(' + n + ')' + p.slice(m[0].length);
+    if(n) return {n, rest: p0.slice(m[0].length)};
   }
   // ③ 裸序号 + 分隔符：A. a) B、 III. 甲、
   //    要求分隔符后为中文或数字，避免 "i.e." "e.g." 等英文缩写被误判为序号
-  if(m = p.match(/^[\s\u3000]*([A-Za-z]{1,4}|[甲乙丙丁戊己庚辛壬癸])[\s\u3000]*[、.．)）][\s\u3000]*(?=[^\x00-\x7F]|\d)/)){
+  if(m = p0.match(/^[\s\u3000]*([A-Za-z]{1,4}|[甲乙丙丁戊己庚辛壬癸])[\s\u3000]*[、.．)）][\s\u3000]*(?=[^\x00-\x7F]|\d)/)){
     const n = ordTokenVal(m[1]);
-    if(n) return '(' + n + ')' + p.slice(m[0].length);
+    if(n) return {n, rest: p0.slice(m[0].length)};
   }
+  return null;
+}
+function normHeadOrd(p){
+  if(!p) return p;
+  const ir = irregularHead(p);
+  if(ir) return '(' + ir.n + ')' + ir.rest;   // 不规范序号统一按四级 (n) 形态参与检测/层级编排
   return p;
 }
+/* 按规范层级生成标准序号标记：0→一、  1→（一）  2→1.  3→（1）
+ * 注：四级序号使用全角括号「（1）」，使括号随正文仿宋字体（而非西文 Times New Roman），
+ *     与党政机关公文格式规范一致（GB/T 9704-2012 7.3.3 结构层次序数）。 */
+function formatLevelMark(lv, n){
+  if(lv <= 0) return num2cn(n) + '、';
+  if(lv === 1) return '（' + num2cn(n) + '）';
+  if(lv === 2) return n + '.';
+  return '（' + n + '）';
+}
+/* 四级标题括号：半角 (n) → 全角 （n），使括号随正文仿宋字体（而非西文 Times New Roman）。
+ * 仅作用于行首四级序号；正文中的普通半角括号不受影响（正则要求行首 ^\( 数字 \)）。 */
+function normFourthParen(s){
+  if(!s) return s;
+  return s.replace(/^\((\d{1,3})\)/, '（' + '$1' + '）');
+}
 function fixHeadings(paras){
-  const issues=[]; const counters=[0,0,0,0];
-  const out = paras.map(p0=>{
-    const p = normHeadOrd(p0);          // 不规范序号（A. ① Ⅰ 甲、）先归一为 (n)
-    let lv=-1, num=null, rest='';
+  // 1. 检测每段标题形状（不规则序号保持独立，不预先归一）
+  const items = paras.map(p0 => {
+    const ir = irregularHead(p0);
+    if(ir) return {shape:'IR', rawLv:null, rest:ir.rest, p0, num:null};
     let m;
-    if(m=p.match(/^([一二三四五六七八九十]{1,3})\s*[、\.．，,]\s*/)){ lv=0; num=cn2numH(m[1]); rest=p.slice(m[0].length); }
-    else if(m=p.match(/^[（(]\s*([一二三四五六七八九十]{1,3})\s*[)）]\s*/)){ lv=1; num=cn2numH(m[1]); rest=p.slice(m[0].length); }
-    else if(m=p.match(/^[（(]\s*(\d{1,2})\s*[)）]\s*/)){ lv=3; num=+m[1]; rest=p.slice(m[0].length); }
-    else if(m=p.match(/^(\d{1,2})\s*[\.．、]\s*/)){ lv=2; num=+m[1]; rest=p.slice(m[0].length); }
-    if(lv===-1) return p;
+    if(m=p0.match(/^([一二三四五六七八九十]{1,3})\s*[、\.．，,]\s*/)) return {shape:'A', rawLv:0, num:cn2numH(m[1]), rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^[（(]\s*([一二三四五六七八九十]{1,3})\s*[)）]\s*/)) return {shape:'B', rawLv:1, num:cn2numH(m[1]), rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^[（(]\s*(\d{1,2})\s*[)）]\s*/)) return {shape:'D', rawLv:3, num:+m[1], rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^(\d{1,2})\s*[\.．、]\s*/)){
+      const rest=p0.slice(m[0].length);
+      // 避免 1.5倍 / 1.2.3 等小数、版本号被误判为标题；但允许 7.2021级 这类年份开头
+      if(/^\d+(?:[\.．]\d+)+/.test(rest)) return null;
+      if(/^\d+(?:\.\d+)?\s*(?:倍|%|％|℃|°C|°)(?!\w)/.test(rest)) return null;
+      return {shape:'C', rawLv:2, num:+m[1], rest, p0};
+    }
+    return null;
+  });
+  const hasA = items.some(it => it && it.shape === 'A');
+
+  // 2. 推断有效层级：含一级标题时按父级上下文填平跳级；否则按格式原层级。
+  // 不规则序号的父级必须是最近的标准标题（避免连续不规则序号互相踩深）。
+  const findStdParent = i => {
+    for(let j=i-1;j>=0;j--) if(items[j] && items[j].shape !== 'IR') return j;
+    return -1;
+  };
+  const effLv = new Array(items.length).fill(null);
+  if(!hasA){
+    // 无一级标题：fixHeadings 作为"一键修复"保留父级感知——标准形状保持自然层级，
+    // 不规则序号借用最近标准标题层级；全 irregular 时兜底一级（兼容旧测试）。
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'A') effLv[i]=0;
+      else if(it.shape === 'B') effLv[i]=1;
+      else if(it.shape === 'C') effLv[i]=2;
+      else if(it.shape === 'D') effLv[i]=3;
+      else if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+      }
+    }
+  } else {
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'A'){ effLv[i]=0; continue; }
+      if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+        continue;
+      }
+      let parentIdx = -1;
+      for(let j=i-1;j>=0;j--){
+        if(!items[j] || items[j].shape === 'IR') continue;   // 不规则序号不是结构父级
+        if(items[j].rawLv < it.rawLv){ parentIdx=j; break; }
+      }
+      if(parentIdx < 0){
+        effLv[i] = 0;   // 无父级：提到根层
+      } else {
+        effLv[i] = Math.min(it.rawLv, effLv[parentIdx] + 1);
+      }
+    }
+  }
+
+  // 3. 生成输出与 issue
+  const issues=[]; const counters=[0,0,0,0];
+  const out = paras.map((p0, i) => {
+    const it = items[i];
+    if(!it) return p0;
+    const lv = effLv[i];
     counters[lv]++;
     for(let k=lv+1;k<4;k++) counters[k]=0;
     const exp=counters[lv];
-    const mark = lv===0 ? num2cn(exp)+'、' : lv===1 ? '（'+num2cn(exp)+'）'
-               : lv===2 ? exp+'.' : '('+exp+')';
-    // 一级、二级标题末尾不加标点符号
-    const rest2 = lv<=1 ? rest.replace(/[。，、；：？！\s]+$/,'') : rest;
+    const mark = formatLevelMark(lv, exp);
+    // 一、二级标题：独占一行时末尾不加标点；后接排正文时该段末尾须加句号
+    const rest2 = lv<=1
+      ? (headInlineBody(it.rest) ? endWithPeriod(it.rest) : it.rest.replace(/[。，、；：？！\s]+$/,''))
+      : it.rest;
     const rebuilt = mark + rest2;
-    if(rebuilt !== p0){
-      if(rest2 !== rest)
-        issues.push(`已删除${lv===0?'一':'二'}级标题末尾标点：「${p0.slice(0,12)}…」`);
-      else if(p !== p0)
-        issues.push(`不规范标题序号已校正：「${p0.slice(0,10)}…」→「${mark}…」`);
-      else if(num !== null && num !== exp)
-        issues.push(`第${'一二三四'[lv]}级标题序号有误：「${p0.slice(0,12)}…」应为序号 ${lv<2?num2cn(exp):exp}`);
-      else
-        issues.push(`标题标记已规范：「${p0.slice(0,10)}…」→「${mark}…」`);
-      return rebuilt;
-    }
-    return p0;
+    if(rebuilt === p0) return p0;
+
+    // 判断改动类别：形状改变/不规则序号归一 → "不规范标题序号已校正"
+    const naturalLv = it.shape === 'A' ? 0 : it.shape === 'B' ? 1 : it.shape === 'C' ? 2 : 3;
+    const shapeChanged = (lv !== naturalLv);
+    if(rest2 !== it.rest)
+      issues.push(headInlineBody(it.rest)
+        ? `${lv===0?'一':'二'}级标题接排正文，已在段末补句号：「${p0.slice(0,12)}…」`
+        : `已删除${lv===0?'一':'二'}级标题末尾标点：「${p0.slice(0,12)}…」`);
+    else if(it.shape === 'IR' || shapeChanged)
+      issues.push(`不规范标题序号已校正：「${p0.slice(0,10)}…」→「${mark}…」`);
+    else if(it.num !== null && it.num !== exp)
+      issues.push(`第${'一二三四'[lv]}级标题序号有误：「${p0.slice(0,12)}…」应为序号 ${lv<2?num2cn(exp):exp}`);
+    else
+      issues.push(`标题标记已规范：「${p0.slice(0,10)}…」→「${mark}…」`);
+    return rebuilt;
   });
   return {paras: out, issues};
 }
@@ -1100,41 +1387,111 @@ function detectHeadingShape(p0){
   if(m = p.match(/^[（(]\s*([一二三四五六七八九十百零〇]{1,3})\s*[)）]\s*/)) return {shape:'B', rest:p.slice(m[0].length)};
   if(m = p.match(/^(\d{1,3})[.．、]\s*/)){
     const rest = p.slice(m[0].length);
-    if(/^\d/.test(rest)) return null;            // 避免 "1.5倍" 这类小数被误判为标题
+    // 避免 1.5倍 / 1.2.3 等小数、版本号被误判；但允许 7.2021级 这类年份开头
+    if(/^\d+(?:[.．]\d+)+/.test(rest)) return null;
+    if(/^\d+(?:\.\d+)?\s*(?:倍|%|％|℃|°C|°)(?!\w)/.test(rest)) return null;
     return {shape:'C', rest};
   }
   if(m = p.match(/^[（(]\s*(\d{1,3})\s*[)）]\s*/)) return {shape:'D', rest:p.slice(m[0].length)};
   return null;
 }
 function normalizeHeadingLevels(lines){
-  // 1. 收集文档中实际出现的不同标记形态（首次出现顺序）
-  const shapes = [];
-  for(const l of lines){
-    const d = detectHeadingShape(l);
-    if(d && !shapes.includes(d.shape)) shapes.push(d.shape);
+  // 直接识别标题形状；不规则序号（A. ① Ⅰ 甲）保持独立形状 'IR'，不预先归一为 (n)。
+  // 当文档含一级标题（一、）时，按父级上下文推断层级：effective = min(raw, parentEffective+1)，
+  // 从而把跳级的 1./(1) 以及不规则序号归到正确层级；无一级标题时回退到首次出现映射。
+  const items = lines.map(l => {
+    const ir = irregularHead(l);
+    if(ir) return {shape:'IR', rawLv:null, rest:ir.rest, n:ir.n};
+    let m;
+    if(m = l.match(/^([一二三四五六七八九十百零〇]{1,3})[、.．，,]\s*/)) return {shape:'A', rawLv:0, rest:l.slice(m[0].length)};
+    if(m = l.match(/^[（(]\s*([一二三四五六七八九十百零〇]{1,3})\s*[)）]\s*/)) return {shape:'B', rawLv:1, rest:l.slice(m[0].length)};
+    if(m = l.match(/^(\d{1,3})[.．、]\s*/)){
+      const rest = l.slice(m[0].length);
+      // 避免 1.5倍 / 1.2.3 等小数、版本号被误判；但允许 7.2021级 这类年份开头
+      if(/^\d+(?:[.．]\d+)+/.test(rest)) return null;
+      if(/^\d+(?:\.\d+)?\s*(?:倍|%|％|℃|°C|°)(?!\w)/.test(rest)) return null;
+      return {shape:'C', rawLv:2, rest};
+    }
+    if(m = l.match(/^[（(]\s*(\d{1,3})\s*[)）]\s*/)) return {shape:'D', rawLv:3, rest:l.slice(m[0].length)};
+    return null;
+  });
+
+  const hasA = items.some(it => it && it.shape === 'A');
+  const effLv = new Array(items.length).fill(null);
+
+  // 辅助：找最近一个标准标题（A/B/C/D）作为不规则序号的父级
+  const findStdParent = i => {
+    for(let j=i-1;j>=0;j--) if(items[j] && items[j].shape !== 'IR') return j;
+    return -1;
+  };
+
+  if(!hasA){
+    // 无一级标题：恢复首次出现顺序映射（兼容旧行为）。
+    // 不规则序号在映射时视为 D；若同时出现 C+D，则 C=2、D=3，使"1.+①"保持 1./(1)。
+    const uniqueShapes = [];
+    for(const it of items){
+      if(!it) continue;
+      const s = it.shape === 'IR' ? 'D' : it.shape;
+      if(!uniqueShapes.includes(s)) uniqueShapes.push(s);
+    }
+    const map = {};
+    if(uniqueShapes.includes('C') && uniqueShapes.includes('D')){
+      map.A=0; map.B=1; map.C=2; map.D=3;
+    } else {
+      uniqueShapes.forEach((s, idx) => { map[s]=idx; });
+    }
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+      } else {
+        effLv[i] = map[it.shape];
+      }
+    }
+  } else {
+    // 有一级标题：按父级上下文推断层级，填平跳级。
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'A'){ effLv[i]=0; continue; }
+      // 不规则序号的父级必须是标准标题（避免 ①②③ 互相踩成更深层级）
+      if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+        continue;
+      }
+      // 标准标题：找最近一个层级更低的标准标题作为父级
+      let parentIdx = -1;
+      for(let j=i-1;j>=0;j--){
+        if(!items[j] || items[j].shape === 'IR') continue;   // 不规则序号不是结构父级
+        if(items[j].rawLv < it.rawLv){ parentIdx=j; break; }
+      }
+      if(parentIdx < 0){
+        effLv[i] = 0;   // 无父级：提到根层
+      } else {
+        effLv[i] = Math.min(it.rawLv, effLv[parentIdx] + 1);
+      }
+    }
   }
-  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"(1)"、且无一级"一、"时，
-  // "1."作为三级、"(1)"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为(1)(2)…
-  const hasA = shapes.includes('A'), hasC = shapes.includes('C'), hasD = shapes.includes('D');
-  const map = {};
-  if(hasC && hasD && !hasA){ map.A = 0; map.B = 1; map.C = 2; map.D = 3; }
-  else shapes.forEach((s, idx) => { map[s] = idx; });  // 首次出现顺序 → 规范层级 0..3
-  // 2. 依规范层级 + 嵌套关系重新连续编号
+
+  // 生成规范序号
   const counters = [0,0,0,0];
-  return lines.map(l=>{
-    const d = detectHeadingShape(l);
-    if(!d) return l;
-    const lv = map[d.shape];
-    if(lv === undefined) return l;
+  return lines.map((l, i) => {
+    const it = items[i];
+    if(!it) return l;
+    const lv = effLv[i];
+    if(lv === null) return l;
     counters[lv]++;
     for(let k = lv + 1; k < 4; k++) counters[k] = 0;  // 上级出现，下级序号归零
     const n = counters[lv];
-    let mark, rest = d.rest;
-    if(lv === 0) mark = num2cn(n) + '、';
-    else if(lv === 1) mark = '（' + num2cn(n) + '）';
-    else if(lv === 2) mark = n + '.';
-    else mark = '(' + n + ')';
-    if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
+    const mark = formatLevelMark(lv, n);   // 统一经 formatLevelMark 生成（四级为全角（n））
+    let rest = it.rest;
+    if(lv <= 1){
+      // 一、二级标题：独占一行时末尾不加标点；后接排正文时该段末尾须加句号
+      rest = headInlineBody(rest) ? endWithPeriod(rest) : rest.replace(/[。，、；：？！\s]+$/, '');
+    }
     return mark + rest;
   });
 }
@@ -1158,19 +1515,41 @@ function headingLevelOf(p){
    不删除、不转句号、不拆分标题；全角冒号须修正为半角（公文规范：时间使用半角冒号） */
 function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
 function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
-function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/：/g, ':')); }
+function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?:[:：]\d{1,2})?/g, t => t.replace(/：/g, ':')); }
+/* ---------- 标题接排正文：段末句号（GB/T 9704-2012 7.3.3）----------
+ * 规范：一级/二级标题独占一行时末尾不加标点；标题后接着排印正文的，该段为完整段落，末尾须加句号。
+ * headInlineBody：判定「序号+标题短语」之后是否还接排有实质正文。
+ *   以首个非时间的句末分隔符（。！？；：）为界，其后仍有内容即为接排；分隔符位于末尾则为纯标题。
+ * endWithPeriod：段末补句号；已有句末标点则保留，末尾为逗号/顿号/冒号则改为句号，
+ *   末尾为闭合引号/书名号/括号时在其内侧判断（如「…“双高计划”」→「…“双高计划”。」）。 */
+function headInlineBody(rest){
+  if(!rest) return null;
+  const re = /[。！？；:：]/g;
+  let m;
+  while((m = re.exec(rest)) !== null){
+    if((m[0] === ':' || m[0] === '：') && colonIsTime(rest, m.index)) continue;   // 时间冒号不是标题分隔符
+    const tail = rest.slice(m.index + 1).trim();
+    return tail ? {title: rest.slice(0, m.index), sep: m[0], tail} : null;
+  }
+  return null;
+}
+function endWithPeriod(s){
+  const t = String(s).replace(/\s+$/, '');
+  if(!t) return s;
+  if(/[。！？；…]$/.test(t)) return t;                                   // 已有句末标点
+  if(/[”’》）)】」』]$/.test(t))                                         // 闭合符号：看其内侧
+    return /[。！？；…][”’》）)】」』]+$/.test(t) ? t : t + '。';
+  if(/[，、：:]$/.test(t)) return t.replace(/[，、：:]+$/, '。');          // 末尾逗号/顿号/冒号 → 句号
+  return t + '。';
+}
 function fixHeadingColon(lines){
   return lines.map(l=>{
     const lv = headingLevelOf(l);
     const ci = l.search(/[:：]/);
     if(ci < 0) return l;
     if(colonIsTime(l, ci)) return l;    // 时间冒号（12:00 等）不转句号、不删除
-    if(lv === 2){                       // 三级"1."标题中的冒号识别为句号
-      const m = l.match(/^(\d+[\.．、].*?)([:：])(.*)$/);
-      if(m) return m[1] + '。' + m[3];
-    } else if(lv === 3){                // 四级"（1）"标题中的冒号识别为句号
-      const m = l.match(/^([（(]\d+[)）].*?)([:：])(.*)$/);
-      if(m) return m[1] + '。' + m[3];
+    if(lv === 2 || lv === 3){           // 三、四级标题中的第一个非时间冒号识别为句号
+      return l.replace(/[:：]/, '。');   // headingLevelOf 已识别层级，且时间冒号已排除
     }
     return l;
   });
@@ -1198,14 +1577,15 @@ function splitHeadingInlineBody(lines){
     }
     if(hasDeeper){ out.push(p); continue; }               // 其下有更深层级，保留原样
     out.push((marker + title).replace(/[：:]+$/, '').trim());
-    out.push(rest.trim());
+    out.push(endWithPeriod(rest.trim()));   // 标题后接排的正文独立成段，段末补句号
   }
   return out;
 }
 function normalizeHeadings(lines){
   // 先按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），再统一层级序数编排
   // fixTimeColon：时间表达中的全角冒号（12：00）修正为半角（12:00），且不参与后续标题冒号处理
-  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(l => normHeadOrd(fixTimeColon(l))))));
+  // 注意：此处不再前置 normHeadOrd；normalizeHeadingLevels 会自己识别不规则序号并按父级上下文推断层级。
+  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(l => fixTimeColon(l)))));
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
@@ -1251,6 +1631,34 @@ function normParallel(s){
 }
 /* 全字段轻量规范（标题/主送/署名/日期/附件说明等）：六角括号、时间半角冒号、连接号 */
 function normText(s){ return normBracket(fixTimeColon(normDash(s))); }
+/* 正文/附件标点符号全角化：半角标点 → 全角（时间冒号除外，保持半角）。
+   保护：时间表达、URL/邮箱/data URI、Markdown 链接与图片、行首层级序号「N.」「N、」、
+   数字（含小数点/千分位/版本号）、英文缩写（U.S.A / i.e.）、连续点（省略号）。 */
+function normPunctFull(s){
+  if(!s) return s;
+  const held = [];
+  const hold = m => '\uE000' + String.fromCharCode(0xE100 + held.length) + '\uE001' + (held.push(m), '');
+  // 1) 时间表达（12:00 / 12：00 / 12:00:00），全角冒号先修正为半角并整体保护
+  s = s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => hold(fixTimeColon(t)));
+  // 2) 链接 / 图片 / 邮箱 / data URI，整体保护（URL 止于中文/全角标点/空白，避免吞掉后续标点）
+  s = s.replace(/(!?\[[^\]]*\]\([^)]*\))|(https?:\/\/[^\s<>"']*?(?=[，。；：！？）】\u4e00-\u9fff\s]|$))|([\w.+-]+@[\w-]+\.[\w.-]+)|(data:[^;]+;base64,[^\s]+)/g, hold);
+  // 3) 英文缩写（U.S.A / i.e. 等），整体保护，避免句号/点被误改
+  s = s.replace(/\b[A-Za-z]+(?:\.[A-Za-z]+)+\.?(?![A-Za-z])/g, hold);
+  // 4) 行首层级序号标记保护（避免句号化 / 顿号误改）
+  s = s.replace(/^\d+\.\d[\d.]*/, hold);          // 行首小数 / 版本号（如 1.2 / 1.2.3）
+  s = s.replace(/^\d+[.．、]/, hold);             // 行首层级序号（如 1. / 1、）
+  // 5) 数字（含小数点、千分位、版本号），整体保护，避免 3.14 / 1,000 被误改
+  s = s.replace(/\d+(?:\.\d+)*(?:,\d{3})*/g, hold);
+  // 6) 连续半角点（省略号 ……）保护
+  s = s.replace(/\.{2,}/g, m => hold('……'));
+  // 半角标点 → 全角（时间冒号已保护；引号由 fixQuotes 处理，此处不动）
+  const PMAP = {',':'，', '.':'。', ';':'；', ':':'：', '?':'？', '!':'！',
+                '(':'（', ')':'）', '[':'【', ']':'】'};
+  s = s.replace(/[,.!?;:()\[\]]/g, c => PMAP[c] || c);
+  // 还原保护段
+  s = s.replace(/\uE000([\uE100-\uEFFF])\uE001/g, (m, c) => held[c.charCodeAt(0) - 0xE100]);
+  return s;
+}
 /* 段首无意义符号清理：删除正文/附件段落开头的孤立标点与 Markdown 残留符号
    （. 、 ， 。 ； ： * # - ` ~ _ + > 及各类项目符号），使段落以正文首字开头。
    保留：各级序号（一、/（一）/1./(1)）、书名号、引号、破折号"——"引文起始，
@@ -1265,8 +1673,30 @@ function stripLeadSym(s){
   do{ prev = t; t = t.replace(LEAD, ''); }while(t !== prev && t);
   return t;
 }
-/* 全文/附件规范：段首符号清理 + 轻量规范 + 直引号→弯引号 + 并列顿号删除 */
-function normFull(s){ return normParallel(fixQuotes(normText(stripLeadSym(s)))); }
+/* 全文/附件规范：段首符号清理 + 轻量规范 + 直引号→弯引号 + 标点全角化 + 并列顿号删除 */
+function normFull(s){ return normParallel(normPunctFull(fixQuotes(normText(stripLeadSym(s))))); }
+/* 单条正文/附件行的「规范分解」：逐函数比对，定位具体改动类别（与 normFull 管线顺序完全一致）。
+   仅返回 {before, after, cat}，不触碰 DOM，便于采集修复记录与单测。cat===null 表示本行无改动。 */
+function scanNorm(l){
+  const a1 = stripLeadSym(l);
+  const a2 = normDash(a1);
+  const a3 = fixTimeColon(a2);
+  const a4 = normBracket(a3);
+  const a5 = fixQuotes(a4);
+  const a5b = normPunctFull(a5);
+  const a6 = normParallel(a5b);
+  if(a6 === l) return null;
+  let cat;
+  if(a1 !== l) cat = '段首符号清理';
+  else if(a2 !== a1) cat = '连接号规范';
+  else if(a3 !== a2) cat = '时间冒号规范';
+  else if(a4 !== a3) cat = '六角括号规范';
+  else if(a5 !== a4) cat = '引号规范';
+  else if(a5b !== a5) cat = '标点全角化';
+  else if(a6 !== a5b) cat = '并列顿号规范';
+  else cat = '文本规范';
+  return {before:l, after:a6, cat};
+}
 /* ASCII 连字符旧入口，现统一委托 normDash（兼容历史调用） */
 function convDash(s){ return normDash(s); }
 function punctIssueCount(paras){
@@ -1288,6 +1718,7 @@ function parseTableRows(tl){
     .filter(r=>!r.every(c=>/^[-:：\s]+$/.test(c)));
 }
 let autoLand = true;   // 宽表格/超宽内容自动横排（GB/T 9704-2012 横向页），可在设置中关闭
+let sealPreview = true; // 预览中显示印章套印位置示意（仅示意，不写入导出文件）
 /* 表格是否超出纵向版心宽度（需横排）：按五号字估算各列最大单元格自然宽度之和，
    超过版心宽(BXW)即判定为宽表格，应另页横向排版 */
 function isWideTable(rows){
@@ -1456,6 +1887,479 @@ function todayCN(){
   const d = new Date();
   return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
 }
+/* ============================================================
+ * 校验与修复记录：采集 / 查看 / 导出
+ *   fixLog 记录「当前文档」从解析到一键修复全链路的校验与修复动作，
+ *   解析时重置，可随时查看明细并导出（TXT / JSON / HTML）。
+ * ============================================================ */
+let fixLog = [];                 // 当前文档的校验/修复明细（解析时重置）
+function logFix(rec){
+  fixLog.push(Object.assign({
+    t: Date.now(), kind:'fix', cat:'通用', scope:'', before:'', after:'',
+    status:'fixed', auto:true, msg:''
+  }, rec));
+  if(typeof bumpStat === 'function') bumpStat(rec);
+}
+/* 采集格式校验结果（runValidation 返回的 issues）为「校验」类记录 */
+function recordChecks(issues, source){
+  for(const is of (issues || [])){
+    logFix({kind:'check', cat:'格式校验', scope:source || '', before:'', after:'',
+      status: is.level==='err' ? 'err' : (is.level==='info' ? 'info' : 'warn'), msg:is.msg});
+  }
+  recordContentChecks(issues, source);
+}
+/* 内容层校对（错别字 / 数字用法）逐条明细入库：
+   仅当对应规则本次确有命中（issues 中含 r_typo / r_numuse）时展开，避免规则关闭时仍记录。 */
+function recordContentChecks(issues, source){
+  const ids = new Set((issues || []).map(i => i.id));
+  let d;
+  try{ d = collect(); }catch(e){ return; }
+  if(ids.has('r_typo')){
+    for(const h of scanTypo([d.title, d.to, ...d.paras, ...d.attachParas, d.org])){
+      logFix({kind:'check', cat: h.type === 'hard' ? '错别字' : '易混词辨析',
+        scope: source || '', before: h.bad, after: h.good || '',
+        status: h.type === 'hard' ? 'warn' : 'info', msg: h.tip});
+    }
+  }
+  if(ids.has('r_numuse')){
+    for(const h of scanNumUse([d.title, d.to, ...d.paras, ...d.attachParas])){
+      logFix({kind:'check', cat:'数字用法', scope: source || '',
+        before: h.sample, after: '', status:'warn', msg: h.tip});
+    }
+  }
+}
+function summaryLog(){
+  let fix = 0, chk = 0, err = 0, warn = 0;
+  for(const r of fixLog){
+    if(r.kind === 'fix') fix++;
+    else if(r.kind === 'check'){ chk++; if(r.status==='err') err++; else if(r.status==='warn') warn++; }
+  }
+  return {fix, chk, err, warn, total: fixLog.length};
+}
+/* 内联概览（卡片 04 底部） */
+function updateLogStat(){
+  const el = $('logStat'); if(!el) return;
+  const s = summaryLog();
+  if(!s.total){ el.innerHTML = '本次暂无校验修复记录'; return; }
+  el.innerHTML = `本次共 <b>${s.fix}</b> 项修复 · <b>${s.chk}</b> 项校验` +
+    (s.err ? ` · <span class="e">${s.err} 错误</span>` : '') +
+    (s.warn ? ` · <span class="w">${s.warn} 提醒</span>` : '') +
+    ` ｜ <a href="javascript:void(0)" id="logStatOpen" style="color:var(--cyan)">查看明细 ↗</a>`;
+  const o = $('logStatOpen'); if(o) o.onclick = openLogModal;
+}
+/* 渲染明细列表（filter: all / fix / check） */
+function renderLog(filter){
+  const el = $('fixLogList'); if(!el) return;
+  const f = filter || 'all';
+  const rows = fixLog.filter(r => f==='all' || (f==='fix' ? r.kind==='fix' : r.kind==='check'));
+  if(!rows.length){ el.innerHTML = '<div class="log-empty">暂无相关记录</div>'; return; }
+  const ic = r => r.kind==='fix' ? '✓' : (r.status==='err' ? '✕' : (r.status==='warn' ? '⚠' : 'ℹ'));
+  const cls = r => r.kind==='fix' ? 'fix' : (r.status==='err' ? 'err' : (r.status==='warn' ? 'warn' : (r.status==='info' ? 'info' : 'check')));
+  el.innerHTML = rows.map(r => {
+    const diff = (r.before || r.after)
+      ? `<div class="diff">${r.before ? `<span class="b">${esc(r.before)}</span>` : ''}${(r.before && r.after) ? '<span class="arr">→</span>' : ''}${r.after ? `<span class="a">${esc(r.after)}</span>` : ''}</div>` : '';
+    const tag = (r.auto ? '自动' : '手动') + (r.scope ? (' · ' + esc(r.scope)) : '');
+    return `<div class="log-item ${cls(r)}">
+      <div class="ic">${ic(r)}</div>
+      <div class="main">
+        <div class="cat">${esc(r.cat)}<span class="tag">${tag}</span></div>
+        ${diff}
+        ${r.msg ? `<div style="margin-top:3px;color:var(--dim)">${esc(r.msg)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openLogModal(){
+  renderLog('all');
+  document.querySelectorAll('#logChips .lg-chip').forEach(c => c.classList.toggle('on', c.dataset.f === 'all'));
+  const s = summaryLog();
+  const st = $('logModalStat');
+  if(st) st.innerHTML = s.total
+    ? `共 <b style="color:var(--cyan)">${s.total}</b> 条 · 修复 ${s.fix} · 校验 ${s.chk}（错误 ${s.err} / 提醒 ${s.warn}）`
+    : '暂无记录';
+  openModal('modalLog');
+}
+function clearLog(){
+  fixLog = []; updateLogStat();
+  const el = $('fixLogList'); if(el) el.innerHTML = '<div class="log-empty">暂无记录</div>';
+  const st = $('logModalStat'); if(st) st.innerHTML = '暂无记录';
+  toast('记录已清空');
+}
+
+/* ---------- 原文对照 diff 视图 ---------- */
+function openDiffModal(){
+  const rows = fixLog.filter(r => r.before || r.after || r.msg);
+  const el = $('diffBody'); if(!el) return;
+  if(!rows.length){
+    el.innerHTML = '<div class="log-empty">暂无对照项。请先「智能解析」或「立即校验」，系统会记录错别字、易混词、数字用法等原文与建议的逐项对照。</div>';
+  }else{
+    el.innerHTML = rows.map(r => {
+      const left = r.before ? esc(r.before) : '—';
+      const right = r.after ? esc(r.after) : (r.msg ? esc(r.msg) : '—');
+      const tag = r.kind==='fix' ? '已修复' : '建议';
+      return `<div class="diff2">
+        <div class="d-side d-b"><div class="dh">原文 · ${esc(r.cat)}</div><div class="dt">${left}</div></div>
+        <div class="d-arr">→</div>
+        <div class="d-side d-a"><div class="dh">${tag} · ${esc(r.scope||'')}</div><div class="dt">${right}</div></div>
+      </div>`;
+    }).join('');
+  }
+  const st = $('diffStat');
+  if(st) st.innerHTML = rows.length ? `共 <b style="color:var(--cyan)">${rows.length}</b> 处原文对照（已修复 + 待确认建议）` : '暂无对照项';
+  openModal('modalDiff');
+}
+function exportDiff(fmt){
+  const rows = fixLog.filter(r => r.before || r.after || r.msg);
+  if(!rows.length){ toast('暂无对照项'); return; }
+  const d = collect(); const title = d.title || '未命名公文';
+  const pad = n => String(n).padStart(2,'0'); const now = new Date();
+  const ts = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  if(fmt==='html'){
+    const rowsHtml = rows.map((r,i)=>`<tr>
+      <td>${i+1}</td><td>${esc(r.cat)}</td><td>${esc(r.scope||'')}</td>
+      <td class="b">${esc(r.before||'')}</td><td class="a">${esc(r.after||r.msg||'')}</td></tr>`).join('');
+    const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>原文对照 · ${esc(title)}</title>
+<style>body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f5f7fa;color:#1f2937;padding:28px;line-height:1.6}
+h1{font-size:20px;margin:0 0 6px}.meta{color:#6b7280;font-size:12px;margin-bottom:14px}
+table{border-collapse:collapse;width:100%;font-size:12px;background:#fff;border:1px solid #e5e7eb}
+th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;vertical-align:top;word-break:break-all}
+th{background:#eef2f7;white-space:nowrap}.b{color:#dc2626;text-decoration:line-through;opacity:.85}.a{color:#059669}</style></head>
+<body><h1>公文原文对照（修正前后）</h1>
+<div class="meta">文档标题：${esc(title)} ｜ 生成时间：${ts} ｜ 对照项：${rows.length}</div>
+<table><thead><tr><th>#</th><th>类别</th><th>范围</th><th>原文</th><th>修正/建议</th></tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`;
+    downloadBlob(new Blob([html],{type:'text/html'}), `原文对照_${title}_${stamp}.html`);
+    toast('✓ 对照已导出（HTML）'); return;
+  }
+  const L = ['公文原文对照（修正前后）','文档标题：'+title,'生成时间：'+ts,'对照项：'+rows.length,'=================================================='];
+  rows.forEach((r,i)=>{ L.push(`${i+1}. [${r.cat}] ${r.scope||''}`); if(r.before) L.push('   原文：'+r.before); L.push('   '+(r.kind==='fix'?'修正':'建议')+'：'+(r.after||r.msg||'')); });
+  downloadBlob(new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'}), `原文对照_${title}_${stamp}.txt`);
+  toast('✓ 对照已导出（TXT）');
+}
+
+/* ---------- 质量看板：高频错误统计（跨文档累计） ---------- */
+const STATS_KEY = 'mzw_stats';
+function loadStats(){ try{ return JSON.parse(localStorage.getItem(STATS_KEY) || '[]'); }catch(e){ return []; } }
+function saveStats(a){ try{ localStorage.setItem(STATS_KEY, JSON.stringify(a)); }catch(e){} }
+function bumpStat(rec){
+  try{
+    const label = rec.msg || rec.before || rec.cat || '项';
+    const key = (rec.cat || '其他') + '::' + label;
+    const arr = loadStats();
+    const hit = arr.find(x => x.key === key);
+    if(hit) hit.count++;
+    else arr.push({key, cat: rec.cat || '其他', label, count:1});
+    saveStats(arr);
+  }catch(e){}
+}
+function renderStats(){
+  const arr = loadStats().slice().sort((a,b)=>b.count-a.count);
+  const el = $('statsBody'); if(!el) return;
+  if(!arr.length){ el.innerHTML = '<div class="log-empty">暂无统计数据。运行校验或智能解析后，系统会按类别累计高频问题。</div>'; return; }
+  const max = Math.max(1, arr[0].count);
+  const top = arr.slice(0,10);
+  el.innerHTML = '<div class="qd-chart">' + top.map((x,i)=>{
+    const pct = Math.max(6, Math.round(x.count/max*100));
+    return `<div class="qd-row"><div class="qd-rank">${i+1}</div>
+      <div class="qd-main"><div class="qd-cat">${esc(x.cat)}</div>
+      <div class="qd-bar"><span style="width:${pct}%"></span></div>
+      <div class="qd-label">${esc(x.label)}</div></div>
+      <div class="qd-num">${x.count}</div></div>`;
+  }).join('') + '</div>' +
+  `<div class="qd-foot">累计记录问题 <b style="color:var(--cyan)">${arr.reduce((s,x)=>s+x.count,0)}</b> 条 · 涉及 <b style="color:var(--cyan)">${arr.length}</b> 类 · 仅展示前 10 高频</div>`;
+}
+function openStatsModal(){ renderStats(); openModal('modalStats'); }
+
+/* 导出校验修复记录：txt（纯文本）/ json（结构化）/ html（报告） */
+function exportLog(fmt){
+  if(!fixLog.length){ toast('暂无记录可导出'); return; }
+  const d = collect();
+  const title = d.title || '未命名公文';
+  const type = d.type || curType || '公文';
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const ts = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const s = summaryLog();
+  const recs = fixLog.slice().sort((a,b) => a.t - b.t);
+  const baseName = `校验修复记录_${title}_${stamp}`;
+  if(fmt === 'json'){
+    const blob = new Blob([JSON.stringify({
+      meta: {title, type, exportedAt: now.toISOString(), total:s.total, fix:s.fix, check:s.chk, errors:s.err, warns:s.warn},
+      records: recs
+    }, null, 2)], {type:'application/json'});
+    downloadBlob(blob, baseName + '.json');
+    toast('✓ 记录已导出（JSON）');
+    return;
+  }
+  if(fmt === 'html'){
+    const rows = recs.map((r,i) => `<tr>
+      <td>${i+1}</td><td>${r.kind==='fix'?'修复':'校验'}</td><td>${esc(r.cat)}</td>
+      <td>${esc(r.scope||'')}</td><td>${r.auto?'自动':'手动'}</td>
+      <td class="b">${esc(r.before||'')}</td><td class="a">${esc(r.after||'')}</td><td>${esc(r.msg||'')}</td></tr>`).join('');
+    const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>校验修复记录 · ${esc(title)}</title>
+<style>body{font-family:-apple-system,"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f7fa;color:#1f2937;padding:28px;line-height:1.6}
+h1{font-size:20px;margin:0 0 6px}h2{font-size:14px;margin:22px 0 8px;color:#374151}
+.meta{color:#6b7280;font-size:12px;margin-bottom:4px}
+table{border-collapse:collapse;width:100%;font-size:12px;background:#fff;border:1px solid #e5e7eb}
+th,td{border:1px solid #e5e7eb;padding:6px 8px;text-align:left;vertical-align:top;word-break:break-all}
+th{background:#eef2f7;white-space:nowrap}.b{color:#dc2626;text-decoration:line-through;opacity:.85}.a{color:#059669}</style></head>
+<body><h1>公文校验与修复记录</h1>
+<div class="meta">文档标题：${esc(title)} ｜ 文种：${esc(type)} ｜ 生成时间：${ts}</div>
+<div class="meta">记录总数：${s.total} 条（修复 ${s.fix} 项，校验 ${s.chk} 项；错误 ${s.err} / 提醒 ${s.warn}）</div>
+<h2>明细</h2>
+<table><thead><tr><th>#</th><th>类型</th><th>类别</th><th>范围</th><th>方式</th><th>原文</th><th>修正</th><th>说明</th></tr></thead>
+<tbody>${rows}</tbody></table></body></html>`;
+    downloadBlob(new Blob([html], {type:'text/html'}), baseName + '.html');
+    toast('✓ 记录已导出（HTML）');
+    return;
+  }
+  // txt
+  const L = [];
+  L.push('公文校验与修复记录');
+  L.push('文档标题：' + title);
+  L.push('文种：' + type);
+  L.push('生成时间：' + ts);
+  L.push('记录总数：' + s.total + '（修复 ' + s.fix + ' 项，校验 ' + s.chk + ' 项；错误 ' + s.err + ' / 提醒 ' + s.warn + '）');
+  L.push('==================================================');
+  let i = 0;
+  for(const r of recs){
+    i++;
+    const type2 = r.kind==='fix' ? '修复' : '校验';
+    const tag = (r.auto ? '自动' : '手动') + (r.scope ? ('·' + r.scope) : '');
+    L.push(i + '. [' + type2 + '][' + r.cat + '][' + tag + ']');
+    if(r.before || r.after){
+      L.push('   原文：' + (r.before || '（无）'));
+      L.push('   修正：' + (r.after || '（无）'));
+    }
+    if(r.msg) L.push('   说明：' + r.msg);
+    L.push('');
+  }
+  downloadBlob(new Blob([L.join('\n')], {type:'text/plain;charset=utf-8'}), baseName + '.txt');
+  toast('✓ 记录已导出（TXT）');
+}
+
+/* ============================================================
+ * 错别字与易混词校验（公文常见错例词库）
+ * 分两类：
+ *   ① hard —— 确定性错误（错别字、生造词），直接给出正确写法
+ *   ② soft —— 易混词（两者都是词，用法不同），仅提示辨析，不武断判错
+ * 均只提醒、不自动改写，避免误伤特定语境。
+ * ============================================================ */
+const TYPO_HARD = [
+  /* — 公文高频错字 — */
+  ['按装','安装'], ['报歉','抱歉'], ['布署','部署'], ['重迭','重叠'], ['迭加','叠加'],
+  ['发韧','发轫'], ['服贴','服帖'], ['决对','绝对'], ['刻服','克服'], ['副合','符合'],
+  ['既使','即使'], ['既便','即便'], ['做为','作为'], ['座落','坐落'], ['帐号','账号'],
+  ['帐户','账户'], ['帐目','账目'], ['计化','计划'],
+  ['度过难关','渡过难关'], ['迫不急待','迫不及待'], ['既往不究','既往不咎'],
+  ['一如继往','一如既往'], ['坚苦奋斗','艰苦奋斗'], ['一诺千斤','一诺千金'],
+  ['金榜提名','金榜题名'], ['夸夸奇谈','夸夸其谈'], ['滥芋充数','滥竽充数'],
+  ['廖廖无几','寥寥无几'], ['磨拳擦掌','摩拳擦掌'], ['默守成规','墨守成规'],
+  ['名列前矛','名列前茅'], ['迫在眉捷','迫在眉睫'], ['前扑后继','前仆后继'],
+  ['轻歌慢舞','轻歌曼舞'], ['如愿以尝','如愿以偿'], ['首曲一指','首屈一指'],
+  ['所向披糜','所向披靡'], ['同心同得','同心同德'], ['万事具备','万事俱备'],
+  ['无耻滥言','无耻谰言'], ['相形见拙','相形见绌'], ['雄纠纠','雄赳赳'],
+  ['言简意骇','言简意赅'], ['应接不遐','应接不暇'], ['再接再励','再接再厉'],
+  ['责无旁代','责无旁贷'], ['纵横驰聘','纵横驰骋'], ['走头无路','走投无路'],
+  ['沤心沥血','呕心沥血'], ['一股作气','一鼓作气'], ['不径而走','不胫而走'],
+  ['不加思索','不假思索'], ['大相径廷','大相径庭'], ['甘败下风','甘拜下风'],
+  ['委屈求全','委曲求全'], ['一愁莫展','一筹莫展'], ['各行其事','各行其是'],
+  ['共商国事','共商国是'], ['惩前毙后','惩前毖后'], ['明查暗访','明察暗访'],
+  ['披星带月','披星戴月'], ['声名雀起','声名鹊起'], ['谈笑风声','谈笑风生'],
+  ['为虎作帐','为虎作伥'], ['蜇伏','蛰伏'], ['真知卓见','真知灼见'],
+  ['指手划脚','指手画脚'], ['自曝自弃','自暴自弃'], ['孜孜不卷','孜孜不倦'],
+  ['直接了当','直截了当'],
+  /* — 公文用语生造/不规范搭配 — */
+  ['签定','签订'], ['付合','符合'], ['做出批示','作出批示'], ['做出决定','作出决定'],
+  ['作好工作','做好工作'], ['进一步的加强','进一步加强'], ['予以以','予以'],
+  ['责成有关部门予以研究处理','责成有关部门研究处理'],
+];
+/* 易混词辨析（soft）：仅收录真正高风险、易判错的成对词，
+   刻意排除「必须」「需要」「做好」「贯彻」「从而」等超高频常用词，避免每篇都误报。 */
+const TYPO_SOFT = [
+  {w:'截止', tip:'「截止」是不及物动词，指到期停止（报名已截止）；表示"到某时为止"须用「截至」（截至8月10日）'},
+  {w:'其它', tip:'公文中指称事物统一用「其他」；「其它」属非正式用法，规范文本中不宜使用'},
+  {w:'以致', tip:'「以致」引出不好的结果（以致工作被动）；表示程度递进"甚至"应用「以至」'},
+  {w:'以至', tip:'「以至」表示程度、范围的延伸或"甚至"；引出不良结果应用「以致」'},
+  {w:'权力', tip:'「权力」指政治强制力量与职责范围；法律赋予的利益应用「权利」，二者勿混'},
+  {w:'权利', tip:'「权利」指法律赋予享有的利益；机关职权、强制力量应用「权力」'},
+  {w:'必需', tip:'「必需」是形容词，指不可缺少（生活必需品）；表示"一定要"的副词应用「必须」'},
+  {w:'反应', tip:'「反应」指事情引起的意见或机体变化；向上级报告情况、表达意见应用「反映」'},
+  {w:'启用', tip:'「启用」指开始使用（设备、公章、场所）；对人员的任用应用「起用」'},
+  {w:'施行', tip:'「施行」指法规开始生效执行；具体措施的开展应用「实行」「实施」'},
+  {w:'审定', tip:'「审定」指审查后作出决定；审阅修改文稿应用「审订」'},
+  {w:'法制', tip:'「法制」指法律制度；治国方略、依法治理应用「法治」'},
+  {w:'化装', tip:'「化装」指改变装扮；用脂粉修饰容貌应用「化妆」'},
+  {w:'考查', tip:'「考查」侧重按标准检查衡量；实地调查了解应用「考察」'},
+  {w:'终止', tip:'「终止」指结束、停止；暂时中断应用「中止」'},
+  {w:'定金', tip:'「定金」有法定担保效力（适用定金罚则）；一般预付款应用「订金」'},
+  {w:'签定', tip:'规范写法为「签订」（合同、协议）；「签定」为不规范写法'},
+];
+/* 扫描错别字：返回 [{type:'hard'|'soft', bad, good, tip, line}] */
+function scanTypo(lines){
+  const hits = [];
+  const seen = new Set();
+  for(const l of (lines || [])){
+    if(!l) continue;
+    for(const [bad, good] of TYPO_HARD){
+      if(bad === good) continue;            // 词库中占位/正确条目跳过
+      if(l.includes(bad)){
+        const k = 'h:' + bad;
+        if(seen.has(k)) continue;
+        seen.add(k);
+        hits.push({type:'hard', bad, good, tip:`「${bad}」应为「${good}」`, line:l});
+      }
+    }
+    for(const it of TYPO_SOFT){
+      if(l.includes(it.w)){
+        const k = 's:' + it.w;
+        if(seen.has(k)) continue;
+        seen.add(k);
+        hits.push({type:'soft', bad:it.w, good:'', tip:it.tip, line:l});
+      }
+    }
+  }
+  return hits;
+}
+
+/* ============================================================
+ * 数字用法规范校验（GB/T 15835-2011《出版物上数字用法》）
+ * 仅提醒不自动改：数字用法与语境强相关，误改风险高。
+ * ============================================================ */
+const CN_D = '〇一二三四五六七八九十百千万';
+function scanNumUse(lines){
+  const hits = [];
+  const seen = new Set();
+  const push = (kind, sample, tip) => {
+    const k = kind + '|' + sample;
+    if(seen.has(k)) return;
+    seen.add(k);
+    hits.push({kind, sample, tip});
+  };
+  for(const l of (lines || [])){
+    if(!l) continue;
+    // ① 年份缩写：'18年 / 18年（前无19|20）应写全 2018年
+    let m = l.match(/(?:^|[^\d〇零一二三四五六七八九十])(\d{2})年(?![龄级度])/);
+    if(m) push('year', m[1] + '年', `年份不应简写为「${m[1]}年」，应标全为「20${m[1]}年」（GB/T 15835 · 5.1.2）`);
+    // ② 百分数区间省略前一个百分号：20%～30% 写作 20～30%
+    m = l.match(/\d+(?:\.\d+)?\s*[～~—–-]\s*\d+(?:\.\d+)?%/);
+    if(m && !/%\s*[～~—–-]/.test(l))
+      push('pct', m[0], `百分数区间两个数值均应带百分号，如「${m[0].replace(/\s*([～~—–-])\s*/,'%$1')}」（GB/T 15835 · 5.1.4）`);
+    // ③ 概数用阿拉伯数字连写：3、4天 → 三四天
+    m = l.match(/(?:^|[^\d])(\d)[、,，](\d)\s*(天|个|人|年|月|日|次|种|项|条|倍|成)/);
+    if(m) push('approx', m[0].trim(), `相邻两数字连用表示概数时应使用汉字，如「${m[1]}${m[2]}${m[3]}」写作汉字概数（GB/T 15835 · 6.1.3）`);
+    // ④ 星期用阿拉伯数字：星期3 → 星期三
+    m = l.match(/星期\s*([1-7])/);
+    if(m) push('week', m[0], '星期几应使用汉字，如「星期三」（GB/T 15835 · 6.1.1）');
+    // ⑤ 汉字数字与阿拉伯数字混用于同一计量：一百五十3人
+    m = l.match(new RegExp('[' + CN_D + ']{2,}\\d+\\s*(人|个|元|万|亿|件|台|户)'));
+    if(m) push('mix', m[0], '同一计量单位内汉字数字与阿拉伯数字混用，应统一为一种形式（GB/T 15835 · 8）');
+    // ⑥ 定型词组中的数字应用汉字：3心二意 / 4面八方
+    m = l.match(/\d(?=[心面通分言五六七八九十]{1}[^\d])/);
+    if(m){
+      const seg = l.slice(Math.max(0, l.indexOf(m[0]) - 1), l.indexOf(m[0]) + 4);
+      if(/[心面通分言]/.test(seg)) push('idiom', seg, '定型词组、成语中的数字应使用汉字（如"三心二意""四面八方"）（GB/T 15835 · 6.1.2）');
+    }
+    // ⑦ 序数词"第3季度"类：GB/T 15835 允许，但公文习惯用汉字表述层次
+    m = l.match(/第\s*([1-9]\d?)\s*(季度|部分|条|款|项|届|次会议)/);
+    if(m) push('ord', m[0], `公文中层次序数习惯使用汉字，建议写作「第${num2cn(parseInt(m[1],10))}${m[2]}」`);
+    // ⑧ 数值范围连接号误用短横：2020-2025年 应为一字线或浪纹
+    m = l.match(/(?:19|20)\d{2}\s*-\s*(?:19|20)?\d{2}\s*年/);
+    if(m) push('range', m[0], `时间起止应使用一字线「—」，如「${m[0].replace(/-/,'—')}」（GB/T 15835 · 5.1.3）`);
+  }
+  return hits;
+}
+
+/* ============================================================
+ * 版式体检（GB/T 9704-2012 · 6 版式 / 7.6 页码）
+ * 页边距：上 37mm、下 35mm、左（订口）28mm、右 26mm；版心 156mm × 225mm
+ * 页码：四号半角宋体阿拉伯数字，数字左右各放一条一字线，
+ *       一字线上距版心下边缘 7mm；单页码居右空一字、双页码居左空一字
+ * ============================================================ */
+const PAGE_SPEC = {
+  top: 37, bottom: 35, left: 28, right: 26,
+  paperW: 210, paperH: 297,
+  get boxW(){ return this.paperW - this.left - this.right; },   // 版心宽 156mm
+  get boxH(){ return this.paperH - this.top - this.bottom; },   // 版心高 225mm
+  pnGap: 7, pnFont: '宋体', pnSize: '四号',
+};
+/* 统计当前预览的页面构成 */
+function layoutStat(){
+  const pgs = document.querySelectorAll('#paperScroll .pg');
+  let portrait = 0, land = 0;
+  pgs.forEach(p => p.classList.contains('land') ? land++ : portrait++);
+  return {total: pgs.length, portrait, land};
+}
+/* 版式体检：返回 [{ok, label, val, note}] */
+function layoutAudit(){
+  const d = collect();
+  const st = layoutStat();
+  const S = PAGE_SPEC;
+  const out = [];
+  const add = (ok, label, val, note) => out.push({ok, label, val, note});
+  add(true, '纸张规格', `A4（${S.paperW}mm × ${S.paperH}mm）`,
+      'GB/T 9704-2012 · 6.1 用纸采用 GB/T 148 中规定的 A4 型');
+  add(true, '页边距', `上 ${S.top} / 下 ${S.bottom} / 左 ${S.left} / 右 ${S.right} mm`,
+      '左边距即订口，装订线一侧；预览与 Word 导出均已按此设置');
+  add(true, '版心尺寸', `${S.boxW}mm × ${S.boxH}mm`, '每面 22 行、每行 28 字（三号字）');
+  add(true, '页码位置', '单页码居右空一字，双页码居左空一字',
+      `一字线上距版心下边缘 ${S.pnGap}mm；${S.pnFont}${S.pnSize}半角阿拉伯数字，左右各一条一字线`);
+  if(st.land) add(true, '横向页页码', '单页码居左、双页码居右',
+      `检测到 ${st.land} 个横向页；横排时表格顶边朝向装订线，页码位置随之调整`);
+  add(true, '页数统计', `共 ${st.total} 页（纵向 ${st.portrait}${st.land ? ' / 横向 ' + st.land : ''}）`,
+      st.total ? '' : '尚未生成内容');
+  const hasBanji = !!(d.cc || d.issuer || d.issueDate);
+  add(hasBanji, '版记落位', hasBanji ? '已置于最后一面版心下边缘' : '未启用版记',
+      hasBanji ? '末条分隔线与版心下边缘重合（7.5）' : '如需标注抄送机关、印发机关和印发日期，请在「公文要素校核」中填写');
+  const vh = [d.copyno && '份号', secretText(d) && '密级', d.urgent && '紧急程度'].filter(Boolean);
+  add(true, '版头要素', vh.length ? vh.join(' / ') : '未标注',
+      vh.length ? '顶格排于版心左上角，自上而下分行（7.2）' : '如为涉密或加急公文，应标注份号、密级和保密期限、紧急程度');
+  add(true, '用印方式', d.plain ? '通用格式（不适用）' : (d.seal === 'none' ? '不加盖印章，成文日期右空四字' : '加盖发文机关印章'),
+      d.seal === 'none' ? 'GB/T 9704-2012 · 7.3.5.3' : '骑年盖月，印章下沿距正文；最后一行文字之上不得留空');
+  return out;
+}
+/* A4 版心示意图（等比缩放，标注四边页边距与页码位置） */
+function layoutDiagramSVG(){
+  const S = PAGE_SPEC, k = 1.05;
+  const W = S.paperW * k, H = S.paperH * k;
+  const bx = S.left * k, by = S.top * k, bw = S.boxW * k, bh = S.boxH * k;
+  const pnY = by + bh + S.pnGap * k;
+  return `<svg viewBox="0 0 ${(W + 20).toFixed(0)} ${(H + 26).toFixed(0)}" width="100%" style="max-height:330px">
+    <rect x="10" y="8" width="${W}" height="${H}" fill="#fdfdfa" stroke="#94a3b8" stroke-width="1"/>
+    <rect x="${10 + bx}" y="${8 + by}" width="${bw}" height="${bh}"
+          fill="rgba(56,189,248,.12)" stroke="#38bdf8" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="${10 + bx + bw / 2}" y="${8 + by + bh / 2}" text-anchor="middle" fill="#0284c7" font-size="10">版心 ${S.boxW}×${S.boxH}mm</text>
+    <text x="${10 + W / 2}" y="${8 + by / 2 + 4}" text-anchor="middle" fill="#64748b" font-size="9">上 ${S.top}mm（天头）</text>
+    <text x="${10 + W / 2}" y="${(8 + by + bh + S.bottom * k / 2 + 4).toFixed(1)}" text-anchor="middle" fill="#64748b" font-size="9">下 ${S.bottom}mm（地脚）</text>
+    <text x="${10 + bx / 2}" y="${8 + H / 2}" text-anchor="middle" fill="#64748b" font-size="9">订口</text>
+    <text x="${10 + bx / 2}" y="${8 + H / 2 + 11}" text-anchor="middle" fill="#64748b" font-size="9">${S.left}mm</text>
+    <text x="${(10 + bx + bw + S.right * k / 2).toFixed(1)}" y="${8 + H / 2}" text-anchor="middle" fill="#64748b" font-size="9">右</text>
+    <text x="${(10 + bx + bw + S.right * k / 2).toFixed(1)}" y="${8 + H / 2 + 11}" text-anchor="middle" fill="#64748b" font-size="9">${S.right}mm</text>
+    <line x1="${10 + bx}" y1="${8 + pnY}" x2="${10 + bx + bw}" y2="${8 + pnY}" stroke="#cbd5e1" stroke-width=".6"/>
+    <text x="${10 + bx + bw}" y="${8 + pnY + 4}" text-anchor="end" fill="#334155" font-size="9">— 1 —（单页居右空一字）</text>
+    <text x="10" y="${(8 + H + 16).toFixed(0)}" fill="#64748b" font-size="9">A4 ${S.paperW}×${S.paperH}mm · 订口在左 · 一字线上距版心下边缘 ${S.pnGap}mm</text>
+  </svg>`;
+}
+function openLayoutModal(){
+  const rows = layoutAudit();
+  const okN = rows.filter(r => r.ok).length;
+  const body = $('layoutBody');
+  if(body) body.innerHTML =
+    `<div class="ly-diagram">${layoutDiagramSVG()}</div>` +
+    `<div class="ly-list">${rows.map(r => `
+      <div class="ly-item ${r.ok ? 'ok' : 'na'}">
+        <div class="ic">${r.ok ? '✓' : '○'}</div>
+        <div class="main"><div class="lb">${esc(r.label)}<span class="vl">${esc(r.val)}</span></div>
+        ${r.note ? `<div class="nt">${esc(r.note)}</div>` : ''}</div>
+      </div>`).join('')}</div>`;
+  const st = $('layoutStat');
+  if(st) st.innerHTML = `已核对 <b style="color:var(--cyan)">${rows.length}</b> 项版式指标 · 达标 ${okN} 项`;
+  openModal('modalLayout');
+}
+
 /* 发文字号规范化：各种括号/无括号写法统一为六角括号〔〕
    政发202611号 / 政发（2026）11号 / 政发(2026)11号 / 政发<2026>11号 / 政发【2026】11号 → 政发〔2026〕11号 */
 function normalizeDocNo(s){
@@ -1560,6 +2464,7 @@ function parseDateLine(l){
 }
 
 function smartParse(text){
+  fixLog = [];                       // 解析开始：重置当前文档的校验修复记录
   // 若原文含 HTML 表格（粘贴网页/富文本），先转为 Markdown 管道格式，
   // 避免被后续 cleanText 的标签清除逻辑破坏表格结构
   if(/<table[\s\S]*?<\/table>/i.test(text)){
@@ -1569,6 +2474,9 @@ function smartParse(text){
   if($('ckClean') && $('ckClean').checked){
     const r = cleanText(text);
     text = r.text; removed = r.removed;
+    if(removed > 0) logFix({kind:'fix', cat:'符号净化', scope:'全文',
+      before:'原文混杂的 Markdown 标记 / HTML 标签 / 分隔线等无关符号', after:'已移除 ' + removed + ' 处无关符号',
+      status:'fixed', auto:true, msg:'净化 ' + removed + ' 处无关符号'});
   }
   let lines = text.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(s=>s);
   // 制表符分隔表格（如 Excel 复制）规范为 Markdown 管道格式，保持原文顺序内联呈现
@@ -1651,11 +2559,21 @@ function smartParse(text){
         if(t0 && l.replace(/[。\s]/g,'') === t0.replace(/[。\s]/g,'')) continue; // 与附件说明标题重复则跳过
         if(!attach){ attach = '1.' + l; continue; } // 无附件说明时，首行作为附件标题
       }
-      { if(stripLeadSym(l) !== l) leadFixed++;
-        const nl = normFull(l); if(nl) attachParas.push(nl); } continue;   // 清理后为空（如 ``` 围栏、纯分隔线）则整段丢弃
+      {
+        const _sc = scanNorm(l);
+        if(_sc) logFix({kind:'fix', cat:_sc.cat, scope:'附件', before:_sc.before, after:_sc.after, status:'fixed', auto:true, msg:_sc.cat + '（附件）'});
+        if(normHeadOrd(l) !== l) logFix({kind:'fix', cat:'标题序号校正', scope:'附件', before:l, after:normHeadOrd(l), status:'fixed', auto:true, msg:'标题序号校正（附件）'});
+        if(stripLeadSym(l) !== l) leadFixed++;
+        const nl = _sc ? _sc.after : normFull(l); if(nl) attachParas.push(nl);
+      } continue;   // 清理后为空（如 ``` 围栏、纯分隔线）则整段丢弃
     }
-    { if(stripLeadSym(l) !== l) leadFixed++;
-      const nl = normFull(l); if(nl) body.push(nl); }                      // 清理后为空则整段丢弃
+    {
+      const _sc = scanNorm(l);
+      if(_sc) logFix({kind:'fix', cat:_sc.cat, scope:'正文', before:_sc.before, after:_sc.after, status:'fixed', auto:true, msg:_sc.cat + '（正文）'});
+      if(normHeadOrd(l) !== l) logFix({kind:'fix', cat:'标题序号校正', scope:'正文', before:l, after:normHeadOrd(l), status:'fixed', auto:true, msg:'标题序号校正（正文）'});
+      if(stripLeadSym(l) !== l) leadFixed++;
+      const nl = _sc ? _sc.after : normFull(l); if(nl) body.push(nl);
+    }                      // 清理后为空则整段丢弃
   }
 
   /* ⑥ 落款：尾部 4 行内识别成文日期（阿拉伯/汉字数字/点线分隔）与发文机关署名（可与日期同行） */
@@ -1684,7 +2602,7 @@ function smartParse(text){
                  + attachParas.filter(l => normHeadOrd(l) !== l).length;
   body.splice(0, body.length, ...normalizeHeadings(body));
   $('inBody').value = body.map(normText).join('\n');
-  $('inAttach').value = normText(attach);
+  $('inAttach').value = normPunctFull(normText(attach));
   if(attachParas.length){
     $('inAttachBody').value = normalizeHeadings(attachParas.map(normText)).join('\n');
     found.push('附件内容');
@@ -1697,8 +2615,11 @@ function smartParse(text){
   if(typeof pushSnap === 'function') pushSnap();
   // 解析后自动执行格式校验，结果直达校验面板
   if(typeof runValidation === 'function' && typeof showIssues === 'function'){
-    showIssues($('checkResult'), runValidation(collect()));
+    const _iss = runValidation(collect());
+    showIssues($('checkResult'), _iss);
+    recordChecks(_iss, '解析自动校验');
   }
+  updateLogStat();
   toast('✓ 已识别：' + found.join('、') + (removed ? `｜净化 ${removed} 处符号` : '') + (leadFixed ? `｜清理 ${leadFixed} 处段首符号` : '') + (ordFixed ? `｜校正 ${ordFixed} 处标题序号` : ''));
 }
 
@@ -1721,7 +2642,22 @@ function collect(){
     org: $('inOrg').value.trim(),
     date: $('inDate').value.trim() || todayCN(),
     cc: plain ? '' : $('inCc').value.trim(),
+    // 版头要素（GB/T 9704-2012 · 7.2）：份号、密级和保密期限、紧急程度
+    copyno: plain ? '' : $('inCopyNo').value.trim(),
+    secret: plain ? '' : $('inSecret').value,
+    secretTerm: plain ? '' : $('inSecretTerm').value.trim(),
+    urgent: plain ? '' : $('inUrgent').value,
+    // 版记要素（GB/T 9704-2012 · 7.5）：抄送机关、印发机关和印发日期
+    issuer: plain ? '' : $('inIssuer').value.trim(),
+    issueDate: plain ? '' : $('inIssueDate').value.trim(),
+    // 用印方式（7.3.5）
+    seal: $('inSeal') ? $('inSeal').value : 'seal',
   };
+}
+/* 密级与保密期限合并显示：机密★5年（GB/T 9704-2012 · 7.2.2） */
+function secretText(d){
+  if(!d.secret) return '';
+  return d.secretTerm ? (d.secret + '★' + d.secretTerm) : d.secret;
 }
 
 /* ---------- 预览渲染 ---------- */
@@ -1733,7 +2669,14 @@ function qspan(html){ return html.replace(/[‘’“”]/g, m => `<span class="
 function headerHTML(d){
   if(d.plain) return '';   // 通用格式：无红头标志与发文字号
   const letter = d.t.f === 'letter';
-  let h = `<div class="fw-logo${letter?' letter-style':''}">${esc(d.logo)}</div>`;
+  // 版头要素（7.2）：份号、密级和保密期限、紧急程度，自上而下顶格分行排列于版心左上角
+  let h = '';
+  const vh = [];
+  if(d.copyno)      vh.push(`<div class="vh-item">${esc(d.copyno)}</div>`);
+  if(secretText(d)) vh.push(`<div class="vh-item">${esc(secretText(d))}</div>`);
+  if(d.urgent)      vh.push(`<div class="vh-item">${esc(d.urgent)}</div>`);
+  if(vh.length) h += `<div class="vhead">${vh.join('')}</div>`;
+  h += `<div class="fw-logo${letter?' letter-style':''}${vh.length?' has-vh':''}">${esc(d.logo)}</div>`;
   if(letter){
     h += `<div class="sign-double"></div><div class="sign-double2"></div>`;
     if(d.no) h += `<div class="fw-no letter-style">${esc(d.no)}</div>`;
@@ -1743,6 +2686,26 @@ function headerHTML(d){
       h += `<div style="text-align:right;font-size:16pt;margin-top:10px">签发人：<span style="font-family:'方正楷体_GBK','楷体',serif">${esc(d.signatory)}</span></div>`;
     h += `<div class="sign-line"></div>`;
   }
+  return h;
+}
+/* 版记（GB/T 9704-2012 · 7.5）：分隔线与版心等宽，末条分隔线与版心下边缘重合。
+   抄送机关左右各空一字、四号仿宋；印发机关左空一字、印发日期右空一字，为版记最后一个要素。 */
+function banjiHTML(d){
+  const hasCc = !!d.cc;
+  const hasIssue = !!(d.issuer || d.issueDate);
+  if(!hasCc && !hasIssue) return '';
+  let h = '<div class="banji bottom">';
+  h += '<div class="bj-line"></div>';                       // 首条分隔线
+  if(hasCc){
+    const cc = d.cc.replace(/[。．.]+$/, '');
+    h += `<div class="bj-cc"><span class="bj-lb">抄送：</span><span class="bj-tx">${esc(cc)}。</span></div>`;
+    if(hasIssue) h += '<div class="bj-line"></div>';        // 中间分隔线
+  }
+  if(hasIssue){
+    h += `<div class="bj-issue"><span>${esc(d.issuer)}</span><span>${esc(d.issueDate)}</span></div>`;
+  }
+  h += '<div class="bj-line"></div>';                       // 末条分隔线（与版心下边缘重合）
+  h += '</div>';
   return h;
 }
 /* 从附件说明中解析顺序号与标题，如 "1.数字政府建设重点任务分工表" → {num:'1', title:'…'} */
@@ -1875,7 +2838,9 @@ function paraHTML(s){
     if(ci >= 0 && ci < s.length - 1 && s.slice(ci+1).trim())
       return `<div class="p h2">${qspan(esc(s.slice(0, ci+1)))}<span class="body-f">${qspan(esc(s.slice(ci+1)))}</span></div>`;
   }
-  return `<div class="p ${k}">${qspan(esc(s))}</div>`;
+  // 四级标题括号统一全角，与正文字体（仿宋）保持一致
+  const ss = (k === 'h4') ? normFourthParen(s) : s;
+  return `<div class="p ${k}">${qspan(esc(ss))}</div>`;
 }
 function estLines(d){
   const blocks = [];
@@ -1908,6 +2873,8 @@ function estLines(d){
   const gapLines = (plainSign || attachItems.length) ? 3 : 1;
   const gap = ` style="margin-top:${(38.5*gapLines).toFixed(1)}px"`;
   const signCls = '';
+  // 用印方式（7.3.5）：加盖印章时以套印示意图标示位置；不加盖印章时成文日期右空四字
+  const noSeal = (d.seal === 'none') || d.plain;
   if(d.org) tail.push(`<div class="signorg${signCls}"${gap}>${esc(d.org)}</div>`);
   // 通用文种：成文日期以发文机关署名为基准居中对齐（日期中心对齐署名中心），日期紧贴署名下一行
   let dateStyle = (!d.org && gap) ? gap : '';
@@ -1915,7 +2882,11 @@ function estLines(d){
     const off = (wLen(d.org) - wLen(d.date)) / 2;
     dateStyle = ` style="text-align:right;margin-right:${off.toFixed(2)}em"`;
   }
-  tail.push(`<div class="signdate${signCls}"${dateStyle}>${esc(d.date)}</div>`);
+  const dateCls = (noSeal && !plainSign) ? ' no-seal' : '';
+  tail.push(`<div class="signdate${signCls}${dateCls}"${dateStyle}>${esc(d.date)}</div>`);
+  // 印章套印位置示意（仅预览显示，不参与导出）：骑年盖月，印章下沿距成文日期
+  if(!noSeal && d.org && sealPreview)
+    tail.push(`<div class="seal-wrap"><div class="seal-mark">${esc((d.org||'').slice(0,12))}</div></div>`);
   blocks.push({k:'tail', html:tail.join(''),
     lines: (attachItems.length ? attachItems.length : 0) + gapLines + (d.org?1:0) + 1 + 2});
   return blocks;
@@ -1992,7 +2963,7 @@ function renderPreview(){
       <div class="gb-content${land?' land':''}">
         ${i===0 ? header + headBlocks.join('') : ''}
         ${pg.html.join('')}
-        ${i===pages.length-1 && d.cc ? `<div class="cc bottom">抄送：${esc(d.cc)}。</div>` : ''}
+        ${i===pages.length-1 ? banjiHTML(d) : ''}
       </div>
       <div class="page-num ${np}">— ${n} —</div>
     </div></div>`;
@@ -2086,14 +3057,30 @@ async function buildDocxBlob(d){
   const letter = d.t.f === 'letter';
   const children = [];
 
+  // 版头要素（GB/T 9704-2012 · 7.2）：份号、密级和保密期限、紧急程度
+  // 顶格排于版心左上角，自上而下分行，三号黑体
+  const vheadItems = [];
+  if(!d.plain){
+    if(d.copyno)      vheadItems.push(d.copyno);
+    if(secretText(d)) vheadItems.push(secretText(d));
+    if(d.urgent)      vheadItems.push(d.urgent);
+  }
+  for(const v of vheadItems){
+    children.push(new Paragraph({
+      alignment: AlignmentType.LEFT, spacing: line578,
+      children:[run(v, F_HEI, 16)]
+    }));
+  }
+
   if(d.plain){
     /* —— 通用格式：无红头标志、无发文字号，标题直接起排 —— */
   }else if(!letter){
     /* —— 红头格式 —— */
     // 发文机关标志：上边缘至版心上边缘 35mm（酌定字号，醒目美观）
+    // 已排版头要素时相应减少上空距离，避免红头下移越界
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing:{before: TW(35)},
+      spacing:{before: TW(Math.max(0, 35 - vheadItems.length * 10))},
       children:[run(d.logo, F_BS, 40, {color:'FF0000'})]
     }));
     // 发文字号：标志下空二行，三号仿宋，居中；上行文居左空一字 + 签发人居右
@@ -2162,14 +3149,15 @@ async function buildDocxBlob(d){
   // 正文：一级方正黑体、二级方正楷体、三级与四级均为方正仿宋（不加粗）；全部两端对齐
   const bodyPara = (p, extraOpts={}) => {
     const k = classify(p);
+    const pp = (k === 'h4') ? normFourthParen(p) : p;   // 四级标题括号统一全角，与正文字体（仿宋）一致
     const font = k==='h1' ? F_HEI : k==='h2' ? F_KAI : F_FS;
     let kids;
     if(k === 'h2'){
-      const ci = p.indexOf('。');
-      if(ci >= 0 && ci < p.length - 1 && p.slice(ci+1).trim())
-        kids = [...splitRuns(p.slice(0, ci+1), F_KAI, 16), ...splitRuns(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
-      else kids = splitRuns(p, font, 16);
-    } else kids = splitRuns(p, font, 16);
+      const ci = pp.indexOf('。');
+      if(ci >= 0 && ci < pp.length - 1 && pp.slice(ci+1).trim())
+        kids = [...splitRuns(pp.slice(0, ci+1), F_KAI, 16), ...splitRuns(pp.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
+      else kids = splitRuns(pp, font, 16);
+    } else kids = splitRuns(pp, font, 16);
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,   // 两端对齐
       indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
@@ -2308,8 +3296,10 @@ async function buildDocxBlob(d){
     }
   }
 
-  // 版记：抄送机关，四号仿宋，左右各空一字，上下分隔线，置于最后一页版心底部
-  if(d.cc){
+  // 版记（GB/T 9704-2012 · 7.5）：抄送机关 + 印发机关和印发日期，四号仿宋，
+  // 左右各空一字，分隔线与版心等宽，置于最后一页版心底部
+  const hasIssue = !!(d.issuer || d.issueDate);
+  if(d.cc || hasIssue){
     // 估算最后一页剩余行数，用段前距把版记压到页面底部
     let free;
     {
@@ -2321,17 +3311,30 @@ async function buildDocxBlob(d){
         pages += estAttachPages(d);
         used = 0; cap = 22;
       }
-      free = Math.max(0, cap - used - 1); // 版记自身占 1 行
+      const own = (d.cc ? 1 : 0) + (hasIssue ? 1 : 0);
+      free = Math.max(0, cap - used - own); // 版记自身占用行数
     }
-    children.push(new Paragraph({
-      indent:{left: PT(14), right: PT(14)},
-      spacing:{before: Math.max(PT(28.9), PT(28.9) * free), line: PT(22), lineRule: LineRuleType.EXACT},
-      border:{
-        top:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1},
-        bottom:{color:'000000', size:6, style:BorderStyle.SINGLE, space:1}
-      },
-      children: splitRuns('抄送：'+d.cc+'。', F_FS, 14)
-    }));
+    const LINE = {color:'000000', size:6, style:BorderStyle.SINGLE, space:1};
+    const topGap = Math.max(PT(28.9), PT(28.9) * free);
+    if(d.cc){
+      children.push(new Paragraph({
+        indent:{left: PT(14), right: PT(14)},
+        spacing:{before: topGap, line: PT(22), lineRule: LineRuleType.EXACT},
+        // 无印发机关时抄送行自带下框线（末条分隔线）
+        border: hasIssue ? {top: LINE} : {top: LINE, bottom: LINE},
+        children: splitRuns('抄送：'+d.cc.replace(/[。．.]+$/,'')+'。', F_FS, 14)
+      }));
+    }
+    if(hasIssue){
+      // 印发机关左空一字、印发日期右空一字：用右对齐制表位把日期推到右边界
+      children.push(new Paragraph({
+        indent:{left: PT(14), right: PT(14)},
+        spacing:{before: d.cc ? 0 : topGap, line: PT(22), lineRule: LineRuleType.EXACT},
+        border: d.cc ? {top: LINE, bottom: LINE} : {top: LINE, bottom: LINE},
+        tabStops:[{type:'right', position: TW(156) - PT(28)}],
+        children:[ run(d.issuer || '', F_FS, 14), run('\t', F_FS, 14), run(d.issueDate || '', F_FS, 14) ]
+      }));
+    }
   }
 
   // 页码：四号半角宋体阿拉伯数字，左右各放一条一字线；外侧对齐
@@ -2488,13 +3491,15 @@ $('btnReset').onclick = () => {
   ['inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inCc','rawText']
     .forEach(id => $(id).value = '');
   $('inDate').value = todayCN();
+  fixLog = []; updateLogStat();
   pushSnap(); renderPreview(); toast('已清空');
 };
 
 /* ============================================================
  * 版本历史：撤销 / 重做
  * ============================================================ */
-const SNAP_FIELDS = ['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inDate','inCc'];
+const SNAP_FIELDS = ['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inDate','inCc',
+  'inCopyNo','inSecret','inSecretTerm','inUrgent','inIssuer','inIssueDate','inSeal'];
 const undoStack = [], redoStack = [];
 let undoLock = false, snapTimer = null;
 function snapState(){ const o={type:curType}; SNAP_FIELDS.forEach(f=>o[f]=$(f).value); return JSON.stringify(o); }
@@ -2506,6 +3511,7 @@ function applyState(j){
   $('fLogo').classList.toggle('hidden', plain);
   $('fNo').classList.toggle('hidden', plain);
   $('fCc').classList.toggle('hidden', plain);
+  ['fVersionHead','fVersionHead2','fIssue','fSeal'].forEach(x => $(x).classList.toggle('hidden', plain));
   $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
   SNAP_FIELDS.forEach(f=>{ if(o[f] !== undefined) $(f).value = o[f]; });
   renderTypes(); renderPreview();
@@ -2520,6 +3526,7 @@ function pushSnap(){
       if(undoStack.length > 50) undoStack.shift();
       redoStack.length = 0;
       updateUndoUI();
+      if(typeof saveDraft === 'function') saveDraft();
     }
   }, 600);
 }
@@ -2556,8 +3563,10 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_parallel','r_land','r_img','r_bracket'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_parallel','r_land','r_img','r_bracket'],
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
+             'r_copyno','r_secret','r_issue','r_typo','r_numuse'],
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
+             'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -2606,6 +3615,20 @@ const RULES = [
         $(id).value = ps.map(fixPunct).join('\n');
       }
     }},
+  {id:'r_punctfull', name:'正文/附件标点符号须用全角（时间冒号「:」除外）', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = arr => { if(!arr) return; for(const l of arr){ if(l && normPunctFull(l) !== l) n++; } };
+      scan(d.paras); scan(d.attachParas);
+      if(d.attach && normPunctFull(d.attach) !== d.attach) n++;
+      return n ? `检测到 ${n} 处正文/附件使用了半角标点符号（如 , . ; : ( )），公文应使用全角；时间冒号「:」保持半角` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody','inAttach']){
+        const v = $(id).value; if(!v) continue;
+        $(id).value = v.split('\n').map(x => normPunctFull(x)).join('\n');
+      }
+    }},
   {id:'r_dash', name:'连接号规范：时间/地域起止用一字线"—"、数值范围用浪纹"～"（ASCII 连字符"-"自动规范）', lv:'warn',
     check: d => {
       let n = 0;
@@ -2621,7 +3644,7 @@ const RULES = [
   {id:'r_color', name:'正文文字颜色为黑色', lv:'warn',
     check: () => /color\s*[:=]|<font/i.test($('rawText').value)
       ? '检测到原文含彩色文字标记，输出已统一为黑色' : null},
-  {id:'r_headings', name:'正文标题层级：一、（一）1.(1)格式与序号', lv:'warn',
+  {id:'r_headings', name:'正文标题层级：一、（一）1.（1）格式与序号', lv:'warn',
     check: d => {
       const r = fixHeadings(d.paras);
       return r.issues.length ? `标题层级存在 ${r.issues.length} 处格式/序号问题（${r.issues[0]}${r.issues.length>1?' 等':''}）` : null;
@@ -2630,16 +3653,32 @@ const RULES = [
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = fixHeadings(ps).paras.join('\n');
     }},
-  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.(1)）', lv:'warn',
+  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.（1））', lv:'warn',
     check: d => {
       const fixed = normalizeHeadingLevels(d.paras);
       let ch = 0;
       for(let i = 0; i < d.paras.length; i++) if(fixed[i] !== d.paras[i]) ch++;
-      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「(1)」依次编排` : null;
+      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「（1）」依次编排` : null;
     },
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = normalizeHeadings(ps).join('\n');
+    }},
+  {id:'r_headparen', name:'四级标题括号规范：须用全角（）如（1）（2）', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = arr => { if(!arr) return; for(const l of arr){ const t = l && l.trim(); if(t && classify(t)==='h4' && /^\((\d{1,3})\)/.test(t)) n++; } };
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处四级标题使用了半角括号「(n)」，公文规范应使用全角括号「（n）」以与正文字体（仿宋）保持一致` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody']){
+        const v = $(id).value; if(!v) continue;
+        $(id).value = v.split('\n').map(l => {
+          const t = l.trim();
+          return (classify(t)==='h4' && /^\((\d{1,3})\)/.test(t)) ? l.replace(/^\((\d{1,3})\)/, '（$1）') : l;
+        }).join('\n');
+      }
     }},
   {id:'r_headcolon', name:'标题冒号处理（二级拆为标题+正文；三级冒号改句号）', lv:'warn',
     check: d => {
@@ -2666,6 +3705,30 @@ const RULES = [
       $('inBody').value = normalizeHeadings(ps).join('\n');
       const ap = $('inAttachBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inAttachBody').value = normalizeHeadings(ap).join('\n');
+    }},
+  {id:'r_headinline', name:'标题接排正文段末句号（一、/（一）标题后接排正文的，该段末尾加句号）', lv:'warn',
+    check: d => {
+      const cnt = arr => {
+        let n = 0;
+        for(const l of arr){
+          const lv = headingLevelOf(l);
+          if(lv !== 0 && lv !== 1) continue;
+          const sh = detectHeadingShape(l);
+          if(!sh) continue;
+          const inl = headInlineBody(sh.rest);
+          if(inl && endWithPeriod(sh.rest) !== sh.rest) n++;
+        }
+        return n;
+      };
+      const n = cnt(d.paras) + cnt(d.attachParas || []);
+      return n ? `检测到 ${n} 处标题后接排正文的段落末尾缺少句号（GB/T 9704-2012 7.3.3：标题独占一行时末尾不加标点，接排正文的该段末尾应加句号）` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody']){
+        const v = $(id).value; if(!v) continue;
+        const ps = v.split('\n').map(s=>s.trim()).filter(s=>s);
+        $(id).value = normalizeHeadings(ps).join('\n');
+      }
     }},
   {id:'r_headtime', name:'时间冒号规范（全角 12：00 → 半角 12:00）', lv:'warn',
     check: d => {
@@ -2721,6 +3784,79 @@ const RULES = [
       for(const id of ['inBody','inAttachBody'])
         if($(id).value) $(id).value = $(id).value.replace(/【/g,'〔').replace(/】/g,'〕');
     }},
+  /* ---------- 内容层校对 ---------- */
+  {id:'r_typo', name:'错别字与易混词校验（公文常见错例词库，仅提醒不自动改）', lv:'warn',
+    check: d => {
+      const hits = scanTypo([d.title, d.to, ...d.paras, ...d.attachParas, d.org]);
+      if(!hits.length) return null;
+      const hard = hits.filter(h => h.type === 'hard');
+      const soft = hits.filter(h => h.type === 'soft');
+      const parts = [];
+      if(hard.length) parts.push(`${hard.length} 处疑似错别字（${hard.slice(0,3).map(h=>h.bad+'→'+h.good).join('、')}${hard.length>3?' 等':''}）`);
+      if(soft.length) parts.push(`${soft.length} 处易混词需辨析（${soft.slice(0,3).map(h=>h.bad).join('、')}${soft.length>3?' 等':''}）`);
+      return '检测到 ' + parts.join('，') + '；点击「校验修复记录」查看逐条说明';
+    }},
+  {id:'r_numuse', name:'数字用法规范（GB/T 15835 出版物上数字用法）', lv:'warn',
+    check: d => {
+      const hits = scanNumUse([d.title, d.to, ...d.paras, ...d.attachParas]);
+      if(!hits.length) return null;
+      return `检测到 ${hits.length} 处数字用法不规范（${hits.slice(0,3).map(h=>h.sample).join('、')}${hits.length>3?' 等':''}）；点击「校验修复记录」查看逐条说明`;
+    }},
+  /* ---------- 版头要素（GB/T 9704-2012 · 7.2） ---------- */
+  {id:'r_copyno', name:'份号格式：涉密公文须编份号，6 位阿拉伯数字顶格', lv:'warn', skip: d => d.plain,
+    check: d => {
+      if(!d.copyno) return d.secret ? `已标注密级「${d.secret}」但未编份号，涉密公文应当标注份号（6 位阿拉伯数字）` : null;
+      if(!/^\d+$/.test(d.copyno)) return '份号应为阿拉伯数字：' + d.copyno;
+      if(d.copyno.length !== 6) return `份号应为 6 位阿拉伯数字（当前 ${d.copyno.length} 位）：${d.copyno}`;
+      return null;
+    },
+    fix: () => { const v = ($('inCopyNo').value.trim().replace(/\D/g,'') || '1');
+      $('inCopyNo').value = v.slice(-6).padStart(6,'0'); }},
+  {id:'r_secret', name:'密级与保密期限：三级密级用★连接保密期限', lv:'warn', skip: d => d.plain,
+    check: d => {
+      if(!d.secret) return d.secretTerm ? '已填写保密期限但未选择密级，两者应配套标注' : null;
+      if(!['秘密','机密','绝密'].includes(d.secret)) return '密级应为「秘密」「机密」「绝密」三级之一：' + d.secret;
+      if(d.secretTerm && !/^\d+\s*(年|月|日)$/.test(d.secretTerm))
+        return '保密期限格式不规范（应如「5年」「6月」「30日」）：' + d.secretTerm;
+      return null;
+    }},
+  {id:'r_urgent', name:'紧急程度：特急/加急（电报可用特提），顶格标注', lv:'warn', skip: d => d.plain,
+    check: d => {
+      if(!d.urgent) return null;
+      return ['特急','加急','特提'].includes(d.urgent) ? null : '紧急程度应为「特急」「加急」（电报可用「特提」）：' + d.urgent;
+    }},
+  /* ---------- 版记要素（GB/T 9704-2012 · 7.5） ---------- */
+  {id:'r_issue', name:'版记：印发机关和印发日期须配套，为版记最后一个要素', lv:'warn', skip: d => d.plain,
+    check: d => {
+      if(!d.issuer && !d.issueDate) return null;
+      if(d.issuer && !d.issueDate) return '已填写印发机关但缺少印发日期，二者应同时标注于版记末行';
+      if(!d.issuer && d.issueDate) return '已填写印发日期但缺少印发机关，二者应同时标注于版记末行';
+      if(!DATE_STD.test(d.issueDate))
+        return '印发日期格式不规范（应如 2026年8月10日，月日不编虚位）：' + d.issueDate;
+      return null;
+    },
+    fix: () => {
+      if(!$('inIssueDate').value.trim()){ $('inIssueDate').value = $('inDate').value.trim() || todayCN(); return; }
+      const r = parseDateLine($('inIssueDate').value.trim());
+      if(r) $('inIssueDate').value = r.date;
+    }},
+  {id:'r_ccpunct', name:'版记抄送机关：机关间用逗号隔开，最后一个后标句号', lv:'warn', skip: d => d.plain,
+    check: d => {
+      if(!d.cc) return null;
+      if(/[；;]/.test(d.cc)) return '抄送机关之间应用逗号「，」隔开，不用分号：' + d.cc;
+      return null;
+    },
+    fix: () => { $('inCc').value = $('inCc').value.replace(/[；;]/g,'，').replace(/[。．.]+$/,''); }},
+  /* ---------- 印章与成文日期（GB/T 9704-2012 · 7.3.5） ---------- */
+  {id:'r_seal', name:'印章与成文日期：加盖印章不留空白、不盖章时日期右空四字', lv:'warn',
+    check: d => {
+      if(d.plain) return null;
+      if(!d.org) return null;
+      if(d.seal === 'none')
+        return '当前设置为不加盖印章，成文日期已右空四字编排；单一机关行文一般应加盖发文机关印章，请确认是否符合行文要求';
+      // 加盖印章：印章须与正文同面，"最后一行文字之上不得留空"
+      return null;
+    }},
   {id:'r_parallel', name:'并列书名号/引号间顿号删除（《红楼梦》、《水浒传》→《红楼梦》《水浒传》）', lv:'warn',
     check: d => {
       const re = /(《[^》]+》|“[^”]+”|‘[^’]+’)\s*[、，,]\s*(?=(?:《[^》]+》|“[^”]+”|‘[^’]+’))/;
@@ -2751,7 +3887,10 @@ function applyFixes(issues){
   let n = 0;
   for(const is of issues){
     const r = RULES.find(x=>x.id===is.id);
-    if(r && r.fix){ r.fix(); n++; }
+    if(r && r.fix){
+      r.fix(); n++;
+      logFix({kind:'fix', cat:r.name, scope:is.id, before:'', after:'', status:'fixed', auto:false, msg:'一键修复：' + r.name});
+    }
   }
   pushSnap(); renderPreview();
   return n;
@@ -2786,12 +3925,15 @@ function showIssues(el, issues){
 $('btnCheck').onclick = () => {
   const issues = runValidation(collect());
   showIssues($('checkResult'), issues);
+  recordChecks(issues, '手动校验');
+  updateLogStat();
   toast(issues.length ? `发现 ${issues.length} 个问题` : '✓ 校验通过');
 };
 $('btnFixAll').onclick = () => {
   const issues = runValidation(collect());
   const n = applyFixes(issues);
   showIssues($('checkResult'), runValidation(collect()));
+  updateLogStat();
   toast(n ? `⚒ 已自动修复 ${n} 处` : '没有可自动修复的问题');
 };
 /* 规则导入 / 导出 */
@@ -2815,6 +3957,26 @@ $('ruleFile').onchange = async e => {
   }catch(err){ toast('导入失败：' + err.message); }
   e.target.value = '';
 };
+
+/* 校验修复记录：查看 / 导出 / 清空 */
+$('btnLog').onclick = openLogModal;
+$('btnLogClear').onclick = clearLog;
+$('btnDiff').onclick = openDiffModal;
+$('btnDiffExpTxt').onclick = () => exportDiff('txt');
+$('btnDiffExpHtml').onclick = () => exportDiff('html');
+$('btnRestoreDraft').onclick = () => { const d = loadDraft(); if(d && d.state){ applyState(d.state); toast('✓ 草稿已恢复'); } closeModal('modalRestore'); };
+$('btnDiscardDraft').onclick = () => { localStorage.removeItem(DRAFT_KEY); closeModal('modalRestore'); toast('已放弃草稿'); };
+$('btnStats').onclick = openStatsModal;
+$('btnClearStats').onclick = () => { saveStats([]); renderStats(); toast('已清空统计'); };
+$('btnStatsExp').onclick = () => { const a=loadStats(); if(!a.length){ toast('暂无统计'); return; } const blob=new Blob([JSON.stringify(a,null,2)],{type:'application/json'}); downloadBlob(blob,'质量看板统计.json'); toast('✓ 统计已导出'); };
+$('btnLogClear2').onclick = clearLog;
+$('btnLogExpTxt').onclick = () => exportLog('txt');
+$('btnLogExpJson').onclick = () => exportLog('json');
+$('btnLogExpHtml').onclick = () => exportLog('html');
+$('logChips').querySelectorAll('.lg-chip').forEach(c => c.onclick = () => {
+  document.querySelectorAll('#logChips .lg-chip').forEach(x => x.classList.toggle('on', x === c));
+  renderLog(c.dataset.f);
+});
 
 /* ============================================================
  * 团队规则库（标签分类 + 搜索）
@@ -3028,6 +4190,7 @@ function renderTplGrid(){
     $('fLogo').classList.toggle('hidden', plain);
     $('fNo').classList.toggle('hidden', plain);
     $('fCc').classList.toggle('hidden', plain);
+    ['fVersionHead','fVersionHead2','fIssue','fSeal'].forEach(x => $(x).classList.toggle('hidden', plain));
     $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
     if(!plain) $('inLogo').value = t.logo;
     $('inNo').value = tp.no;
@@ -3145,6 +4308,7 @@ $('miniProg').onclick = () => { if(batchRunning) openModal('modalBatch'); };
 $('btnBatch').onclick = () => { renderBatchList(); openModal('modalBatch'); };
 $('btnHist').onclick = () => { renderHist(); openModal('modalHist'); };
 $('btnRuleLib').onclick = () => { renderLibList(); openModal('modalLib'); };
+$('btnLayout').onclick = () => openLayoutModal();
 
 /* ---------- 模态框通用 ---------- */
 function openModal(id){ $(id).classList.remove('hidden'); }
@@ -3160,6 +4324,7 @@ document.querySelectorAll('.mask').forEach(m => m.addEventListener('click', e =>
 
 /* 横向自动排版开关：切换即重渲染预览（iterBlocks 据此决定是否横排宽表格） */
 $('ckLand').addEventListener('change', () => { autoLand = $('ckLand').checked; renderPreview(); });
+$('ckSeal').addEventListener('change', () => { sealPreview = $('ckSeal').checked; renderPreview(); });
 
 /* 发文字号失焦时自动规范为〔〕写法 */
 $('inNo').addEventListener('blur', () => {
@@ -3171,6 +4336,39 @@ $('inNo').addEventListener('blur', () => {
   }
 });
 
+/* ============================================================
+ * 草稿自动保存与断点恢复
+ * ============================================================ */
+const DRAFT_KEY = 'mzw_draft';
+function saveDraft(){
+  try{
+    const s = snapState(); const o = JSON.parse(s);
+    if(!o.type && SNAP_FIELDS.every(f => !o[f])) return;   // 全空不保存
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ts: Date.now(), state: s}));
+  }catch(e){}
+}
+function loadDraft(){ try{ const raw = localStorage.getItem(DRAFT_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }
+function hasMeaningfulDraft(d){ if(!d || !d.state) return false; try{ const o = JSON.parse(d.state); return SNAP_FIELDS.some(f => (o[f]||'').trim()); }catch(e){ return false; } }
+function tryRestorePrompt(){
+  // 同一浏览会话（标签页）内只提示一次，避免每次刷新都弹窗；
+  // 关闭标签页后重新打开才会再次提示（这才是草稿恢复应有的触发时机）
+  const seenKey = 'mzw_draft_seen';
+  try{ if(sessionStorage.getItem(seenKey)) return; }catch(e){}
+  const d = loadDraft();
+  if(!hasMeaningfulDraft(d)) return;
+  const el = $('restoreBody');
+  if(el){
+    const t = new Date(d.ts), pad = n => String(n).padStart(2,'0');
+    const when = `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+    el.innerHTML = `检测到 <b style="color:var(--cyan)">${when}</b> 保存的未提交草稿，是否恢复到当前编辑区？<br><span style="color:var(--muted-c);font-size:12px">恢复后可继续编辑；放弃草稿将清空该自动备份。</span>`;
+    openModal('modalRestore');
+    // 标记本次会话已提示，后续刷新不再重复弹窗
+    try{ sessionStorage.setItem(seenKey, '1'); }catch(e){}
+  }
+}
+setInterval(() => { if(SNAP_FIELDS.some(f => ($(f).value||'').trim())) saveDraft(); }, 8000);
+window.addEventListener('beforeunload', saveDraft);
+
 /* ---------- 初始化 ---------- */
 $('inDate').value = todayCN();
 renderTypes();
@@ -3179,6 +4377,7 @@ renderExpTpls();
 renderPreview();
 undoStack.push(snapState());
 updateUndoUI();
+tryRestorePrompt();
 </script>
 
   <button id="themeBtn" title="切换视觉风格（12 种风格 · 5 大风格族）"><span class="ic">&#127912;</span><span>主题</span></button>
