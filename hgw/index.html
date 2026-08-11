@@ -1200,7 +1200,8 @@ function cn2numH(s){
  * 规范结构层次序数仅四级：「一、」→「（一）」→「1.」→「(1)」。
  * 文稿中常见的字母序号（A. / a) /（B））、圈号（①②③ / ⑴⑵ / ⒈⒉ / ⒜Ⓐⓐ / ❶➀）、
  * 罗马数字（Ⅰ Ⅱ Ⅲ / I. II. III.）与天干（甲、乙、丙）均不属规范序数，
- * 统一识别为半角括号阿拉伯数字 (n)，再由层级编排按嵌套关系重新连续编号。
+ * 统一识别为半圆括号阿拉伯数字 (n)，再由层级编排按嵌套关系重新连续编号。
+ * 注：最终渲染的四级序号使用全角「（n）」（见 formatLevelMark / normFourthParen），此处仅作检测态。
  * 注：此处数值仅作占位，后续必被 counters 重排，故字母与罗马数字取值重叠
  *     （如 I 既是字母 9 又是罗马 1）不影响最终结果。 */
 function ordOfChar(ch){
@@ -1255,68 +1256,108 @@ function irregularHead(p0){
 function normHeadOrd(p){
   if(!p) return p;
   const ir = irregularHead(p);
-  if(ir) return '(' + ir.n + ')' + ir.rest;
+  if(ir) return '(' + ir.n + ')' + ir.rest;   // 不规范序号统一按四级 (n) 形态参与检测/层级编排
   return p;
 }
-/* 按规范层级生成标准序号标记：0→一、  1→（一）  2→1.  3→(1) */
+/* 按规范层级生成标准序号标记：0→一、  1→（一）  2→1.  3→（1）
+ * 注：四级序号使用全角括号「（1）」，使括号随正文仿宋字体（而非西文 Times New Roman），
+ *     与党政机关公文格式规范一致（GB/T 9704-2012 7.3.3 结构层次序数）。 */
 function formatLevelMark(lv, n){
   if(lv <= 0) return num2cn(n) + '、';
   if(lv === 1) return '（' + num2cn(n) + '）';
   if(lv === 2) return n + '.';
-  return '(' + n + ')';
+  return '（' + n + '）';
+}
+/* 四级标题括号：半角 (n) → 全角 （n），使括号随正文仿宋字体（而非西文 Times New Roman）。
+ * 仅作用于行首四级序号；正文中的普通半角括号不受影响（正则要求行首 ^\( 数字 \)）。 */
+function normFourthParen(s){
+  if(!s) return s;
+  return s.replace(/^\((\d{1,3})\)/, '（' + '$1' + '）');
 }
 function fixHeadings(paras){
-  const issues=[]; const counters=[0,0,0,0];
-  let lastStdLv = -1;                        // 最近一个标准标题的层级，用于判定不规范序号的目标层级
-  const out = paras.map(p0=>{
-    // 先判定不规范序号（A. ① Ⅰ 甲、 等）：必须在 normHeadOrd 归一之前识别，
-    // 否则 A. 会被先转成 (1) 而误判为四级标准标题，丢失父级上下文。
+  // 1. 检测每段标题形状（不规则序号保持独立，不预先归一）
+  const items = paras.map(p0 => {
     const ir = irregularHead(p0);
-    if(ir){
-      // 目标层级 = 上一层标准标题 + 1（一、→（一）；1.→（1）；（一）→1.），按嵌套重新连续编号
-      let target = lastStdLv + 1;
-      if(target < 0) target = 0;            // 无父级标题：兜底为一级 一、
-      if(target > 3) target = 3;            // 超四级无 GB 规范层级：兜底为四级 (1)
-      counters[target]++;
-      for(let k=target+1;k<4;k++) counters[k]=0;
-      const exp=counters[target];
-      const mark = formatLevelMark(target, exp);
-      const rebuilt = mark + ir.rest;
-      if(rebuilt !== p0){
-        issues.push(`不规范标题序号已校正：「${p0.slice(0,10)}…」→「${mark}…」`);
-        return rebuilt;
-      }
-      return p0;
-    }
-    // 标准标题（一、/（一）/1./(1)）：原有逻辑
-    const p = normHeadOrd(p0);
-    let lv=-1, num=null, rest='';
+    if(ir) return {shape:'IR', rawLv:null, rest:ir.rest, p0, num:null};
     let m;
-    if(m=p.match(/^([一二三四五六七八九十]{1,3})\s*[、\.．，,]\s*/)){ lv=0; num=cn2numH(m[1]); rest=p.slice(m[0].length); lastStdLv=0; }
-    else if(m=p.match(/^[（(]\s*([一二三四五六七八九十]{1,3})\s*[)）]\s*/)){ lv=1; num=cn2numH(m[1]); rest=p.slice(m[0].length); lastStdLv=1; }
-    else if(m=p.match(/^[（(]\s*(\d{1,2})\s*[)）]\s*/)){ lv=3; num=+m[1]; rest=p.slice(m[0].length); lastStdLv=3; }
-    else if(m=p.match(/^(\d{1,2})\s*[\.．、]\s*/)){ lv=2; num=+m[1]; rest=p.slice(m[0].length); lastStdLv=2; }
-    if(lv===-1) return p0;
+    if(m=p0.match(/^([一二三四五六七八九十]{1,3})\s*[、\.．，,]\s*/)) return {shape:'A', rawLv:0, num:cn2numH(m[1]), rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^[（(]\s*([一二三四五六七八九十]{1,3})\s*[)）]\s*/)) return {shape:'B', rawLv:1, num:cn2numH(m[1]), rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^[（(]\s*(\d{1,2})\s*[)）]\s*/)) return {shape:'D', rawLv:3, num:+m[1], rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^(\d{1,2})\s*[\.．、]\s*/)) return {shape:'C', rawLv:2, num:+m[1], rest:p0.slice(m[0].length), p0};
+    return null;
+  });
+  const hasA = items.some(it => it && it.shape === 'A');
+
+  // 2. 推断有效层级：含一级标题时按父级上下文填平跳级；否则按格式原层级。
+  // 不规则序号的父级必须是最近的标准标题（避免连续不规则序号互相踩深）。
+  const findStdParent = i => {
+    for(let j=i-1;j>=0;j--) if(items[j] && items[j].shape !== 'IR') return j;
+    return -1;
+  };
+  const effLv = new Array(items.length).fill(null);
+  if(!hasA){
+    // 无一级标题：fixHeadings 作为"一键修复"保留父级感知——标准形状保持自然层级，
+    // 不规则序号借用最近标准标题层级；全 irregular 时兜底一级（兼容旧测试）。
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'A') effLv[i]=0;
+      else if(it.shape === 'B') effLv[i]=1;
+      else if(it.shape === 'C') effLv[i]=2;
+      else if(it.shape === 'D') effLv[i]=3;
+      else if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+      }
+    }
+  } else {
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'A'){ effLv[i]=0; continue; }
+      if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+        continue;
+      }
+      let parentIdx = -1;
+      for(let j=i-1;j>=0;j--){
+        if(items[j] && items[j].rawLv < it.rawLv){ parentIdx=j; break; }
+      }
+      if(parentIdx < 0){
+        effLv[i] = 0;   // 无父级：提到根层
+      } else {
+        effLv[i] = Math.min(it.rawLv, effLv[parentIdx] + 1);
+      }
+    }
+  }
+
+  // 3. 生成输出与 issue
+  const issues=[]; const counters=[0,0,0,0];
+  const out = paras.map((p0, i) => {
+    const it = items[i];
+    if(!it) return p0;
+    const lv = effLv[i];
     counters[lv]++;
     for(let k=lv+1;k<4;k++) counters[k]=0;
     const exp=counters[lv];
-    const mark = lv===0 ? num2cn(exp)+'、' : lv===1 ? '（'+num2cn(exp)+'）'
-               : lv===2 ? exp+'.' : '('+exp+')';
-    // 一级、二级标题末尾不加标点符号
-    const rest2 = lv<=1 ? rest.replace(/[。，、；：？！\s]+$/,'') : rest;
+    const mark = formatLevelMark(lv, exp);
+    const rest2 = lv<=1 ? it.rest.replace(/[。，、；：？！\s]+$/,'') : it.rest;
     const rebuilt = mark + rest2;
-    if(rebuilt !== p0){
-      if(rest2 !== rest)
-        issues.push(`已删除${lv===0?'一':'二'}级标题末尾标点：「${p0.slice(0,12)}…」`);
-      else if(p !== p0)
-        issues.push(`不规范标题序号已校正：「${p0.slice(0,10)}…」→「${mark}…」`);
-      else if(num !== null && num !== exp)
-        issues.push(`第${'一二三四'[lv]}级标题序号有误：「${p0.slice(0,12)}…」应为序号 ${lv<2?num2cn(exp):exp}`);
-      else
-        issues.push(`标题标记已规范：「${p0.slice(0,10)}…」→「${mark}…」`);
-      return rebuilt;
-    }
-    return p0;
+    if(rebuilt === p0) return p0;
+
+    // 判断改动类别：形状改变/不规则序号归一 → "不规范标题序号已校正"
+    const naturalLv = it.shape === 'A' ? 0 : it.shape === 'B' ? 1 : it.shape === 'C' ? 2 : 3;
+    const shapeChanged = (lv !== naturalLv);
+    if(rest2 !== it.rest)
+      issues.push(`已删除${lv===0?'一':'二'}级标题末尾标点：「${p0.slice(0,12)}…」`);
+    else if(it.shape === 'IR' || shapeChanged)
+      issues.push(`不规范标题序号已校正：「${p0.slice(0,10)}…」→「${mark}…」`);
+    else if(it.num !== null && it.num !== exp)
+      issues.push(`第${'一二三四'[lv]}级标题序号有误：「${p0.slice(0,12)}…」应为序号 ${lv<2?num2cn(exp):exp}`);
+    else
+      issues.push(`标题标记已规范：「${p0.slice(0,10)}…」→「${mark}…」`);
+    return rebuilt;
   });
   return {paras: out, issues};
 }
@@ -1341,33 +1382,95 @@ function detectHeadingShape(p0){
   return null;
 }
 function normalizeHeadingLevels(lines){
-  // 1. 收集文档中实际出现的不同标记形态（首次出现顺序）
-  const shapes = [];
-  for(const l of lines){
-    const d = detectHeadingShape(l);
-    if(d && !shapes.includes(d.shape)) shapes.push(d.shape);
+  // 直接识别标题形状；不规则序号（A. ① Ⅰ 甲）保持独立形状 'IR'，不预先归一为 (n)。
+  // 当文档含一级标题（一、）时，按父级上下文推断层级：effective = min(raw, parentEffective+1)，
+  // 从而把跳级的 1./(1) 以及不规则序号归到正确层级；无一级标题时回退到首次出现映射。
+  const items = lines.map(l => {
+    const ir = irregularHead(l);
+    if(ir) return {shape:'IR', rawLv:null, rest:ir.rest, n:ir.n};
+    let m;
+    if(m = l.match(/^([一二三四五六七八九十百零〇]{1,3})[、.．，,]\s*/)) return {shape:'A', rawLv:0, rest:l.slice(m[0].length)};
+    if(m = l.match(/^[（(]\s*([一二三四五六七八九十百零〇]{1,3})\s*[)）]\s*/)) return {shape:'B', rawLv:1, rest:l.slice(m[0].length)};
+    if(m = l.match(/^(\d{1,3})[.．、]\s*/)){
+      const rest = l.slice(m[0].length);
+      if(/^\d/.test(rest)) return null;            // 避免 "1.5倍" 这类小数被误判
+      return {shape:'C', rawLv:2, rest};
+    }
+    if(m = l.match(/^[（(]\s*(\d{1,3})\s*[)）]\s*/)) return {shape:'D', rawLv:3, rest:l.slice(m[0].length)};
+    return null;
+  });
+
+  const hasA = items.some(it => it && it.shape === 'A');
+  const effLv = new Array(items.length).fill(null);
+
+  // 辅助：找最近一个标准标题（A/B/C/D）作为不规则序号的父级
+  const findStdParent = i => {
+    for(let j=i-1;j>=0;j--) if(items[j] && items[j].shape !== 'IR') return j;
+    return -1;
+  };
+
+  if(!hasA){
+    // 无一级标题：恢复首次出现顺序映射（兼容旧行为）。
+    // 不规则序号在映射时视为 D；若同时出现 C+D，则 C=2、D=3，使"1.+①"保持 1./(1)。
+    const uniqueShapes = [];
+    for(const it of items){
+      if(!it) continue;
+      const s = it.shape === 'IR' ? 'D' : it.shape;
+      if(!uniqueShapes.includes(s)) uniqueShapes.push(s);
+    }
+    const map = {};
+    if(uniqueShapes.includes('C') && uniqueShapes.includes('D')){
+      map.A=0; map.B=1; map.C=2; map.D=3;
+    } else {
+      uniqueShapes.forEach((s, idx) => { map[s]=idx; });
+    }
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+      } else {
+        effLv[i] = map[it.shape];
+      }
+    }
+  } else {
+    // 有一级标题：按父级上下文推断层级，填平跳级。
+    for(let i=0;i<items.length;i++){
+      const it = items[i];
+      if(!it) continue;
+      if(it.shape === 'A'){ effLv[i]=0; continue; }
+      // 不规则序号的父级必须是标准标题（避免 ①②③ 互相踩成更深层级）
+      if(it.shape === 'IR'){
+        const p = findStdParent(i);
+        effLv[i] = p < 0 ? 0 : Math.min(3, effLv[p] + 1);
+        continue;
+      }
+      // 标准标题：找最近一个层级更低的标准标题作为父级
+      let parentIdx = -1;
+      for(let j=i-1;j>=0;j--){
+        if(items[j] && items[j].rawLv < it.rawLv){ parentIdx=j; break; }
+      }
+      if(parentIdx < 0){
+        effLv[i] = 0;   // 无父级：提到根层
+      } else {
+        effLv[i] = Math.min(it.rawLv, effLv[parentIdx] + 1);
+      }
+    }
   }
-  // 层级映射：默认按首次出现顺序；但当文档仅含三级"1."与四级"(1)"、且无一级"一、"时，
-  // "1."作为三级、"(1)"作为四级（GB/T 9704-2012 7.3.3 结构层次序数），使四级编号为(1)(2)…
-  const hasA = shapes.includes('A'), hasC = shapes.includes('C'), hasD = shapes.includes('D');
-  const map = {};
-  if(hasC && hasD && !hasA){ map.A = 0; map.B = 1; map.C = 2; map.D = 3; }
-  else shapes.forEach((s, idx) => { map[s] = idx; });  // 首次出现顺序 → 规范层级 0..3
-  // 2. 依规范层级 + 嵌套关系重新连续编号
+
+  // 生成规范序号
   const counters = [0,0,0,0];
-  return lines.map(l=>{
-    const d = detectHeadingShape(l);
-    if(!d) return l;
-    const lv = map[d.shape];
-    if(lv === undefined) return l;
+  return lines.map((l, i) => {
+    const it = items[i];
+    if(!it) return l;
+    const lv = effLv[i];
+    if(lv === null) return l;
     counters[lv]++;
     for(let k = lv + 1; k < 4; k++) counters[k] = 0;  // 上级出现，下级序号归零
     const n = counters[lv];
-    let mark, rest = d.rest;
-    if(lv === 0) mark = num2cn(n) + '、';
-    else if(lv === 1) mark = '（' + num2cn(n) + '）';
-    else if(lv === 2) mark = n + '.';
-    else mark = '(' + n + ')';
+    const mark = formatLevelMark(lv, n);   // 统一经 formatLevelMark 生成（四级为全角（n））
+    let rest = it.rest;
     if(lv <= 1) rest = rest.replace(/[。，、；：？！\s]+$/, '');   // 一、二级标题末尾不加标点
     return mark + rest;
   });
@@ -1392,19 +1495,15 @@ function headingLevelOf(p){
    不删除、不转句号、不拆分标题；全角冒号须修正为半角（公文规范：时间使用半角冒号） */
 function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
 function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
-function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => t.replace(/：/g, ':')); }
+function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?:[:：]\d{1,2})?/g, t => t.replace(/：/g, ':')); }
 function fixHeadingColon(lines){
   return lines.map(l=>{
     const lv = headingLevelOf(l);
     const ci = l.search(/[:：]/);
     if(ci < 0) return l;
     if(colonIsTime(l, ci)) return l;    // 时间冒号（12:00 等）不转句号、不删除
-    if(lv === 2){                       // 三级"1."标题中的冒号识别为句号
-      const m = l.match(/^(\d+[\.．、].*?)([:：])(.*)$/);
-      if(m) return m[1] + '。' + m[3];
-    } else if(lv === 3){                // 四级"（1）"标题中的冒号识别为句号
-      const m = l.match(/^([（(]\d+[)）].*?)([:：])(.*)$/);
-      if(m) return m[1] + '。' + m[3];
+    if(lv === 2 || lv === 3){           // 三、四级标题中的第一个非时间冒号识别为句号
+      return l.replace(/[:：]/, '。');   // headingLevelOf 已识别层级，且时间冒号已排除
     }
     return l;
   });
@@ -1439,7 +1538,8 @@ function splitHeadingInlineBody(lines){
 function normalizeHeadings(lines){
   // 先按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），再统一层级序数编排
   // fixTimeColon：时间表达中的全角冒号（12：00）修正为半角（12:00），且不参与后续标题冒号处理
-  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(l => normHeadOrd(fixTimeColon(l))))));
+  // 注意：此处不再前置 normHeadOrd；normalizeHeadingLevels 会自己识别不规则序号并按父级上下文推断层级。
+  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(l => fixTimeColon(l)))));
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
@@ -1485,6 +1585,34 @@ function normParallel(s){
 }
 /* 全字段轻量规范（标题/主送/署名/日期/附件说明等）：六角括号、时间半角冒号、连接号 */
 function normText(s){ return normBracket(fixTimeColon(normDash(s))); }
+/* 正文/附件标点符号全角化：半角标点 → 全角（时间冒号除外，保持半角）。
+   保护：时间表达、URL/邮箱/data URI、Markdown 链接与图片、行首层级序号「N.」「N、」、
+   数字（含小数点/千分位/版本号）、英文缩写（U.S.A / i.e.）、连续点（省略号）。 */
+function normPunctFull(s){
+  if(!s) return s;
+  const held = [];
+  const hold = m => '\uE000' + String.fromCharCode(0xE100 + held.length) + '\uE001' + (held.push(m), '');
+  // 1) 时间表达（12:00 / 12：00 / 12:00:00），全角冒号先修正为半角并整体保护
+  s = s.replace(/\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/g, t => hold(fixTimeColon(t)));
+  // 2) 链接 / 图片 / 邮箱 / data URI，整体保护（URL 止于中文/全角标点/空白，避免吞掉后续标点）
+  s = s.replace(/(!?\[[^\]]*\]\([^)]*\))|(https?:\/\/[^\s<>"']*?(?=[，。；：！？）】\u4e00-\u9fff\s]|$))|([\w.+-]+@[\w-]+\.[\w.-]+)|(data:[^;]+;base64,[^\s]+)/g, hold);
+  // 3) 英文缩写（U.S.A / i.e. 等），整体保护，避免句号/点被误改
+  s = s.replace(/\b[A-Za-z]+(?:\.[A-Za-z]+)+\.?(?![A-Za-z])/g, hold);
+  // 4) 行首层级序号标记保护（避免句号化 / 顿号误改）
+  s = s.replace(/^\d+\.\d[\d.]*/, hold);          // 行首小数 / 版本号（如 1.2 / 1.2.3）
+  s = s.replace(/^\d+[.．、]/, hold);             // 行首层级序号（如 1. / 1、）
+  // 5) 数字（含小数点、千分位、版本号），整体保护，避免 3.14 / 1,000 被误改
+  s = s.replace(/\d+(?:\.\d+)*(?:,\d{3})*/g, hold);
+  // 6) 连续半角点（省略号 ……）保护
+  s = s.replace(/\.{2,}/g, m => hold('……'));
+  // 半角标点 → 全角（时间冒号已保护；引号由 fixQuotes 处理，此处不动）
+  const PMAP = {',':'，', '.':'。', ';':'；', ':':'：', '?':'？', '!':'！',
+                '(':'（', ')':'）', '[':'【', ']':'】'};
+  s = s.replace(/[,.!?;:()\[\]]/g, c => PMAP[c] || c);
+  // 还原保护段
+  s = s.replace(/\uE000([\uE100-\uEFFF])\uE001/g, (m, c) => held[c.charCodeAt(0) - 0xE100]);
+  return s;
+}
 /* 段首无意义符号清理：删除正文/附件段落开头的孤立标点与 Markdown 残留符号
    （. 、 ， 。 ； ： * # - ` ~ _ + > 及各类项目符号），使段落以正文首字开头。
    保留：各级序号（一、/（一）/1./(1)）、书名号、引号、破折号"——"引文起始，
@@ -1499,8 +1627,8 @@ function stripLeadSym(s){
   do{ prev = t; t = t.replace(LEAD, ''); }while(t !== prev && t);
   return t;
 }
-/* 全文/附件规范：段首符号清理 + 轻量规范 + 直引号→弯引号 + 并列顿号删除 */
-function normFull(s){ return normParallel(fixQuotes(normText(stripLeadSym(s)))); }
+/* 全文/附件规范：段首符号清理 + 轻量规范 + 直引号→弯引号 + 标点全角化 + 并列顿号删除 */
+function normFull(s){ return normParallel(normPunctFull(fixQuotes(normText(stripLeadSym(s))))); }
 /* 单条正文/附件行的「规范分解」：逐函数比对，定位具体改动类别（与 normFull 管线顺序完全一致）。
    仅返回 {before, after, cat}，不触碰 DOM，便于采集修复记录与单测。cat===null 表示本行无改动。 */
 function scanNorm(l){
@@ -1509,7 +1637,8 @@ function scanNorm(l){
   const a3 = fixTimeColon(a2);
   const a4 = normBracket(a3);
   const a5 = fixQuotes(a4);
-  const a6 = normParallel(a5);
+  const a5b = normPunctFull(a5);
+  const a6 = normParallel(a5b);
   if(a6 === l) return null;
   let cat;
   if(a1 !== l) cat = '段首符号清理';
@@ -1517,7 +1646,8 @@ function scanNorm(l){
   else if(a3 !== a2) cat = '时间冒号规范';
   else if(a4 !== a3) cat = '六角括号规范';
   else if(a5 !== a4) cat = '引号规范';
-  else if(a6 !== a5) cat = '并列顿号规范';
+  else if(a5b !== a5) cat = '标点全角化';
+  else if(a6 !== a5b) cat = '并列顿号规范';
   else cat = '文本规范';
   return {before:l, after:a6, cat};
 }
@@ -2426,7 +2556,7 @@ function smartParse(text){
                  + attachParas.filter(l => normHeadOrd(l) !== l).length;
   body.splice(0, body.length, ...normalizeHeadings(body));
   $('inBody').value = body.map(normText).join('\n');
-  $('inAttach').value = normText(attach);
+  $('inAttach').value = normPunctFull(normText(attach));
   if(attachParas.length){
     $('inAttachBody').value = normalizeHeadings(attachParas.map(normText)).join('\n');
     found.push('附件内容');
@@ -2662,7 +2792,9 @@ function paraHTML(s){
     if(ci >= 0 && ci < s.length - 1 && s.slice(ci+1).trim())
       return `<div class="p h2">${qspan(esc(s.slice(0, ci+1)))}<span class="body-f">${qspan(esc(s.slice(ci+1)))}</span></div>`;
   }
-  return `<div class="p ${k}">${qspan(esc(s))}</div>`;
+  // 四级标题括号统一全角，与正文字体（仿宋）保持一致
+  const ss = (k === 'h4') ? normFourthParen(s) : s;
+  return `<div class="p ${k}">${qspan(esc(ss))}</div>`;
 }
 function estLines(d){
   const blocks = [];
@@ -2971,14 +3103,15 @@ async function buildDocxBlob(d){
   // 正文：一级方正黑体、二级方正楷体、三级与四级均为方正仿宋（不加粗）；全部两端对齐
   const bodyPara = (p, extraOpts={}) => {
     const k = classify(p);
+    const pp = (k === 'h4') ? normFourthParen(p) : p;   // 四级标题括号统一全角，与正文字体（仿宋）一致
     const font = k==='h1' ? F_HEI : k==='h2' ? F_KAI : F_FS;
     let kids;
     if(k === 'h2'){
-      const ci = p.indexOf('。');
-      if(ci >= 0 && ci < p.length - 1 && p.slice(ci+1).trim())
-        kids = [...splitRuns(p.slice(0, ci+1), F_KAI, 16), ...splitRuns(p.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
-      else kids = splitRuns(p, font, 16);
-    } else kids = splitRuns(p, font, 16);
+      const ci = pp.indexOf('。');
+      if(ci >= 0 && ci < pp.length - 1 && pp.slice(ci+1).trim())
+        kids = [...splitRuns(pp.slice(0, ci+1), F_KAI, 16), ...splitRuns(pp.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
+      else kids = splitRuns(pp, font, 16);
+    } else kids = splitRuns(pp, font, 16);
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,   // 两端对齐
       indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
@@ -3384,9 +3517,9 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_dash','r_parallel','r_land','r_img','r_bracket',
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_issue','r_typo','r_numuse'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_punct','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
@@ -3436,6 +3569,20 @@ const RULES = [
         $(id).value = ps.map(fixPunct).join('\n');
       }
     }},
+  {id:'r_punctfull', name:'正文/附件标点符号须用全角（时间冒号「:」除外）', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = arr => { if(!arr) return; for(const l of arr){ if(l && normPunctFull(l) !== l) n++; } };
+      scan(d.paras); scan(d.attachParas);
+      if(d.attach && normPunctFull(d.attach) !== d.attach) n++;
+      return n ? `检测到 ${n} 处正文/附件使用了半角标点符号（如 , . ; : ( )），公文应使用全角；时间冒号「:」保持半角` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody','inAttach']){
+        const v = $(id).value; if(!v) continue;
+        $(id).value = v.split('\n').map(x => normPunctFull(x)).join('\n');
+      }
+    }},
   {id:'r_dash', name:'连接号规范：时间/地域起止用一字线"—"、数值范围用浪纹"～"（ASCII 连字符"-"自动规范）', lv:'warn',
     check: d => {
       let n = 0;
@@ -3451,7 +3598,7 @@ const RULES = [
   {id:'r_color', name:'正文文字颜色为黑色', lv:'warn',
     check: () => /color\s*[:=]|<font/i.test($('rawText').value)
       ? '检测到原文含彩色文字标记，输出已统一为黑色' : null},
-  {id:'r_headings', name:'正文标题层级：一、（一）1.(1)格式与序号', lv:'warn',
+  {id:'r_headings', name:'正文标题层级：一、（一）1.（1）格式与序号', lv:'warn',
     check: d => {
       const r = fixHeadings(d.paras);
       return r.issues.length ? `标题层级存在 ${r.issues.length} 处格式/序号问题（${r.issues[0]}${r.issues.length>1?' 等':''}）` : null;
@@ -3460,16 +3607,32 @@ const RULES = [
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = fixHeadings(ps).paras.join('\n');
     }},
-  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.(1)）', lv:'warn',
+  {id:'r_headlvl', name:'正文标题层级序数自动编排（一、（一）1.（1））', lv:'warn',
     check: d => {
       const fixed = normalizeHeadingLevels(d.paras);
       let ch = 0;
       for(let i = 0; i < d.paras.length; i++) if(fixed[i] !== d.paras[i]) ch++;
-      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「(1)」依次编排` : null;
+      return ch ? `检测到 ${ch} 处标题层级序数不规范，应严格按「一、」「（一）」「1.」「（1）」依次编排` : null;
     },
     fix: () => {
       const ps = $('inBody').value.split('\n').map(s=>s.trim()).filter(s=>s);
       $('inBody').value = normalizeHeadings(ps).join('\n');
+    }},
+  {id:'r_headparen', name:'四级标题括号规范：须用全角（）如（1）（2）', lv:'warn',
+    check: d => {
+      let n = 0;
+      const scan = arr => { if(!arr) return; for(const l of arr){ const t = l && l.trim(); if(t && classify(t)==='h4' && /^\((\d{1,3})\)/.test(t)) n++; } };
+      scan(d.paras); scan(d.attachParas);
+      return n ? `检测到 ${n} 处四级标题使用了半角括号「(n)」，公文规范应使用全角括号「（n）」以与正文字体（仿宋）保持一致` : null;
+    },
+    fix: () => {
+      for(const id of ['inBody','inAttachBody']){
+        const v = $(id).value; if(!v) continue;
+        $(id).value = v.split('\n').map(l => {
+          const t = l.trim();
+          return (classify(t)==='h4' && /^\((\d{1,3})\)/.test(t)) ? l.replace(/^\((\d{1,3})\)/, '（$1）') : l;
+        }).join('\n');
+      }
     }},
   {id:'r_headcolon', name:'标题冒号处理（二级拆为标题+正文；三级冒号改句号）', lv:'warn',
     check: d => {
@@ -4117,6 +4280,10 @@ function saveDraft(){
 function loadDraft(){ try{ const raw = localStorage.getItem(DRAFT_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }
 function hasMeaningfulDraft(d){ if(!d || !d.state) return false; try{ const o = JSON.parse(d.state); return SNAP_FIELDS.some(f => (o[f]||'').trim()); }catch(e){ return false; } }
 function tryRestorePrompt(){
+  // 同一浏览会话（标签页）内只提示一次，避免每次刷新都弹窗；
+  // 关闭标签页后重新打开才会再次提示（这才是草稿恢复应有的触发时机）
+  const seenKey = 'mzw_draft_seen';
+  try{ if(sessionStorage.getItem(seenKey)) return; }catch(e){}
   const d = loadDraft();
   if(!hasMeaningfulDraft(d)) return;
   const el = $('restoreBody');
@@ -4125,6 +4292,8 @@ function tryRestorePrompt(){
     const when = `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
     el.innerHTML = `检测到 <b style="color:var(--cyan)">${when}</b> 保存的未提交草稿，是否恢复到当前编辑区？<br><span style="color:var(--muted-c);font-size:12px">恢复后可继续编辑；放弃草稿将清空该自动备份。</span>`;
     openModal('modalRestore');
+    // 标记本次会话已提示，后续刷新不再重复弹窗
+    try{ sessionStorage.setItem(seenKey, '1'); }catch(e){}
   }
 }
 setInterval(() => { if(SNAP_FIELDS.some(f => ($(f).value||'').trim())) saveDraft(); }, 8000);
