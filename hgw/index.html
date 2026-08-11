@@ -1283,7 +1283,13 @@ function fixHeadings(paras){
     if(m=p0.match(/^([一二三四五六七八九十]{1,3})\s*[、\.．，,]\s*/)) return {shape:'A', rawLv:0, num:cn2numH(m[1]), rest:p0.slice(m[0].length), p0};
     if(m=p0.match(/^[（(]\s*([一二三四五六七八九十]{1,3})\s*[)）]\s*/)) return {shape:'B', rawLv:1, num:cn2numH(m[1]), rest:p0.slice(m[0].length), p0};
     if(m=p0.match(/^[（(]\s*(\d{1,2})\s*[)）]\s*/)) return {shape:'D', rawLv:3, num:+m[1], rest:p0.slice(m[0].length), p0};
-    if(m=p0.match(/^(\d{1,2})\s*[\.．、]\s*/)) return {shape:'C', rawLv:2, num:+m[1], rest:p0.slice(m[0].length), p0};
+    if(m=p0.match(/^(\d{1,2})\s*[\.．、]\s*/)){
+      const rest=p0.slice(m[0].length);
+      // 避免 1.5倍 / 1.2.3 等小数、版本号被误判为标题；但允许 7.2021级 这类年份开头
+      if(/^\d+(?:[\.．]\d+)+/.test(rest)) return null;
+      if(/^\d+(?:\.\d+)?\s*(?:倍|%|％|℃|°C|°)(?!\w)/.test(rest)) return null;
+      return {shape:'C', rawLv:2, num:+m[1], rest, p0};
+    }
     return null;
   });
   const hasA = items.some(it => it && it.shape === 'A');
@@ -1322,7 +1328,8 @@ function fixHeadings(paras){
       }
       let parentIdx = -1;
       for(let j=i-1;j>=0;j--){
-        if(items[j] && items[j].rawLv < it.rawLv){ parentIdx=j; break; }
+        if(!items[j] || items[j].shape === 'IR') continue;   // 不规则序号不是结构父级
+        if(items[j].rawLv < it.rawLv){ parentIdx=j; break; }
       }
       if(parentIdx < 0){
         effLv[i] = 0;   // 无父级：提到根层
@@ -1375,7 +1382,9 @@ function detectHeadingShape(p0){
   if(m = p.match(/^[（(]\s*([一二三四五六七八九十百零〇]{1,3})\s*[)）]\s*/)) return {shape:'B', rest:p.slice(m[0].length)};
   if(m = p.match(/^(\d{1,3})[.．、]\s*/)){
     const rest = p.slice(m[0].length);
-    if(/^\d/.test(rest)) return null;            // 避免 "1.5倍" 这类小数被误判为标题
+    // 避免 1.5倍 / 1.2.3 等小数、版本号被误判；但允许 7.2021级 这类年份开头
+    if(/^\d+(?:[.．]\d+)+/.test(rest)) return null;
+    if(/^\d+(?:\.\d+)?\s*(?:倍|%|％|℃|°C|°)(?!\w)/.test(rest)) return null;
     return {shape:'C', rest};
   }
   if(m = p.match(/^[（(]\s*(\d{1,3})\s*[)）]\s*/)) return {shape:'D', rest:p.slice(m[0].length)};
@@ -1393,7 +1402,9 @@ function normalizeHeadingLevels(lines){
     if(m = l.match(/^[（(]\s*([一二三四五六七八九十百零〇]{1,3})\s*[)）]\s*/)) return {shape:'B', rawLv:1, rest:l.slice(m[0].length)};
     if(m = l.match(/^(\d{1,3})[.．、]\s*/)){
       const rest = l.slice(m[0].length);
-      if(/^\d/.test(rest)) return null;            // 避免 "1.5倍" 这类小数被误判
+      // 避免 1.5倍 / 1.2.3 等小数、版本号被误判；但允许 7.2021级 这类年份开头
+      if(/^\d+(?:[.．]\d+)+/.test(rest)) return null;
+      if(/^\d+(?:\.\d+)?\s*(?:倍|%|％|℃|°C|°)(?!\w)/.test(rest)) return null;
       return {shape:'C', rawLv:2, rest};
     }
     if(m = l.match(/^[（(]\s*(\d{1,3})\s*[)）]\s*/)) return {shape:'D', rawLv:3, rest:l.slice(m[0].length)};
@@ -1449,7 +1460,8 @@ function normalizeHeadingLevels(lines){
       // 标准标题：找最近一个层级更低的标准标题作为父级
       let parentIdx = -1;
       for(let j=i-1;j>=0;j--){
-        if(items[j] && items[j].rawLv < it.rawLv){ parentIdx=j; break; }
+        if(!items[j] || items[j].shape === 'IR') continue;   // 不规则序号不是结构父级
+        if(items[j].rawLv < it.rawLv){ parentIdx=j; break; }
       }
       if(parentIdx < 0){
         effLv[i] = 0;   // 无父级：提到根层
