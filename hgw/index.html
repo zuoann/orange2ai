@@ -2946,6 +2946,9 @@ function cleanText(raw){
     let l = line;
     // 整行分隔线（--- / *** / === / ~~~ 等）直接丢弃
     if(/^\s*[-*_#=~·•]{2,}\s*$/.test(l)){ if(l.trim()) removed++; continue; }
+    // 结构化表格注释（<!--TABLE:{...}-->）形如 <...>，但属公文表格数据（含 rowspan/colspan），
+    // 必须原样保留，禁止当作 HTML/XML 标签清除，否则表格在解析阶段即被整体删除
+    if(/^\s*<!--TABLE:/.test(l)){ out.push(l.trim()); continue; }
     // HTML / XML 标签（含 <br>、<p>、<span> 等）
     l = l.replace(/<[^>]+>/g, () => { removed++; return ''; });
     // 行首 Markdown 标记：# 标题 / > 引用 / - * + 无序列表
@@ -3323,6 +3326,9 @@ function smartParse(text){
   const isAttItem = s => /^\d+\s*[\.、．]\S/.test(s) && s.length <= 60 && !/[，；：:]$/.test(s);
   for(let i = 0; i < lines.length; i++){
     const l = lines[i];
+    // 结构化表格注释：原样保留为独立块（正文或附件），跳过全部正文/标题/标点规范，
+    // 避免 scanNorm / normFull / normText 的标签清除与标点全角化破坏 <!--TABLE:...--> JSON 及单元格内容
+    if(/^<!--TABLE:/.test(l)){ (attBodyMode ? attachParas : body).push(l); continue; }
     // "附件" "附件：" "附件1" 单独成行：向后探测——
     // 若紧随编号短行（1.××× 2.×××），视为附件说明列表；否则视为附件页标识（之后为附件内容）
     if(/^附件\s*[：:]?\s*\d{0,2}\s*$/.test(l)){
@@ -3421,10 +3427,10 @@ function smartParse(text){
   const ordFixed = body.filter(l => normHeadOrd(l) !== l).length
                  + attachParas.filter(l => normHeadOrd(l) !== l).length;
   body.splice(0, body.length, ...normalizeHeadings(body));
-  $('inBody').value = body.map(normText).join('\n');
+  $('inBody').value = body.map(l => /^<!--TABLE:/.test(l) ? l : normText(l)).join('\n');
   $('inAttach').value = normPunctFull(normText(attach));
   if(attachParas.length){
-    $('inAttachBody').value = normalizeHeadings(attachParas.map(normText)).join('\n');
+    $('inAttachBody').value = normalizeHeadings(attachParas.map(l => /^<!--TABLE:/.test(l) ? l : normText(l))).join('\n');
     found.push('附件内容');
   }
   if(attach) found.push('附件说明');
