@@ -454,7 +454,7 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- 公文表格（GB/T 9704-2012：表内五号仿宋、表头黑体、居中、全边框） ---------- */
-  .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:10.5pt;
+  .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:12pt;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;color:#000}
   .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;vertical-align:middle;line-height:1.6}
   .gt th{font-family:"Times New Roman","方正黑体_GBK","黑体",sans-serif}
@@ -1924,31 +1924,90 @@ function punctIssueCount(paras){
   return n;
 }
 
-/* ---------- 表格识别：Markdown 表格行分组解析 ---------- */
-/* 表格行：以竖线开头且至少含两个竖线（兼容无尾竖线写法，如 "| 项目 | 说明"） */
+/* ---------- 表格识别：结构化表格（保留 rowspan/colspan、Markdown/HTML 同源） ---------- */
+
+/* 表格单元格对象：{text, rowSpan, colSpan, cont?}
+   - rowSpan>1：纵向合并（跨行）
+   - colSpan>1：横向合并（跨列）
+   - cont=true：被上方 rowSpan 覆盖的延续单元格（导出用 verticalMerge=continue，预览不渲染） */
+function cell(text, rowSpan, colSpan, cont){
+  return {text: String(text==null?'':text), rowSpan: Math.max(1, rowSpan|0||1), colSpan: Math.max(1, colSpan|0||1), cont: !!cont};
+}
+function cloneCell(c){ return cell(c.text, c.rowSpan, c.colSpan, c.cont); }
+
+/* Markdown 表格行：以竖线开头且至少含两个竖线（兼容无尾竖线写法，如 "| 项目 | 说明"） */
 function isTableLine(s){ return /^\|.*\|/.test(s); }
 function parseTableRows(tl){
-  return tl.map(l=>l.replace(/^\|/,'').replace(/\|\s*$/,'').split('|').map(c=>c.trim()))
-    .filter(r=>!r.every(c=>/^[-:：\s]+$/.test(c)));
+  const raw = tl.map(l=>l.replace(/^\|/,'').replace(/\|\s*$/,'').split('|').map(c=>cell(c.trim())))
+    .filter(r=>!r.every(c=>/^[-:：\s]+$/.test(c.text)));
+  if(!raw.length) return raw;
+  const n = tableColCount(raw);
+  return buildTableGrid(raw, n);
 }
+
 let autoLand = true;   // 宽表格/超宽内容自动横排（GB/T 9704-2012 横向页），可在设置中关闭
 let sealPreview = true; // 预览中显示印章套印位置示意（仅示意，不写入导出文件）
-/* 表格是否超出纵向版心宽度（需横排）：按五号字估算各列最大单元格自然宽度之和，
-   超过版心宽(BXW)即判定为宽表格，应另页横向排版 */
+
+/* 表格逻辑列数：取所有行中 colSpan 之和的最大值 */
+function tableColCount(rows){
+  let n = 0;
+  for(const r of rows){
+    let s = 0;
+    for(const c of r) s += c.colSpan;
+    n = Math.max(n, s);
+  }
+  return n;
+}
+/* 由带跨行列的原始行构建标准网格：每行 colSpan 之和等于 colCount，
+   被 rowSpan 覆盖的位置生成 cont=true 的延续单元格 */
+function buildTableGrid(rawRows, colCount){
+  const rows = [];
+  const occupied = Array.from({length: rawRows.length}, ()=>new Array(colCount).fill(false));
+  for(let ri=0; ri<rawRows.length; ri++){
+    const out = [];
+    let ci = 0, cj = 0;
+    while(ci < colCount){
+      if(occupied[ri][ci]){
+        out.push(cell('', 1, 1, true));
+        ci++;
+      } else {
+        const c = rawRows[ri][cj++];
+        if(!c) break;
+        out.push(cloneCell(c));
+        for(let r=0; r<c.rowSpan && ri+r < rawRows.length; r++){
+          for(let k=0; k<c.colSpan && ci+k < colCount; k++) occupied[ri+r][ci+k] = true;
+        }
+        ci += c.colSpan;
+      }
+    }
+    rows.push(out);
+  }
+  return rows;
+}
+/* 估算表格实际宽度（twips）：按各逻辑列最大单元格自然宽度 + 边距 */
+function tableNaturalWidth(rows, colCount){
+  const colW = new Array(colCount).fill(0);
+  for(const r of rows){
+    let ci = 0;
+    for(const c of r){
+      if(!c.cont){
+        const w = textWidthTwips(c.text);
+        if(w > colW[ci]) colW[ci] = w;
+      }
+      ci += c.colSpan;
+    }
+  }
+  let total = 0;
+  for(let i=0;i<colCount;i++) total += colW[i] + 200;
+  return total;
+}
+/* 表格是否超出纵向版心宽度（需横排） */
 function isWideTable(rows){
   if(!rows || !rows.length) return false;
-  const n = rows[0] ? rows[0].length : 0;
+  const n = tableColCount(rows);
   if(!n) return false;
-  let total = 0;
-  for(let c=0;c<n;c++){
-    let maxW = 0;
-    for(const r of rows){ const w = textWidthTwips(r[c]||''); if(w>maxW) maxW=w; }
-    total += maxW + 200;   // + 单元格左右内边距(各 100twips)
-  }
-  if(total > BXW) return true;
-  // 列数过多的「短文本宽表」：按列宽下限（每列至少约 4 个五号字 ≈ 1100twips）估算，
-  // 若 列数 × 列宽下限 超出纵向版心，则认定为横向表格，应另页横排
-  // （避免「列多而单元格文字短」的横向表格被正文宽度误判为纵向，导致显示/导出错乱）
+  if(tableNaturalWidth(rows, n) > BXW) return true;
+  // 列数过多的「短文本宽表」兜底
   const MIN_COL = 1100;
   return n * MIN_COL > BXW;
 }
@@ -2006,6 +2065,18 @@ function iterBlocks(paras){
     const line = (paras[i]||'').trim();
     // 强制横排标记：独立的"横排"/"横向"/"【横排】"行，不渲染，仅作用于紧随其后的表格
     if(line==='横排' || line==='横向' || /^【?横(排|向)】?$/.test(line)){ force=true; i++; continue; }
+    // 结构化表格注释：<!--TABLE:{...}-->（由 docx / 网页富文本导入时生成，保留 rowspan/colspan）
+    const tblMatch = line.match(/^<!--TABLE:(.+?)-->$/);
+    if(tblMatch){
+      try{
+        const t = deserializeTable(tblMatch[1]);
+        if(t && t.rows && t.rows.length){
+          const wide = (autoLand && isWideTable(t.rows)) || force;
+          out.push({t:'tb', rows:t.rows, colCount:t.colCount, headerRows:t.headerRows, wide});
+        }
+      }catch(e){}
+      i++; force=false; continue;
+    }
     // 图片：连续的 ![alt](url) 合并为一个图片组（默认居中、多图同高以保持比例一致）
     // F11 支持题注语法 ![alt](url "题注")，自动编号图N
     if(IMG_CAP_RE.test(line)){
@@ -2024,7 +2095,7 @@ function iterBlocks(paras){
       const rows = parseTableRows(tl);
       if(rows.length){
         const wide = (autoLand && isWideTable(rows)) || force;
-        out.push({t:'tb', rows, wide});
+        out.push({t:'tb', rows, colCount:tableColCount(rows), headerRows:1, wide});
       }
       force=false;
     }else out.push({t:'p', s:paras[i++]});
@@ -2046,21 +2117,29 @@ function cellWraps(text, colW){
   if(/\n/.test(text)) return true;
   return textWidthTwips(text) > (colW - 200); // 减去单元格左右边距(各 100twips)
 }
-function tableHTML(rows, wide){
-  const n = rows[0] ? rows[0].length : 0;
+function tableHTML(rows, colCount, headerRows, wide){
   const cwTotal = wide ? LW : BXW;
-  const colW = n ? Math.floor(cwTotal / n) : cwTotal;
+  const colW = colCount ? Math.floor(cwTotal / colCount) : cwTotal;
   // F10 跨页表头重复：表头行置于 thead（display:table-header-group），
   // 打印/PDF 分页时表头会在续页自动重复出现（GB/T 9704-2012 表格跨页表头要求）
   let thead = '', tbody = '';
   rows.forEach((r,ri)=>{
-    const cells = r.map(c => {
-      const wrap = cellWraps(c, colW);
-      const tag = ri===0 ? 'th' : 'td';
-      return `<${tag}${wrap?' class="gw"':''}>${esc(c)}</${tag}>`;
-    }).join('');
-    if(ri === 0) thead += '<tr class="gt-h">' + cells + '</tr>';
-    else tbody += '<tr>' + cells + '</tr>';
+    const isHead = ri < headerRows;
+    let html = '<tr>';
+    let ci = 0;
+    for(const c of r){
+      if(c.cont){ ci += c.colSpan; continue; }
+      const wrap = cellWraps(c.text, colW * c.colSpan);
+      const tag = isHead ? 'th' : 'td';
+      const rs = c.rowSpan > 1 ? ` rowspan="${c.rowSpan}"` : '';
+      const cs = c.colSpan > 1 ? ` colspan="${c.colSpan}"` : '';
+      const cls = wrap ? ' class="gw"' : '';
+      html += `<${tag}${rs}${cs}${cls}>${esc(c.text)}</${tag}>`;
+      ci += c.colSpan;
+    }
+    html += '</tr>';
+    if(isHead) thead += html;
+    else tbody += html;
   });
   return '<table class="gt">' + (thead ? '<thead>' + thead + '</thead>' : '') + '<tbody>' + tbody + '</tbody></table>';
 }
@@ -2073,20 +2152,56 @@ function imgGroupInner(items){
     return `<div class="imgblk"><div class="imgc">${img}</div>${cap}</div>`;
   }).join('');
 }
-/* 将 DOM <table> 转为 Markdown 管道格式（首行作为表头） */
-function tableToMd(tb){
-  const rows = [...tb.querySelectorAll('tr')].map(tr =>
-    [...tr.querySelectorAll('th,td')].map(td => (td.textContent||'').replace(/\s+/g,' ').trim())
-  ).filter(cells => cells.length);
-  return rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+/* 将 DOM <table> 转为结构化 JSON 字符串，以 <!--TABLE:...--> 注释内嵌于导入文本，
+   完整保留 rowspan/colspan，避免 Markdown 管道表丢失合并单元格 */
+function tableToStructured(tb){
+  const parseSection = sec => [...sec.querySelectorAll('tr')].map(tr =>
+    [...tr.querySelectorAll('th,td')].map(td => {
+      const text = (td.textContent||'').replace(/\s+/g,' ').trim();
+      const rowSpan = Math.max(1, parseInt(td.getAttribute('rowspan')||'1',10)||1);
+      const colSpan = Math.max(1, parseInt(td.getAttribute('colspan')||'1',10)||1);
+      return cell(text, rowSpan, colSpan);
+    })
+  );
+  const thead = tb.querySelector('thead');
+  const tbody = tb.querySelector('tbody');
+  let raw = [];
+  if(thead) raw = raw.concat(parseSection(thead));
+  if(tbody) raw = raw.concat(parseSection(tbody));
+  if(!raw.length) raw = parseSection(tb);
+  const rows = raw.filter(r => !r.every(c => /^[-:：\s]+$/.test(c.text)));
+  if(!rows.length) return null;
+  const colCount = tableColCount(rows);
+  const grid = buildTableGrid(rows, colCount);
+  const headerRows = thead ? parseSection(thead).length : 1;
+  return {rows: grid, colCount, headerRows};
 }
-/* 将含表格的 HTML（上传 docx / 粘贴网页富文本）转为纯文本，
-   其中的 <table> 保留为 Markdown 管道格式并原位内联，其余元素按块级换行 */
+function serializeTable(t){
+  if(!t) return '';
+  const compactRows = t.rows.map(r => r.map(c => {
+    const o = {t:c.text};
+    if(c.rowSpan !== 1 || c.colSpan !== 1) o.s = [c.rowSpan, c.colSpan];
+    if(c.cont) o.cont = true;
+    return o;
+  }));
+  return '<!--TABLE:' + JSON.stringify({h:t.headerRows||1, c:t.colCount, r:compactRows}) + '-->';
+}
+function deserializeTable(s){
+  const o = JSON.parse(s);
+  if(!o || !o.r) return null;
+  return {
+    headerRows: o.h || 1,
+    colCount: o.c || (o.r[0] ? o.r[0].reduce((a,c)=>(a+(c.s?c.s[1]:1)),0) : 0),
+    rows: o.r.map(r => r.map(c => cell(c.t, c.s?c.s[0]:1, c.s?c.s[1]:1, c.cont)))
+  };
+}
+/* 将含表格的 HTML（粘贴网页富文本）转为纯文本，其中的 <table> 保留为 <!--TABLE:...--> 结构化注释，
+   完整保留 rowspan/colspan；其余元素按块级换行 */
 function htmlToText(node){
   let out = '';
   node.childNodes.forEach(c => {
     if(c.nodeType === 3){ out += c.textContent; }
-    else if(c.nodeName === 'TABLE'){ out += '\n\n' + tableToMd(c) + '\n\n'; }
+    else if(c.nodeName === 'TABLE'){ out += '\n\n' + serializeTable(tableToStructured(c)) + '\n\n'; }
     else if(c.nodeName === 'BR'){ out += '\n'; }
     else {
       const tag = (c.nodeName||'').toLowerCase();
@@ -2098,7 +2213,8 @@ function htmlToText(node){
 }
 /* ---------- 公文导入：图片识别与二进制文档尽力解析 ---------- */
 // 将 docx 经 mammoth 转换得到的 HTML（图片已内嵌为 data: URI）转为导入文本：
-// 文本/表格按原逻辑保留，<img> 转为 Markdown 图片行 ![图N](data:...) 以便智能解析识别为图片块（自动识别并保留原文档内图片）
+// <table> 转换为 <!--TABLE:{...}--> 结构化注释，完整保留 rowspan/colspan 合并单元格；
+// <img> 转为 Markdown 图片行 ![图N](data:...) 以便智能解析识别为图片块（自动识别并保留原文档内图片）
 function docxHtmlToImportText(html){
   const doc = new DOMParser().parseFromString(html, 'text/html');
   let imgN = 0;
@@ -2106,7 +2222,7 @@ function docxHtmlToImportText(html){
     let out = '';
     node.childNodes.forEach(c => {
       if(c.nodeType === 3){ out += c.textContent; }
-      else if(c.nodeName === 'TABLE'){ out += '\n\n' + tableToMd(c) + '\n\n'; }
+      else if(c.nodeName === 'TABLE'){ out += '\n\n' + serializeTable(tableToStructured(c)) + '\n\n'; }
       else if(c.nodeName === 'BR'){ out += '\n'; }
       else if(c.nodeName === 'IMG'){
         const src = c.getAttribute('src') || '';
@@ -3576,7 +3692,7 @@ function estLines(d){
   if(d.title) blocks.push({k:'title', lines: titleBlockLines(d)});
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
   for(const b of iterBlocks(d.paras)){
-    if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows, b.wide), lines: b.rows.length + 1, wide: b.wide});
+    if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows, b.colCount, b.headerRows, b.wide), lines: b.rows.length + 1, wide: b.wide});
     else if(b.t==='imgs'){
       blocks.push({k:'p', html:`<div class="imgwrap">${imgGroupInner(b.items)}</div>`, lines: 9 + b.items.filter(it=>it.caption).length, img:true});
     }
@@ -3698,7 +3814,7 @@ function renderPreview(){
     const ablocks = [{html: attHeadHTML(a, attIsMulti, d.attBanner), lines: (d.attBanner ? 2 : 0) + (a.title ? 3 : 1)}];
     const body = attBodies[ai] || [];
     for(const b of iterBlocks(body)){
-      if(b.t==='tb') ablocks.push({html: tableHTML(b.rows, b.wide), lines: b.rows.length + 1, wide: b.wide});
+      if(b.t==='tb') ablocks.push({html: tableHTML(b.rows, b.colCount, b.headerRows, b.wide), lines: b.rows.length + 1, wide: b.wide});
       else if(b.t==='imgs'){
         ablocks.push({html:`<div class="imgwrap">${imgGroupInner(b.items)}</div>`, lines: 9 + b.items.filter(it=>it.caption).length});
       }
@@ -3960,24 +4076,37 @@ async function buildDocxBlob(d){
   };
   // 表格块（Markdown 表格 → Word 表格，首行表头方正黑体）
   const BD = {style:BorderStyle.SINGLE, size:4, color:'000000'};
-  const docxTable = (rows, wide) => {
-    const n = rows[0] ? rows[0].length : 0;
+  const docxTable = (rows, colCount, headerRows, wide) => {
     const cwTotal = wide ? LW : BXW;
-    const colW = n ? Math.floor(cwTotal / n) : cwTotal;
+    const colW = colCount ? Math.floor(cwTotal / colCount) : cwTotal;
     return new Table({
       width:{size:100, type:WidthType.PERCENTAGE},
       borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
-      rows: rows.map((r,ri)=> new TableRow({ tableHeader: (d.tableHeader && ri===0), children: r.map(c=> {
-        const wrap = cellWraps(c, colW);
-        const paraOpts = wrap
-          ? {alignment: AlignmentType.JUSTIFIED, spacing:{line: PT(18), lineRule: LineRuleType.EXACT}}
-          : {alignment: AlignmentType.CENTER};
-        return new TableCell({
-          margins:{top:60, bottom:60, left:100, right:100},
-          verticalAlign: VerticalAlign.CENTER,
-          children:[new Paragraph({...paraOpts, children: splitRuns(c, ri===0?F_HEI:F_FS, 10.5)})]
-        });
-      })}))
+      rows: rows.map((r,ri)=> new TableRow({
+        tableHeader: (d.tableHeader && ri < headerRows),
+        children: r.map(c=> {
+          if(c.cont){
+            return new TableCell({
+              verticalMerge: 'continue',
+              margins:{top:60, bottom:60, left:100, right:100},
+              children:[new Paragraph({})]
+            });
+          }
+          const wrap = cellWraps(c.text, colW * c.colSpan);
+          const paraOpts = wrap
+            ? {alignment: AlignmentType.JUSTIFIED, spacing:{line: PT(18), lineRule: LineRuleType.EXACT}}
+            : {alignment: AlignmentType.CENTER};
+          const opts = {
+            rowSpan: c.rowSpan > 1 ? c.rowSpan : undefined,
+            columnSpan: c.colSpan > 1 ? c.colSpan : undefined,
+            width: {size: colW * c.colSpan, type: WidthType.DXA},
+            margins:{top:60, bottom:60, left:100, right:100},
+            verticalAlign: VerticalAlign.CENTER,
+            children:[new Paragraph({...paraOpts, children: splitRuns(c.text, ri < headerRows ? F_HEI : F_FS, 12)})]
+          };
+          return new TableCell(opts);
+        })
+      }))
     });
   };
   const wideIdx = new Set();
@@ -4042,7 +4171,7 @@ async function buildDocxBlob(d){
     children.push(new Paragraph({ children:[ new PageBreak() ] }));
   }
   for(const b of iterBlocks(d.paras)){
-    if(b.t==='tb'){ children.push(docxTable(b.rows, b.wide)); if(b.wide) wideIdx.add(children.length-1); }
+    if(b.t==='tb'){ children.push(docxTable(b.rows, b.colCount, b.headerRows, b.wide)); if(b.wide) wideIdx.add(children.length-1); }
     else if(b.t==='imgs'){ await pushImgGroup(b.items); }
     else children.push(bodyPara(b.s));
   }
@@ -4132,7 +4261,7 @@ async function buildDocxBlob(d){
       }
       const body = attBodies2[ai] || [];
       for(const b of iterBlocks(body)){
-        if(b.t==='tb'){ children.push(docxTable(b.rows, b.wide)); if(b.wide) wideIdx.add(children.length-1); }
+        if(b.t==='tb'){ children.push(docxTable(b.rows, b.colCount, b.headerRows, b.wide)); if(b.wide) wideIdx.add(children.length-1); }
         else if(b.t==='imgs'){ await pushImgGroup(b.items); }
         else children.push(bodyPara(b.s, {}, false));
       }
@@ -4614,9 +4743,9 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_attachfmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_attachfmt','r_tablemerge','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_issue','r_typo','r_numuse','r_politics','r_consistency'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_attachfmt','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_attachfmt','r_tablemerge','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse','r_politics','r_consistency'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
@@ -4656,6 +4785,25 @@ const RULES = [
     fix: () => {
       const v = $('inAttach').value.trim();
       if(v) $('inAttach').value = parseAttachList(v).join('；');
+    }},
+  {id:'r_tablemerge', name:'表格合并单元格结构已识别并保留', lv:'info',
+    check: d => {
+      let spans = 0;
+      const scan = paras => {
+        for(const b of iterBlocks(paras)){
+          if(b.t !== 'tb' || !b.rows) continue;
+          for(const r of b.rows){
+            for(const c of r){
+              if(c.cont) continue;
+              if(c.rowSpan > 1) spans++;
+              if(c.colSpan > 1) spans++;
+            }
+          }
+        }
+      };
+      scan(d.paras);
+      scan(d.attachParas);
+      return spans > 0 ? `已识别并保留原文档表格的合并单元格结构（共 ${spans} 处纵向/横向合并）` : null;
     }},
   {id:'r_sign', name:'上行文须标注签发人', lv:'warn', skip: d => d.t.c !== '上行文',
     check: d => d.signatory ? null : '上行文未标注签发人'},
