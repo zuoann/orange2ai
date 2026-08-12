@@ -370,6 +370,11 @@
   .doc-title.plain{margin-top:0}
   .doc-title{text-align:center;font-size:22pt;line-height:1.45;margin-top:74px;
     font-family:"方正小标宋简体","FZXiaoBiaoSong-B05S","小标宋体","STZhongsong","宋体",serif}
+  /* 标题多行梯形/菱形排列：每行独立居中，由 JS 按模式分拆（F-梯形排列） */
+  .doc-title .tl{display:block}
+  /* 纪要「第X期」等文种特有要素（红头标志下方居中） */
+  .minutes-no{text-align:center;font-size:18pt;margin-top:20px;letter-spacing:1px;
+    font-family:"方正小标宋简体","小标宋体","STZhongsong","宋体",serif;color:var(--red)}
   .fw-no{text-align:center;font-size:16pt;margin-top:77px;
     font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif}
   .doc-to{font-size:16pt;line-height:38.5px;margin-top:38.5px;
@@ -781,6 +786,43 @@
     width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
     font-size:10px;font-weight:700;color:var(--panel2);background:var(--cyan);
     box-shadow:0 2px 6px rgba(0,0,0,.28)}
+
+  /* ═══════════ F1 附注 ═══════════ */
+  .doc-note{font-family:'方正仿宋_GBK','仿宋',serif;font-size:16pt;line-height:28.9pt;
+    text-align:left;padding-left:2em;margin-top:6pt}
+  /* ═══════════ F4 附件首页标识 ═══════════ */
+  .att-banner{text-align:center;font-family:'方正黑体_GBK','黑体',serif;font-size:22pt;
+    font-weight:700;margin:8pt 0 4pt;letter-spacing:4px}
+  /* ═══════════ F8 目录（TOC） ═══════════ */
+  .toc-block{margin:6pt 0 10pt}
+  .toc-title{text-align:center;font-family:'方正小标宋简体','宋体',serif;font-size:22pt;
+    font-weight:700;margin-bottom:14pt;letter-spacing:6px}
+  .toc-item{display:flex;align-items:baseline;font-family:'方正仿宋_GBK','仿宋',serif;
+    font-size:15pt;line-height:30pt}
+  .toc-item .t{white-space:nowrap;overflow:hidden}
+  .toc-item .dot{flex:1;border-bottom:1px dotted #666;margin:0 6px;transform:translateY(-4px)}
+  .toc-item .pg{font-family:'Times New Roman',serif}
+  .toc-lv1{font-family:'方正黑体_GBK','黑体',serif;font-weight:700;padding-left:0}
+  .toc-lv2{padding-left:1.6em}
+  .toc-lv3{padding-left:3.2em;font-size:14pt}
+  /* ═══════════ F11 图片题注 ═══════════ */
+  .imgcap{text-align:center;font-family:'方正仿宋_GBK','仿宋',serif;font-size:12pt;
+    color:#333;margin:2pt 0 6pt}
+  /* ═══════════ F9 所见即所得 ═══════════ */
+  .gb-content.editable{outline:2px dashed #38bdf8;outline-offset:6px;cursor:text}
+  .gb-content.editable .pg-hint{display:block}
+  .pg-hint{display:none;position:absolute;top:6px;right:10px;font-size:10px;
+    color:#38bdf8;background:rgba(56,189,248,.12);padding:2px 8px;border-radius:6px}
+  /* ═══════════ 标准帮助条目 ═══════════ */
+  .help-item{border-left:3px solid var(--cyan);background:color-mix(in srgb,var(--txt) 4%,transparent);
+    padding:10px 14px;margin-bottom:10px;border-radius:0 8px 8px 0}
+  .help-item h4{margin:0 0 4px;font-size:14px;color:var(--cyan)}
+  .help-item p{margin:0;font-size:12.5px;line-height:1.7;color:var(--muted-c)}
+  .help-item code{background:color-mix(in srgb,var(--cyan) 14%,transparent);padding:1px 6px;
+    border-radius:5px;font-size:11.5px}
+  /* ═══════════ 变量模板 ═══════════ */
+  .var-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .var-row select,.var-row input{flex:1}
 </style>
 </head>
 <body data-theme="cyber">
@@ -873,8 +915,18 @@
         <input type="text" id="inNo" placeholder="如：×政发〔2026〕12号"></div>
       <div class="field hidden" id="fSignatory"><label>签发人<small>上行文需标注，三号方正仿宋"签发人：" + 三号方正楷体姓名</small></label>
         <input type="text" id="inSignatory" placeholder="签发人姓名"></div>
-      <div class="field"><label>标题<small>二号小标宋，居中，可分二行</small></label>
+      <div class="field"><label>标题<small>二号小标宋，居中；可在标题内换行（Enter / \n）精确控制断行</small></label>
         <textarea id="inTitle" rows="2" placeholder="关于……的通知"></textarea></div>
+      <div class="row">
+        <div class="field"><label>标题排列<small>多行标题的排列方式（GB/T 9704-2012：可排梯形/菱形）</small></label>
+          <select id="inTitleArr">
+            <option value="center">居中（自然换行，默认）</option>
+            <option value="trapezoid">梯形（上窄下宽）</option>
+            <option value="diamond">菱形（中间最宽）</option>
+          </select></div>
+        <div class="field hidden" id="fMinuteNo"><label>纪要期号<small>文种特有要素，如「第3期」</small></label>
+          <input type="text" id="inMinuteNo" placeholder="如：3（自动显示为「第3期」）"></div>
+      </div>
       <div class="field"><label>主送机关<small>三号方正仿宋_GBK，顶格，回行顶格</small></label>
         <input type="text" id="inTo" placeholder="如：各市、县人民政府，省政府各部门："></div>
       <div class="field"><label>正文<small>三号方正仿宋_GBK 两端对齐｜一级方正黑体 / 二级方正楷体 / 三级四级方正仿宋；西文数字 Times New Roman</small></label>
@@ -886,6 +938,15 @@
       <div class="row">
         <div class="field"><label>发文机关署名</label><input type="text" id="inOrg" placeholder="如：××省人民政府"></div>
         <div class="field"><label>成文日期</label><input type="text" id="inDate"></div>
+      </div>
+      <div class="field" id="fNote"><label>附注<small>成文日期下一行，左空二字加圆括号；如印发传达范围、联系人及电话</small></label>
+        <input type="text" id="inNote" placeholder="如：（联系人：张三 电话：13800000000）"></div>
+      <div class="row" id="fDateMode">
+        <div class="field"><label>成文日期数字形式<small>GB/T 9704-2012 未限定；可按需要切换</small></label>
+          <select id="inDateMode">
+            <option value="arabic">阿拉伯数字（2026年8月6日）</option>
+            <option value="cn">汉字数字（二〇二六年八月六日）</option>
+          </select></div>
       </div>
       <div class="field" id="fSeal"><label>用印方式<small>GB/T 9704-2012 · 7.3.5｜加盖印章时印章下沿距正文，不加盖时成文日期右空四字</small></label>
         <select id="inSeal">
@@ -958,6 +1019,37 @@
         <button class="btn btn-red" id="btnReset">↺ 清空重置</button>
       </div>
     </div>
+
+    <div class="card">
+      <h2><span class="num">06</span>进阶排版与导出<span class="tag">ADVANCED</span></h2>
+      <label class="clean-opt"><input type="checkbox" id="ckJoint">
+        <span>联合行文（多机关署名：在「发文机关署名」中换行填写各机关）<i style="display:block;margin-top:2px">两个以上机关联合行文，各机关署名分行右对齐、印章同时套印（GB/T 9704-2012 7.3.5.2）</i></span></label>
+      <label class="clean-opt"><input type="checkbox" id="ckAttBanner">
+        <span>附件首页标识<i style="display:block;margin-top:2px">每个附件首页居中显示「附件N」标识（GB/T 9704-2012 7.3.7 附件格式要求）</i></span></label>
+      <label class="clean-opt"><input type="checkbox" id="ckToc">
+        <span>自动生成目录（TOC）<i style="display:block;margin-top:2px">按正文标题层级生成目录与估算页码，置于正文之前</i></span></label>
+      <label class="clean-opt"><input type="checkbox" id="ckTableHeader">
+        <span>跨页表头重复（长表格分页时表头行自动重复）<i style="display:block;margin-top:2px">GB/T 9704-2012：表格跨页时表头应在续页重复出现</i></span></label>
+      <label class="clean-opt"><input type="checkbox" id="ckWysiwyg">
+        <span>所见即所得编辑（直接在预览中修改，可同步回正文）<i style="display:block;margin-top:2px">开启后预览可编辑，点「同步回正文」将改动写回输入框</i></span></label>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnSelfCheck">📝 导出自检报告</button>
+        <button class="btn btn-ghost" id="btnVar">⌨ 变量模板</button>
+      </div>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnHelp">❔ 标准帮助</button>
+        <button class="btn btn-ghost" id="btnLongImg">🖼 导出长图</button>
+      </div>
+      <div class="row mt">
+        <button class="btn btn-primary" id="btnExactPdf">📄 导出精确PDF</button>
+        <span style="font-size:11px;color:var(--muted-c);align-self:center">由 DOCX 精确构建 → 另存为矢量 PDF（版式完全可控，非像素栅格）</span>
+      </div>
+      <div class="row mt" id="wysiwygRow" style="display:none">
+        <button class="btn btn-primary" id="btnSyncWysiwyg">💾 同步回正文</button>
+        <span style="font-size:11px;color:var(--muted-c);align-self:center">将预览中直接修改的内容写回输入框</span>
+      </div>
+    </div>
+
   </div>
 
   <!-- 右侧预览 -->
@@ -969,6 +1061,40 @@
     <div class="paper-scroll" id="paperScroll"></div>
   </div>
 </main>
+
+<!-- 变量模板（F13） -->
+<div class="mask hidden" id="modalVar">
+  <div class="modal">
+    <div class="m-head">⌨ 变量模板（发文机关 / 年份 / 文号 等）<span class="x" data-x="modalVar">✕</span></div>
+    <div class="m-body">
+      <p style="font-size:12px;color:var(--muted-c);margin:0 0 8px">在下方模板中使用占位符，系统将按当前公文要素自动填充：<br>
+        <code style="color:var(--cyan)">{{机关}}</code> 发文机关 · <code style="color:var(--cyan)">{{年份}}</code> 年份 · <code style="color:var(--cyan)">{{文号}}</code> 发文字号 · <code style="color:var(--cyan)">{{标题}}</code> 标题 · <code style="color:var(--cyan)">{{日期}}</code> 成文日期</p>
+      <div class="row" style="align-items:center;margin-bottom:8px">
+        <label style="font-size:12px;color:var(--cyan)">预设</label>
+        <select id="varPreset" style="flex:1">
+          <option value="">— 选择常用模板 —</option>
+          <option value="notice">通知正文开头</option>
+          <option value="decide">决定表彰开头</option>
+          <option value="redhead">红头落款（机关+日期）</option>
+        </select>
+      </div>
+      <textarea id="varTpl" rows="7" placeholder="如：{{机关}}定于{{年份}}年开展专项工作，现将有关事项通知如下。"></textarea>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnVarFillToBody">⌁ 填充到正文末尾</button>
+        <button class="btn btn-primary" id="btnVarPreview">👁 预览填充结果</button>
+      </div>
+      <div id="varPreviewBox" style="margin-top:10px;font-size:12px;color:var(--muted-c);white-space:pre-wrap;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 标准帮助（F14） -->
+<div class="mask hidden" id="modalHelp">
+  <div class="modal" style="max-width:720px">
+    <div class="m-head">❔ 标准内嵌帮助 · 为什么这样排<span class="x" data-x="modalHelp">✕</span></div>
+    <div class="m-body" id="helpBody"></div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
@@ -1788,11 +1914,12 @@ function iterBlocks(paras){
     // 强制横排标记：独立的"横排"/"横向"/"【横排】"行，不渲染，仅作用于紧随其后的表格
     if(line==='横排' || line==='横向' || /^【?横(排|向)】?$/.test(line)){ force=true; i++; continue; }
     // 图片：连续的 ![alt](url) 合并为一个图片组（默认居中、多图同高以保持比例一致）
-    if(IMG_RE.test(line)){
+    // F11 支持题注语法 ![alt](url "题注")，自动编号图N
+    if(IMG_CAP_RE.test(line)){
       const items=[];
-      while(i<paras.length && IMG_RE.test((paras[i]||'').trim())){
-        const mm = (paras[i].trim()).match(IMG_RE);
-        items.push({url:mm[2], alt:mm[1]});
+      while(i<paras.length && IMG_CAP_RE.test((paras[i]||'').trim())){
+        const mm = (paras[i].trim()).match(IMG_CAP_RE);
+        items.push({url:mm[2], alt:mm[1], caption:mm[3] || ''});
         i++;
       }
       out.push({t:'imgs', items, wide:false});
@@ -1827,15 +1954,28 @@ function cellWraps(text, colW){
 function tableHTML(rows){
   const n = rows[0] ? rows[0].length : 0;
   const colW = n ? Math.floor(BXW / n) : BXW;
-  let h='<table class="gt">';
+  // F10 跨页表头重复：表头行置于 thead（display:table-header-group），
+  // 打印/PDF 分页时表头会在续页自动重复出现（GB/T 9704-2012 表格跨页表头要求）
+  let thead = '', tbody = '';
   rows.forEach((r,ri)=>{
-    h += '<tr>' + r.map(c => {
+    const cells = r.map(c => {
       const wrap = cellWraps(c, colW);
       const tag = ri===0 ? 'th' : 'td';
       return `<${tag}${wrap?' class="gw"':''}>${esc(c)}</${tag}>`;
-    }).join('') + '</tr>';
+    }).join('');
+    if(ri === 0) thead += '<tr class="gt-h">' + cells + '</tr>';
+    else tbody += '<tr>' + cells + '</tr>';
   });
-  return h+'</table>';
+  return '<table class="gt">' + (thead ? '<thead>' + thead + '</thead>' : '') + '<tbody>' + tbody + '</tbody></table>';
+}
+/* F11 图片组渲染：每图精确居中，含题注时自动编号「图N：题注」 */
+let _figN = 0;
+function imgGroupInner(items){
+  return items.map(it => {
+    const img = `<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`;
+    const cap = it.caption ? `<div class="imgcap">图${++_figN}：${esc(it.caption)}</div>` : '';
+    return `<div class="imgblk"><div class="imgc">${img}</div>${cap}</div>`;
+  }).join('');
 }
 /* 将 DOM <table> 转为 Markdown 管道格式（首行作为表头） */
 function tableToMd(tb){
@@ -2177,6 +2317,57 @@ const TYPO_HARD = [
   ['作好工作','做好工作'], ['进一步的加强','进一步加强'], ['予以以','予以'],
   ['责成有关部门予以研究处理','责成有关部门研究处理'],
 ];
+/* —— 错别字词库扩充（第二批） —— */
+TYPO_HARD.push(
+  ['安祥','安详'], ['按步就班','按部就班'], ['暗然','黯然'], ['白晰','白皙'],
+  ['半途而费','半途而废'], ['爆躁','暴躁'], ['卑恭屈膝','卑躬屈膝'], ['弊病','敝病'],
+  ['编篡','编纂'], ['变本加利','变本加厉'], ['辩析','辨析'], ['病入膏盲','病入膏肓'],
+  ['不茅之地','不毛之地'], ['不醒人事','不省人事'], ['草管人命','草菅人命'], ['苍海','沧海'],
+  ['陈词烂调','陈词滥调'], ['吃里扒外','吃里爬外'], ['重蹈复辙','重蹈覆辙'], ['出奇致胜','出奇制胜'],
+  ['处心集虑','处心积虑'], ['船仓','船舱'], ['粗旷','粗犷'], ['大才小用','大材小用'],
+  ['惮精竭虑','殚精竭虑'], ['当人不让','当仁不让'], ['得垄望蜀','得陇望蜀'], ['道貌暗然','道貌岸然'],
+  ['顶礼模拜','顶礼膜拜'], ['东施效频','东施效颦'], ['独出心栽','独出心裁'], ['断章取意','断章取义'],
+  ['发奋图强','发愤图强'], ['翻云复雨','翻云覆雨'], ['防碍','妨碍'], ['纷至踏来','纷至沓来'],
+  ['风尘扑扑','风尘仆仆'], ['风糜','风靡'], ['蜂涌','蜂拥'], ['斧底游鱼','釜底游鱼'],
+  ['负偶顽抗','负隅顽抗'], ['附首贴耳','俯首贴耳'], ['改弦更章','改弦更张'], ['甘之如怡','甘之如饴'],
+  ['高屋见瓴','高屋建瓴'], ['歌功讼德','歌功颂德'], ['功亏一匮','功亏一篑'], ['故弄悬虚','故弄玄虚'],
+  ['骨梗在喉','骨鲠在喉'], ['鼓惑','蛊惑'], ['关怀倍至','关怀备至'], ['鬼鬼崇崇','鬼鬼祟祟'],
+  ['过尤不及','过犹不及'], ['含辛如苦','含辛茹苦'], ['汗流夹背','汗流浃背'], ['好高鹜远','好高骛远'],
+  ['和霭','和蔼'], ['轰堂大笑','哄堂大笑'], ['宏篇巨制','鸿篇巨制'], ['虎视耽耽','虎视眈眈'],
+  ['欢渡','欢度'], ['黄梁一梦','黄粱一梦'], ['浑浑恶恶','浑浑噩噩'], ['及及可危','岌岌可危'],
+  ['集液成裘','集腋成裘'], ['佳宾','嘉宾'], ['坚难','艰难'], ['简炼','简练'],
+  ['见风驶舵','见风使舵'], ['箭拔弩张','剑拔弩张'], ['娇揉造作','矫揉造作'], ['金壁辉煌','金碧辉煌'],
+  ['精兵减政','精兵简政'], ['痉孪','痉挛'], ['鸠占雀巢','鸠占鹊巢'], ['居心巨测','居心叵测'],
+  ['开源截流','开源节流'], ['来厉','来历'], ['老奸巨滑','老奸巨猾'], ['雷励风行','雷厉风行'],
+  ['礼上往来','礼尚往来'], ['立杆见影','立竿见影'], ['厉兵抹马','厉兵秣马'], ['连篇累读','连篇累牍'],
+  ['良秀不齐','良莠不齐'], ['廖若辰星','寥若晨星'], ['鳞次节比','鳞次栉比'], ['流言飞语','流言蜚语'],
+  ['绿草如阴','绿草如茵'], ['挛生','孪生'], ['落弟','落第'], ['买牍还珠','买椟还珠'],
+  ['满山遍野','漫山遍野'], ['毛骨耸然','毛骨悚然'], ['美仑美奂','美轮美奂'], ['门可罗鹊','门可罗雀'],
+  ['棉薄之力','绵薄之力'], ['明枪暗剑','明枪暗箭'], ['摸拟','模拟'], ['目不交捷','目不交睫'],
+  ['脑怒','恼怒'], ['脑羞成怒','恼羞成怒'], ['能曲能伸','能屈能伸'], ['呕歌','讴歌'],
+  ['篷荜生辉','蓬荜生辉'], ['偏安一偶','偏安一隅'], ['气极败坏','气急败坏'], ['恰如其份','恰如其分'],
+  ['千均一发','千钧一发'], ['前踞后恭','前倨后恭'], ['遣责','谴责'], ['强驽之末','强弩之末'],
+  ['乔妆打扮','乔装打扮'], ['亲睐','青睐'], ['磬竹难书','罄竹难书'], ['穷兵默武','穷兵黩武'],
+  ['趋之若骛','趋之若鹜'], ['融汇贯通','融会贯通'], ['如法泡制','如法炮制'], ['入场卷','入场券'],
+  ['撒慌','撒谎'], ['色彩斑澜','色彩斑斓'], ['杀戳','杀戮'], ['善长','擅长'],
+  ['善罢干休','善罢甘休'], ['稍安勿躁','少安毋躁'], ['申张','伸张'], ['神彩','神采'],
+  ['试目以待','拭目以待'], ['誓死如归','视死如归'], ['世外桃园','世外桃源'], ['梳装','梳妆'],
+  ['水泻不通','水泄不通'], ['死心踏地','死心塌地'], ['肆业','肄业'], ['随声附合','随声附和'],
+  ['贪脏枉法','贪赃枉法'], ['提心掉胆','提心吊胆'], ['题纲','提纲'], ['天翻地复','天翻地覆'],
+  ['通谍','通牒'], ['同仇敌气','同仇敌忾'], ['投机捣把','投机倒把'], ['瓦铄','瓦砾'],
+  ['妄费','枉费'], ['望风披糜','望风披靡'], ['萎糜不振','萎靡不振'], ['稳操胜卷','稳操胜券'],
+  ['无所是从','无所适从'], ['勿庸置疑','毋庸置疑'], ['喜戏','嬉戏'], ['闲情逸志','闲情逸致'],
+  ['消声匿迹','销声匿迹'], ['宣染','渲染'], ['循私舞弊','徇私舞弊'], ['扬常而去','扬长而去'],
+  ['摇摇欲堕','摇摇欲坠'], ['遗害无穷','贻害无穷'], ['以逸代劳','以逸待劳'], ['义气用事','意气用事'],
+  ['因地治宜','因地制宜'], ['引亢高歌','引吭高歌'], ['饮鸠止渴','饮鸩止渴'], ['硬梆梆','硬邦邦'],
+  ['庸人自绕','庸人自扰'], ['忧心冲冲','忧心忡忡'], ['游仞有余','游刃有余'], ['有持无恐','有恃无恐'],
+  ['鱼翁得利','渔翁得利'], ['雨声淅历','雨声淅沥'], ['语无论次','语无伦次'], ['原气大伤','元气大伤'],
+  ['缘木求渔','缘木求鱼'], ['怨天由人','怨天尤人'], ['燥动','躁动'], ['张惶失措','张皇失措'],
+  ['仗义直言','仗义执言'], ['招摇装骗','招摇撞骗'], ['蜇居','蛰居'], ['振撼','震撼'],
+  ['震聋发聩','振聋发聩'], ['至理明言','至理名言'], ['中流抵柱','中流砥柱'], ['重峦叠障','重峦叠嶂'],
+  ['众口烁金','众口铄金'], ['转瞬即失','转瞬即逝'], ['捉襟见纣','捉襟见肘'], ['自鸣不凡','自命不凡'],
+  ['纂改','篡改']
+);
 /* 易混词辨析（soft）：仅收录真正高风险、易判错的成对词，
    刻意排除「必须」「需要」「做好」「贯彻」「从而」等超高频常用词，避免每篇都误报。 */
 const TYPO_SOFT = [
@@ -2198,6 +2389,29 @@ const TYPO_SOFT = [
   {w:'定金', tip:'「定金」有法定担保效力（适用定金罚则）；一般预付款应用「订金」'},
   {w:'签定', tip:'规范写法为「签订」（合同、协议）；「签定」为不规范写法'},
 ];
+/* —— 易混词辨析扩充（第二批） —— */
+TYPO_SOFT.push(
+  {w:'侦查', tip:'「侦查」属刑事司法用语（侦查案件）；一般调查了解应用「侦察」'},
+  {w:'侦察', tip:'「侦察」指军事/一般探查；刑事司法办案应用「侦查」'},
+  {w:'学历', tip:'「学历」指学习经历（如本科）；「学力」指实际文化水平，二者勿混'},
+  {w:'学力', tip:'「学力」指实际文化水平；「学历」指学习经历（如本科）'},
+  {w:'赢利', tip:'「赢利」指盈利、获利；企业登记用「营利」（以营利为目的）'},
+  {w:'营利', tip:'「营利」指谋求利润（营利性组织）；已获利润用「盈利/赢利」'},
+  {w:'盈利', tip:'「盈利」指实际获得的利润；谋求利润用「营利」'},
+  {w:'推脱', tip:'「推脱」指推卸责任、义务（推脱责任）；「推托」指借故拒绝（推托不来）'},
+  {w:'推托', tip:'「推托」指借故拒绝（他推托有事）；「推脱」指推卸（推脱责任）'},
+  {w:'原形', tip:'「原形」指本来面目（原形毕露）；模型原样用「原型」'},
+  {w:'原型', tip:'「原型」指原始的模型、类型；暴露本来面目用「原形」'},
+  {w:'工夫', tip:'指时间用「工夫」（费了不少工夫）；本领造诣用「功夫」'},
+  {w:'功夫', tip:'指本领、造诣用「功夫」（下功夫）；时间用「工夫」'},
+  {w:'做', tip:'公文多用「作」（作决定、作说明）；「做」偏口语（做作业）'},
+  {w:'交代', tip:'「交代」指把事嘱托/说明（交代工作）；「交待」为不规范写法'},
+  {w:'联络', tip:'公文多用「联系」（联系电话/联系人）；「联络」亦可用但偏口语'},
+  {w:'契机', tip:'「契机」指事物转化的关键；「戎机」指军事机宜，二者勿混'},
+  {w:'戎机', tip:'「戎机」指军事机宜（戎机要务）；「契机」指关键转折，二者勿混'},
+  {w:'富于', tip:'「富于」指含有丰富的（富于特色）；「赋予」指给予（赋予使命），勿混'},
+  {w:'赋予', tip:'「赋予」指给予（赋予使命）；「富于」指含有丰富的，勿混'}
+);
 /* 扫描错别字：返回 [{type:'hard'|'soft', bad, good, tip, line}] */
 function scanTypo(lines){
   const hits = [];
@@ -2269,8 +2483,26 @@ function scanNumUse(lines){
     // ⑧ 数值范围连接号误用短横：2020-2025年 应为一字线或浪纹
     m = l.match(/(?:19|20)\d{2}\s*-\s*(?:19|20)?\d{2}\s*年/);
     if(m) push('range', m[0], `时间起止应使用一字线「—」，如「${m[0].replace(/-/,'—')}」（GB/T 15835 · 5.1.3）`);
+    // ⑨ 千分位误用西文逗号：1,000,000 → 应节间空四分之一汉字空或连写（1000000）
+    m = l.match(/\d{1,3}(?:,\d{3})+/);
+    if(m) push('thousand', m[0], `多位阿拉伯数字不应使用西文逗号「,」分节，应节间空一个汉字的四分之一（即「${m[0].replace(/,/g,' ')}」），公文一般直接连写（${m[0].replace(/,/g,'')}）（GB/T 15835 · 5.1.1）`);
+    // ⑩ 相邻汉字数字表概数误加顿号：二、三米 → 二三米（顿号赘余）
+    m = l.match(/([〇一二三四五六七八九十百零]+)[、，,]([〇一二三四五六七八九十百零]+)(?:天|个|人|年|月|日|次|种|项|条|倍|成|米|元|名|所|件|台|户|所)/);
+    if(m) push('approx-cn', m[0], `相邻汉字数字连用表示概数时中间不应加顿号，如「${m[1]}${m[2]}${m[3]||''}」应写作「${m[1]}${m[2]}${m[3]||''}」（GB/T 15835 · 6.1.3）`);
+    // ⑪ 约数并用（语义重复）：约……左右 / 大约……左右 / 约……多（余）
+    m = l.match(/(?:约|大约|大概)[^。，；：]{0,14}(?:左右|上下)/);
+    if(m) push('approx-dup', m[0], `约数表达不宜并用：「约/大约」与「左右/上下」语义重复，保留其一即可（GB/T 15835 · 6.2）`);
+    m = l.match(/(?:约|大约)[^。，；：]{0,10}(?:多|余)\b/);
+    if(m) push('approx-dup2', m[0], `「约/大约」已表约数，其后不宜再用「多/余」，如确为概数可写作「十余/二十余」等（GB/T 15835 · 6.2）`);
+    // ⑫ 四位以上整数尾零建议以万/亿为单位：120000 → 12万
+    m = l.match(/(?<!\d)(\d{1,3})(?:0000)+000?(?!\d)/);
+    if(m) push('bigunit', m[0], `四位以上的整数，尾数有多个零时，宜改写为以「万」「亿」作单位的数（如「${m[0]}」可写作「${m[1]}万/亿」），更便于阅读（GB/T 15835 · 4.3）`);
   }
   return hits;
+}
+/* 数字用法一键规范化（仅修复安全的千分位逗号项；概数/约数属语义判断，仅提醒） */
+function normNum(s){
+  return (s || '').replace(/(\d),(\d{3})(?!\d)/g, '$1$2');   // 1,000,000 → 1000000
 }
 
 /* ============================================================
@@ -2463,6 +2695,249 @@ function parseDateLine(l){
   return { date: `${y}年${mo}月${da}日`, before: l.slice(0, m.index).trim() };
 }
 
+/* ============================================================
+ * F2 成文日期汉字数字形式（阿拉伯 ↔ 汉字）
+ * ============================================================ */
+function cnNum(n){
+  const C = '〇一二三四五六七八九';
+  if(n < 10) return C[n];
+  if(n === 10) return '十';
+  if(n < 20) return '十' + C[n % 10];
+  if(n < 100){ const t = Math.floor(n/10); return C[t] + '十' + (n%10 ? C[n%10] : ''); }
+  return String(n);
+}
+function cnDate(s){
+  const m = String(s || '').match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if(!m) return s;
+  const y = m[1].split('').map(ch => '〇一二三四五六七八九'[+ch]).join('');
+  return y + '年' + cnNum(+m[2]) + '月' + cnNum(+m[3]) + '日';
+}
+/* 根据 d.dateMode 返回实际用于渲染/导出的日期文本 */
+function dateDisp(d){
+  if(!d.date) return d.date;
+  return (d.dateMode === 'cn') ? cnDate(d.date) : d.date;
+}
+
+/* ============================================================
+ * F11 图片题注（图N：xxx）—— 支持 ![alt](url "题注") 语法
+ * ============================================================ */
+const IMG_CAP_RE = /^\s*!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*$/;
+function parseImgItem(line){
+  const m = (line || '').trim().match(IMG_CAP_RE);
+  if(!m) return null;
+  return {url: m[2], alt: m[1], caption: (m[3] || '').trim()};
+}
+
+/* ============================================================
+ * F5 政治术语 / 规范表述 / 禁用词库（仅提醒，需人工确认）
+ * ============================================================ */
+const POLITICS_LIB = [
+  {bad:'以习近平为核心的党中央', good:'以习近平同志为核心的党中央', tip:'须完整表述「以习近平同志为核心的党中央」'},
+  {bad:'武汉肺炎', good:'新冠肺炎', tip:'不规范称谓，应使用「新冠肺炎」'},
+  {bad:'新冠', good:'新型冠状病毒（或：新冠肺炎）', tip:'正式公文宜用全称，避免口语化简称'},
+  {bad:'新冠疫情', good:'新冠肺炎疫情（或：新型冠状病毒肺炎疫情）', tip:'正式表述建议补全为「新冠肺炎疫情」'},
+  {bad:'建国后', good:'新中国成立后', tip:'公文宜用「新中国成立后」表述 1949 年后'},
+  {bad:'建国以来', good:'新中国成立以来', tip:'公文宜用「新中国成立以来」'},
+  {bad:'台独', good:'台湾当局（坚决反对「台独」分裂行径）', tip:'须表明反对立场，不得单独使用「台独」中性表述'},
+  {bad:'港独', good:'（坚决反对「港独」分裂行径）', tip:'须表明反对立场'},
+  {bad:'疆独', good:'（坚决反对「疆独」分裂行径）', tip:'须表明反对立场'},
+  {bad:'藏独', good:'（坚决反对「藏独」分裂行径）', tip:'须表明反对立场'},
+  {bad:'脱贫攻艰', good:'脱贫攻坚', tip:'规范用词为「脱贫攻坚」'},
+  {bad:'扫黑除恶专项斗争', good:'常态化开展扫黑除恶斗争', tip:'已进入常态化阶段，宜用「常态化开展扫黑除恶斗争」'},
+  {bad:'大众创业、万众创新', good:'大众创业、万众创新（双创）', tip:'可简称「双创」，首次出现建议全称'},
+  {bad:'供给策改革', good:'供给侧结构性改革', tip:'规范全称为「供给侧结构性改革」'},
+  {bad:'两个一百年', good:'全面建设社会主义现代化国家两步走战略安排', tip:'十九大后「两个一百年」目标已充实为新征程战略安排'},
+  {bad:'决胜小康', good:'全面建成小康社会', tip:'规范表述为「全面建成小康社会」'},
+  {bad:'绿水青山也是金山银山', good:'绿水青山就是金山银山', tip:'规范表述为「绿水青山就是金山银山」'},
+  {bad:'以人民为中心', good:'以人民为中心', tip:'规范表述为「以人民为中心」'},
+  {bad:'不忘初心牢记使命', good:'不忘初心、牢记使命', tip:'规范表述含顿号「不忘初心、牢记使命」'},
+  {bad:'四个意识', good:'政治意识、大局意识、核心意识、看齐意识（四个意识）', tip:'首次出现建议全称并括注「四个意识」'},
+  {bad:'四个自信', good:'中国特色社会主义道路自信、理论自信、制度自信、文化自信（四个自信）', tip:'首次出现建议全称并括注「四个自信」'},
+  {bad:'两个维护', good:'坚决维护习近平总书记党中央的核心、全党的核心地位，坚决维护党中央权威和集中统一领导（两个维护）', tip:'首次出现建议全称并括注「两个维护」'},
+  {bad:'五位一体', good:'经济建设、政治建设、文化建设、社会建设、生态文明建设（五位一体）', tip:'首次出现建议全称并括注「五位一体」'},
+  {bad:'四个全面', good:'全面建设社会主义现代化国家、全面深化改革、全面依法治国、全面从严治党（四个全面）', tip:'新征程「四个全面」已更新，首次出现建议全称'},
+];
+/* —— 政治规范表述词库扩充（第二批） —— */
+POLITICS_LIB.push(
+  {bad:'一带一路', good:'"一带一路"', tip:'规范表述建议加引号，首次出现可括注「丝绸之路经济带和21世纪海上丝绸之路」'},
+  {bad:'放管服', good:'"放管服"改革（简政放权、放管结合、优化服务）', tip:'首次出现建议括注全称'},
+  {bad:'四风', good:'形式主义、官僚主义、享乐主义和奢靡之风（"四风"）', tip:'首次出现建议全称'},
+  {bad:'三严三实', good:'严以修身、严以用权、严以律己，谋事要实、创业要实、做人要实（"三严三实"）', tip:'首次出现建议全称'},
+  {bad:'两学一做', good:'"学党章党规、学系列讲话，做合格党员"（"两学一做"）', tip:'首次出现建议全称'},
+  {bad:'不忘初心', good:'不忘初心、牢记使命', tip:'完整表述含「牢记使命」'},
+  {bad:'抗疫', good:'疫情防控（"抗疫"为口语化简称）', tip:'正式公文宜用「疫情防控」'},
+  {bad:'新冠疫情防控', good:'新冠肺炎疫情防控', tip:'补全为「新冠肺炎疫情防控」'},
+  {bad:'回教', good:'伊斯兰教', tip:'规范用「伊斯兰教」'},
+  {bad:'回民', good:'回族', tip:'规范用「回族」'},
+  {bad:'网路', good:'网络', tip:'大陆规范用「网络」，不用「网路」'},
+  {bad:'软体', good:'软件', tip:'大陆规范用「软件」'},
+  {bad:'程式', good:'程序', tip:'大陆规范用「程序」'},
+  {bad:'资讯', good:'信息', tip:'大陆规范用「信息」'},
+  {bad:'数位', good:'数字', tip:'大陆规范用词，不用「数位」'},
+  {bad:'数位化', good:'数字化', tip:'规范用「数字化」'},
+  {bad:'滑鼠', good:'鼠标', tip:'规范用「鼠标」'},
+  {bad:'印表机', good:'打印机', tip:'规范用「打印机」'},
+  {bad:'视窗', good:'窗口', tip:'规范用「窗口」'},
+  {bad:'互联网络', good:'互联网', tip:'规范用「互联网」'},
+  {bad:'因特网', good:'互联网', tip:'规范用「互联网」'}
+);
+function scanPolitics(texts){
+  const hits = [];
+  const all = (Array.isArray(texts) ? texts : [texts]).filter(Boolean).join('\n');
+  for(const e of POLITICS_LIB){
+    if(all.includes(e.bad)) hits.push({bad: e.bad, good: e.good, tip: e.tip});
+  }
+  return hits;
+}
+
+/* ============================================================
+ * F6 同篇用词一致性（易混词对：同一文档两种写法并存即提示）
+ * ============================================================ */
+const CONFUSABLE_PAIRS = [
+  ['其它','其他'], ['帐号','账号'], ['唯一','惟一'], ['好像','好象'],
+  ['那么','那麽'], ['成分','成份'], ['交代','交待'], ['撤销','撤消'],
+  ['图像','图象'], ['报道','报导'], ['纪要','记要'], ['人才','人材'],
+  ['含义','涵意'], ['一翻','一番'], ['订金','定金'],   ['启用','起用'],
+];
+/* —— 易混词对扩充（第二批） —— */
+CONFUSABLE_PAIRS.push(
+  ['贯穿','贯串'], ['包含','包涵'], ['水蒸气','水蒸汽'], ['树荫','树阴'],
+  ['标识','标志'], ['窜改','篡改'], ['仿佛','彷佛'], ['稀罕','希罕'],
+  ['丫环','丫鬟'], ['一锤定音','一槌定音'], ['影像','影象'], ['引申','引伸'],
+  ['在座','在坐'], ['辈分','辈份'], ['本分','本份'], ['部分','部份'],
+  ['过份','过分'], ['身分','身份'], ['省份','省分'], ['水分','水份'],
+  ['月份','月分'], ['缘分','缘份'], ['通信','通讯'], ['买账','买帐'],
+  ['笔画','笔划'], ['掺和','搀和'], ['度假','渡假'], ['宏扬','弘扬'],
+  ['家具','家俱'], ['录像','录相'], ['门槛','门坎'], ['详实','翔实'],
+  ['泄密','泻密'], ['形迹','行迹'], ['隐讳','隐晦'], ['盈利','赢利'],
+  ['鱼网','渔网'], ['折中','折衷'], ['真相','真象'], ['装帧','装祯'],
+  ['钟爱','衷爱'], ['抓阄','抓鬮'], ['巅峰','颠峰'], ['精练','精炼']
+);
+function scanConsistency(texts){
+  const all = (Array.isArray(texts) ? texts : [texts]).filter(Boolean).join('\n');
+  const found = [];
+  for(const [a, b] of CONFUSABLE_PAIRS){
+    const ha = all.includes(a), hb = all.includes(b);
+    if(ha && hb) found.push({a, b});
+  }
+  return found;
+}
+
+/* ============================================================
+ * F8 目录（TOC）自动生成（页码为按行数估算，供预览参考）
+ * ============================================================ */
+function headingText(l){
+  return (l || '').replace(/^[一二三四五六七八九十百]+[、.．，,]\s*/, '')
+                    .replace(/^[（(][一二三四五六七八九十]+[)）]\s*/, '')
+                    .replace(/^\d+[\.．、]\s*/, '')
+                    .replace(/^[（(]\d+[)）]\s*/, '')
+                    .trim();
+}
+/* ============================================================
+ * 标题多行梯形/菱形排列（精确控制）
+ *   - 用户在标题内手动换行（\n）时，按断行精确排布；
+ *   - 选择「梯形/菱形」时，按文种标题长度自动分拆为居中的多行，
+ *     行长按权重形成梯形（上窄下宽）或菱形（中间最宽），符合 GB/T 9704-2012。
+ * ============================================================ */
+function titleShapeWeights(n, mode){
+  // 返回长度 n 的权重数组（和为 1），决定各行字数占比
+  if(mode === 'diamond'){
+    if(n === 2) return [0.5, 0.5];
+    if(n === 3) return [0.2, 0.6, 0.2];
+    return [0.125, 0.375, 0.375, 0.125];           // n === 4
+  }
+  // trapezoid（上窄下宽）：权重单调递增
+  if(n === 2) return [1/3, 2/3];
+  if(n === 3) return [1/6, 1/3, 1/2];
+  return [0.1, 0.2, 0.3, 0.4];                       // n === 4
+}
+// 返回标题的显示行数组；mode=center 且无手动换行时返回 [null]（由浏览器自然换行）
+function titleDisplayLines(title, mode){
+  const t = (title || '').replace(/\r/g, '');
+  if(!t) return [];
+  if(t.includes('\n')) return t.split('\n').map(s => s.trim()).filter(s => s.length);
+  if(!mode || mode === 'center') return [t];
+  const len = t.length;
+  const n = len <= 14 ? 1 : len <= 28 ? 2 : len <= 42 ? 3 : 4;
+  if(n === 1) return [t];
+  const w = titleShapeWeights(n, mode);
+  const lines = []; let idx = 0;
+  for(let i = 0; i < n; i++){
+    let take = Math.round(w[i] * len);
+    if(i === n - 1) take = len - idx;
+    if(take <= 0) take = 1;
+    let seg = t.slice(idx, idx + take);
+    idx += take;
+    lines.push(seg);
+  }
+  return lines;
+}
+// 标题块在分页估算中占用的行数
+function titleBlockLines(d){
+  if(!d.title) return 0;
+  const lines = titleDisplayLines(d.title, d.titleArr);
+  if(lines.length <= 1 && (!d.titleArr || d.titleArr === 'center'))
+    return Math.ceil(wLen(d.title) / 14) + 2;
+  return lines.length + 2;
+}
+function buildTOC(d){
+  let cap = d.plain ? 19 : 10, used = 0, page = 1;
+  const bump = n => { while(used + n > cap){ page++; used = 0; cap = 22; } used += n; };
+  if(d.title) bump(Math.ceil(wLen(d.title)/14) + 2);
+  if(d.to) bump(Math.ceil(wLen(d.to)/CPL) + 1);
+  const toc = [];
+  for(const l of d.paras){
+    const t = (l || '').trim(); if(!t) continue;
+    const lv = headingLevelOf(t);
+    const n = Math.ceil((wLen(t) + 2) / CPL);
+    if(lv === 0 || lv === 1 || lv === 2) toc.push({lv, text: headingText(t), page});
+    bump(n);
+  }
+  return toc;
+}
+
+/* ============================================================
+ * F7 格式自检报告生成（含页码版式要素核对 + 校验问题汇总）
+ * ============================================================ */
+function genSelfCheck(d, issues, mode){
+  const date = new Date();
+  const errs = issues.filter(i => i.level === 'err');
+  const warns = issues.filter(i => i.level === 'warn');
+  const infos = issues.filter(i => i.level === 'info');
+  const L = [];
+  L.push('# 公文格式自检报告');
+  L.push('');
+  L.push('- 生成时间：' + date.toLocaleString('zh-CN'));
+  L.push('- 文种：' + (d.type || '—'));
+  L.push('- 标题：' + (d.title || '（未填）'));
+  L.push('- 校验模式：' + ({strict:'严格', standard:'标准', loose:'宽松'}[mode] || mode));
+  L.push('- 问题统计：错误 ' + errs.length + ' 项 / 提醒 ' + warns.length + ' 项 / 提示 ' + infos.length + ' 项');
+  L.push('');
+  L.push('## 一、要素完整性');
+  L.push((d.title ? '✓' : '✕') + ' 标题' + (d.title ? '' : '（缺失）'));
+  L.push((d.paras.length ? '✓' : '✕') + ' 正文' + (d.paras.length ? '' : '（缺失）'));
+  if(!d.plain){
+    L.push((d.no ? '✓' : '✕') + ' 发文字号' + (d.no ? '' : '（缺失）'));
+    L.push((d.org ? '✓' : '✕') + ' 发文机关署名' + (d.org ? '' : '（缺失）'));
+    L.push((d.date ? '✓' : '✕') + ' 成文日期' + (d.date ? '' : '（缺失）'));
+    L.push((d.to ? '✓' : '✕') + ' 主送机关' + (d.to ? '' : '（缺失）'));
+    if(d.secret) L.push('✓ 密级：' + d.secret + (d.secretTerm ? '★' + d.secretTerm : ''));
+  }
+  if(d.cc || d.issuer || d.issueDate) L.push('✓ 版记已配置（抄送 / 印发机关 / 印发日期）');
+  L.push('');
+  L.push('## 二、校验问题清单');
+  if(!issues.length) L.push('✓ 未发现格式问题，符合现行规范要求。');
+  else{
+    issues.forEach((i, k) => {
+      const tag = i.level === 'err' ? '【错误】' : i.level === 'info' ? '【提示】' : '【提醒】';
+      L.push((k + 1) + '. ' + tag + i.msg + (i.fixable ? '（可一键修复）' : ''));
+    });
+  }
+  L.push('');
+  L.push('—— 本报告由「慧公文」智能排版助手依据 GB/T 9704-2012 自动生成，仅供参考，最终以人工复核为准。');
+  return { md: L.join('\n'), txt: L.join('\n') };
+}
+
 function smartParse(text){
   fixLog = [];                       // 解析开始：重置当前文档的校验修复记录
   // 若原文含 HTML 表格（粘贴网页/富文本），先转为 Markdown 管道格式，
@@ -2652,6 +3127,24 @@ function collect(){
     issueDate: plain ? '' : $('inIssueDate').value.trim(),
     // 用印方式（7.3.5）
     seal: $('inSeal') ? $('inSeal').value : 'seal',
+    // —— F1 附注（联系人及电话等印发传达事项） ——
+    note: $('inNote') ? $('inNote').value.trim() : '',
+    // —— F2 成文日期数字形式：arabic 阿拉伯 / cn 汉字 ——
+    dateMode: $('inDateMode') ? $('inDateMode').value : 'arabic',
+    // —— F3 联合行文（多机关署名换行） ——
+    joint: $('ckJoint') ? $('ckJoint').checked : false,
+    // —— F4 附件首页标识（每个附件首页居中显示"附件N"） ——
+    attBanner: $('ckAttBanner') ? $('ckAttBanner').checked : false,
+    // —— F8 目录（TOC）自动生成 ——
+    toc: $('ckToc') ? $('ckToc').checked : false,
+    // —— F9 所见即所得直接编辑 ——
+    wysiwyg: $('ckWysiwyg') ? $('ckWysiwyg').checked : false,
+    // —— F10 跨页表头重复 ——
+    tableHeader: $('ckTableHeader') ? $('ckTableHeader').checked : false,
+    // —— 标题多行排列（居中/梯形/菱形） ——
+    titleArr: $('inTitleArr') ? ($('inTitleArr').value || 'center') : 'center',
+    // —— 纪要「第几期」等文种特有要素 ——
+    minuteNo: $('inMinuteNo') ? ($('inMinuteNo').value || '').trim() : '',
   };
 }
 /* 密级与保密期限合并显示：机密★5年（GB/T 9704-2012 · 7.2.2） */
@@ -2677,6 +3170,9 @@ function headerHTML(d){
   if(d.urgent)      vh.push(`<div class="vh-item">${esc(d.urgent)}</div>`);
   if(vh.length) h += `<div class="vhead">${vh.join('')}</div>`;
   h += `<div class="fw-logo${letter?' letter-style':''}${vh.length?' has-vh':''}">${esc(d.logo)}</div>`;
+  // 纪要「第X期」等文种特有要素：红头标志下方居中显示（GB/T 9704-2012 纪要格式）
+  if((d.t.n === '纪要' || d.t.n === '公报') && d.minuteNo)
+    h += `<div class="minutes-no">第${esc(d.minuteNo)}期</div>`;
   if(letter){
     h += `<div class="sign-double"></div><div class="sign-double2"></div>`;
     if(d.no) h += `<div class="fw-no letter-style">${esc(d.no)}</div>`;
@@ -2804,10 +3300,11 @@ function splitAttachBodies(paras, items){
   return bodies.map(norm1);
 }
 /* 附件页头部 HTML（GB 7.3.7）："附件"二字及顺序号三号黑体顶格第一行，顺序号用 Times New Roman */
-function attHeadHTML(a, isMulti){
+function attHeadHTML(a, isMulti, banner){
   if(!a) return '';
   const num = (isMulti && a.num) ? `<span class="att-num">${esc(a.num)}</span>` : '';
-  let h = `<div class="att-head">附件${num}</div>`;
+  // F4 附件首页标识：居中显示「附件N」大号标识（GB/T 9704-2012 7.3.7）
+  let h = banner ? `<div class="att-banner">附件${num}</div>` : `<div class="att-head">附件${num}</div>`;
   if(a.title) h += `<div class="att-title">${esc(a.title)}</div>`;
   return h;
 }
@@ -2844,13 +3341,12 @@ function paraHTML(s){
 }
 function estLines(d){
   const blocks = [];
-  if(d.title) blocks.push({k:'title', lines: Math.ceil(wLen(d.title)/14) + 2});
+  if(d.title) blocks.push({k:'title', lines: titleBlockLines(d)});
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
     else if(b.t==='imgs'){
-      const inner = b.items.map(it=>`<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`).join('');
-      blocks.push({k:'p', html:`<div class="imgblk"><div class="imgc">${inner}</div></div>`, lines: 9, img:true});
+      blocks.push({k:'p', html:`<div class="imgwrap">${imgGroupInner(b.items)}</div>`, lines: 9 + b.items.filter(it=>it.caption).length, img:true});
     }
     else blocks.push({k:'p', html: paraHTML(b.s),
       lines: Math.ceil((wLen(b.s)+2)/CPL)});
@@ -2875,20 +3371,33 @@ function estLines(d){
   const signCls = '';
   // 用印方式（7.3.5）：加盖印章时以套印示意图标示位置；不加盖印章时成文日期右空四字
   const noSeal = (d.seal === 'none') || d.plain;
-  if(d.org) tail.push(`<div class="signorg${signCls}"${gap}>${esc(d.org)}</div>`);
-  // 通用文种：成文日期以发文机关署名为基准居中对齐（日期中心对齐署名中心），日期紧贴署名下一行
-  let dateStyle = (!d.org && gap) ? gap : '';
-  if(plainSign){
-    const off = (wLen(d.org) - wLen(d.date)) / 2;
-    dateStyle = ` style="text-align:right;margin-right:${off.toFixed(2)}em"`;
+  // F3 联合行文：发文机关署名支持多机关（换行填写），各机关右对齐分行排列
+  const orgs = d.joint ? (d.org || '').split('\n').map(s => s.trim()).filter(Boolean) : (d.org ? [d.org] : []);
+  const dateTxt = dateDisp(d);
+  if(orgs.length){
+    orgs.forEach((o, idx) => {
+      tail.push(`<div class="signorg${signCls}"${idx === 0 ? gap : ''} style="text-align:right">${esc(o)}</div>`);
+    });
+    let dateStyle, dateCls;
+    if(plainSign){
+      const off = (wLen(orgs[0]) - wLen(dateTxt)) / 2;
+      dateStyle = ` style="text-align:right;margin-right:${off.toFixed(2)}em"`; dateCls = '';
+    } else if(noSeal){
+      dateStyle = ` style="text-align:right;margin-right:4em"`; dateCls = ' no-seal';
+    } else {
+      const maxW = Math.max(...orgs.map(o => wLen(o)));
+      dateStyle = ` style="text-align:right;margin-right:${Math.max(0, (maxW - wLen(dateTxt))/2).toFixed(2)}em"`; dateCls = '';
+    }
+    tail.push(`<div class="signdate${signCls}${dateCls}"${dateStyle}>${esc(dateTxt)}</div>`);
+    // F3 联合行文印章套印示意：每个机关对应一枚印章（仅预览显示，不参与导出）
+    if(!noSeal && sealPreview){
+      orgs.forEach(o => tail.push(`<div class="seal-wrap"><div class="seal-mark">${esc(o.slice(0,12))}</div></div>`));
+    }
   }
-  const dateCls = (noSeal && !plainSign) ? ' no-seal' : '';
-  tail.push(`<div class="signdate${signCls}${dateCls}"${dateStyle}>${esc(d.date)}</div>`);
-  // 印章套印位置示意（仅预览显示，不参与导出）：骑年盖月，印章下沿距成文日期
-  if(!noSeal && d.org && sealPreview)
-    tail.push(`<div class="seal-wrap"><div class="seal-mark">${esc((d.org||'').slice(0,12))}</div></div>`);
+  // F1 附注：成文日期下一行，左空二字加圆括号（GB/T 9704-2012 7.3.4/7.4）
+  if(d.note) tail.push(`<div class="doc-note">${esc(d.note)}</div>`);
   blocks.push({k:'tail', html:tail.join(''),
-    lines: (attachItems.length ? attachItems.length : 0) + gapLines + (d.org?1:0) + 1 + 2});
+    lines: (attachItems.length ? attachItems.length : 0) + gapLines + orgs.length + 1 + (d.note ? 1 : 0) + (orgs.length && !noSeal ? orgs.length * 2 : 0)});
   return blocks;
 }
 
@@ -2902,10 +3411,29 @@ function renderPreview(){
   }
   const header = headerHTML(d);
   const headBlocks = [];
-  if(d.title) headBlocks.push(`<div class="doc-title${d.plain?' plain':''}">${esc(d.title)}</div>`);
+  if(d.title){
+    const lines = titleDisplayLines(d.title, d.titleArr);
+    const inner = lines.length > 1
+      ? lines.map(l => `<span class="tl">${esc(l)}</span>`).join('')
+      : esc(d.title);
+    headBlocks.push(`<div class="doc-title${d.plain?' plain':''}">${inner}</div>`);
+  }
   if(d.to) headBlocks.push(`<div class="doc-to">${esc(d.to)}</div>`);
   else if(d.title) headBlocks.push(`<div class="title-gap"></div>`); // 无主送机关：标题下空一行排正文
+  _figN = 0; // 图片题注自动编号（F11）每次渲染重置
   const blocks = estLines(d);
+  // F8 目录（TOC）：按正文标题层级生成目录与估算页码，置于正文之前
+  if(d.toc){
+    const toc = buildTOC(d);
+    if(toc.length){
+      let th = `<div class="toc-block"><div class="toc-title">目录</div>`;
+      toc.forEach(it => {
+        th += `<div class="toc-item toc-lv${it.lv+1}"><span class="t">${esc(it.text)}</span><span class="dot"></span><span class="pg">${it.page}</span></div>`;
+      });
+      th += `</div>`;
+      blocks.unshift({k:'toc', html: th, lines: Math.ceil(toc.length * 1.5) + 3});
+    }
+  }
   // 首页正文容量约 10 行（红头占用），通用格式约 19 行，后续页 22 行
   let pages = [], cur = [], cap = d.plain ? 19 : 10, used = 0;
   for(const b of blocks){
@@ -2930,13 +3458,12 @@ function renderPreview(){
   const attIsMulti = attItems.length > 1;
   for(let ai=0; ai<attItems.length; ai++){
     const a = attItems[ai];
-    const ablocks = [{html: attHeadHTML(a, attIsMulti), lines: a.title ? 3 : 1}];
+    const ablocks = [{html: attHeadHTML(a, attIsMulti, d.attBanner), lines: (d.attBanner ? 2 : 0) + (a.title ? 3 : 1)}];
     const body = attBodies[ai] || [];
     for(const b of iterBlocks(body)){
       if(b.t==='tb') ablocks.push({html: tableHTML(b.rows), lines: b.rows.length + 1, wide: b.wide});
       else if(b.t==='imgs'){
-        const inner = b.items.map(it=>`<img src="${esc(it.url)}" alt="${esc(it.alt||'')}" onerror="this.style.display='none';this.after('［图片加载失败］')">`).join('');
-        ablocks.push({html:`<div class="imgblk"><div class="imgc">${inner}</div></div>`, lines: 9});
+        ablocks.push({html:`<div class="imgwrap">${imgGroupInner(b.items)}</div>`, lines: 9 + b.items.filter(it=>it.caption).length});
       }
       else ablocks.push({html: paraHTML(b.s),
         lines: Math.ceil((wLen(b.s)+2)/CPL)});
@@ -2960,7 +3487,8 @@ function renderPreview(){
     const np = land ? (n%2===1 ? 'lp-odd' : 'lp-even') : ((n%2===1) ? 'odd' : 'even');
     return `
     <div class="pg${land?' land':''}" data-w="${land?1122:794}" data-h="${land?794:1122}"><div class="page${land?' land':''}">
-      <div class="gb-content${land?' land':''}">
+      <div class="gb-content${land?' land':''}${d.wysiwyg && !land ? ' editable' : ''}">
+        ${d.wysiwyg && !land ? '<span class="pg-hint">✎ 可直接编辑</span>' : ''}
         ${i===0 ? header + headBlocks.join('') : ''}
         ${pg.html.join('')}
         ${i===pages.length-1 ? banjiHTML(d) : ''}
@@ -3083,6 +3611,13 @@ async function buildDocxBlob(d){
       spacing:{before: TW(Math.max(0, 35 - vheadItems.length * 10))},
       children:[run(d.logo, F_BS, 40, {color:'FF0000'})]
     }));
+    // 纪要「第X期」等文种特有要素（红头标志下空一行，居中）
+    if((d.t.n === '纪要' || d.t.n === '公报') && d.minuteNo)
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing:{before: PT(28.9), ...line578},
+        children:[run('第' + d.minuteNo + '期', F_BS, 22, {color:'FF0000'})]
+      }));
     // 发文字号：标志下空二行，三号仿宋，居中；上行文居左空一字 + 签发人居右
     if(d.no || d.signatory){
       const kids = [];
@@ -3134,11 +3669,24 @@ async function buildDocxBlob(d){
 
   // 标题：二号小标宋，居中（红头格式于分隔线下空二行，通用格式顶格起排）
   // 无主送机关时，标题段后空一行（after=28.9pt）再排正文/表格，符合 GB/T 9704-2012 · 7.3.3
-  if(d.title) children.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing:{before: d.plain ? 0 : PT(28.9*2), after: d.to ? 0 : PT(28.9), line: PT(33), lineRule: LineRuleType.EXACT},
-    children:[run(d.title, F_BS, 22)]
-  }));
+  // 多行标题支持「梯形/菱形」排列与手动换行（\n）精确控制
+  if(d.title){
+    const lines = titleDisplayLines(d.title, d.titleArr);
+    const before = d.plain ? 0 : PT(28.9*2), after = d.to ? 0 : PT(28.9);
+    if(lines.length > 1){
+      lines.forEach((ln, i) => children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing:{before: i === 0 ? before : 0, after: i === lines.length-1 ? after : 0, line: PT(33), lineRule: LineRuleType.EXACT},
+        children:[run(ln, F_BS, 22)]
+      })));
+    }else{
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing:{before, after, line: PT(33), lineRule: LineRuleType.EXACT},
+        children:[run(d.title, F_BS, 22)]
+      }));
+    }
+  }
 
   // 主送机关：标题下空一行，三号仿宋，顶格
   if(d.to) children.push(new Paragraph({
@@ -3174,7 +3722,7 @@ async function buildDocxBlob(d){
     return new Table({
       width:{size:100, type:WidthType.PERCENTAGE},
       borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
-      rows: rows.map((r,ri)=> new TableRow({children: r.map(c=> {
+      rows: rows.map((r,ri)=> new TableRow({ tableHeader: (d.tableHeader && ri===0), children: r.map(c=> {
         const wrap = cellWraps(c, colW);
         const paraOpts = wrap
           ? {alignment: AlignmentType.JUSTIFIED, spacing:{line: PT(18), lineRule: LineRuleType.EXACT}}
@@ -3188,6 +3736,7 @@ async function buildDocxBlob(d){
     });
   };
   const wideIdx = new Set();
+  let docxFig = 0; // F11 图片题注自动编号
   const pushImgGroup = async items => {
     const metas = [];
     for(const it of items){
@@ -3220,7 +3769,35 @@ async function buildDocxBlob(d){
     }).filter(Boolean);
     if(runs.length) children.push(new Paragraph({
       alignment: AlignmentType.CENTER, spacing:{before:PT(8), after:PT(8)}, children: runs }));
+    // F11 图片题注：含题注时自动编号「图N：题注」并居中（图注用仿宋，小于正文）
+    items.forEach(it => {
+      if(it.caption){
+        children.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing:{before:PT(2), after:PT(8)},
+          children:[run('图' + (++docxFig) + '：' + it.caption, F_FS, 12)]
+        }));
+      }
+    });
   };
+  // F8 目录（TOC）：按正文标题层级生成目录与估算页码（与预览一致），置于正文之前
+  if(d.toc){
+    const toc = buildTOC(d);
+    if(toc.length){
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER, spacing:{before: PT(28.9*2), after: PT(28.9)},
+        children:[run('目录', F_BS, 22)]
+      }));
+      toc.forEach(it => {
+        children.push(new Paragraph({
+          alignment: AlignmentType.LEFT,
+          indent:{left: PT(it.lv * 32)},
+          spacing:{...line578},
+          children:[run(it.text + '（第' + it.page + '页）', F_FS, 16)]
+        }));
+      });
+    }
+  }
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
     else if(b.t==='imgs'){ await pushImgGroup(b.items); }
@@ -3249,19 +3826,33 @@ async function buildDocxBlob(d){
   const plainSign = d.plain && d.org;
   const signGap = PT(28.9 * ((plainSign || attachItems.length) ? 3 : 1));
   const signAlign = AlignmentType.RIGHT;
-  if(d.org) children.push(new Paragraph({
-    alignment: signAlign,
-    indent: {right: Math.max(0, Math.round(PT(64) + (wLen(d.date) - wLen(d.org)) * PT(16)))},
-    spacing:{before: signGap, ...line578},
-    children:[run(d.org, F_FS, 16)]
-  }));
-  children.push(new Paragraph({
-    alignment: signAlign,
-    indent: plainSign
-      ? {right: (wLen(d.org) - wLen(d.date)) * PT(16) / 2}   // 通用：成文日期以署名为基准居中（中心对齐署名中心）
-      : {right: PT(64)},   // 成文日期右空四字
-    spacing:d.org ? {...line578} : {before: signGap, ...line578},
-    children:[run(d.date, F_FS, 16)]
+  // F3 联合行文：多机关分行署名；F2 成文日期数字形式
+  const orgs = d.joint ? (d.org || '').split('\n').map(s => s.trim()).filter(Boolean) : (d.org ? [d.org] : []);
+  const dateTxt = dateDisp(d);
+  if(orgs.length){
+    orgs.forEach((o, idx) => {
+      children.push(new Paragraph({
+        alignment: signAlign,
+        indent: {right: Math.max(0, Math.round(PT(64) + (wLen(dateTxt) - wLen(o)) * PT(16)))},
+        spacing:{before: idx === 0 ? signGap : 0, ...line578},
+        children:[run(o, F_FS, 16)]
+      }));
+    });
+    children.push(new Paragraph({
+      alignment: signAlign,
+      indent: plainSign
+        ? {right: (wLen(orgs[0]) - wLen(dateTxt)) * PT(16) / 2}
+        : {right: PT(64)},
+      spacing: orgs.length ? {...line578} : {before: signGap, ...line578},
+      children:[run(dateTxt, F_FS, 16)]
+    }));
+  }
+  // F1 附注：成文日期下一行，左空二字加圆括号
+  if(d.note) children.push(new Paragraph({
+    alignment: AlignmentType.LEFT,
+    indent:{left: PT(32)},
+    spacing:{before: PT(6), ...line578},
+    children:[run(d.note, F_FS, 16)]
   }));
 
   // 附件：另面编排（版记之前）。每个附件独立成页；"附件"二字及顺序号三号黑体顶格第一行，
@@ -3273,10 +3864,19 @@ async function buildDocxBlob(d){
     const attMulti = attItems2.length > 1;
     for(let ai=0; ai<attItems2.length; ai++){
       const a = attItems2[ai];
+      // F4 附件首页标识：居中大号「附件N」（GB/T 9704-2012 7.3.7）
+      if(d.attBanner){
+        children.push(new Paragraph({
+          pageBreakBefore: true,
+          alignment: AlignmentType.CENTER,
+          spacing:{before: PT(28.9), ...line578},
+          children:[ run('附件' + (attMulti && a.num ? a.num : ''), F_HEI, 22) ]
+        }));
+      }
       const headRuns = [ run('附件', F_HEI, 16) ];
       if(attMulti && a.num) headRuns.push(run(a.num, F_NUM, 16));
       children.push(new Paragraph({
-        pageBreakBefore: true,
+        pageBreakBefore: !d.attBanner,
         spacing:{...line578},
         children: headRuns
       }));
@@ -3488,18 +4088,189 @@ $('btnExport').onclick = () => guardedExport('docx');
 $('btnPdf').onclick = () => guardedExport('pdf');
 $('btnPrint').onclick = () => window.print();
 $('btnReset').onclick = () => {
-  ['inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inCc','rawText']
+  ['inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inCc','inNote','rawText']
     .forEach(id => $(id).value = '');
   $('inDate').value = todayCN();
+  $('inDateMode').value = 'arabic';
+  $('ckJoint').checked = false; $('ckAttBanner').checked = false;
+  $('ckToc').checked = false; $('ckTableHeader').checked = false; $('ckWysiwyg').checked = false;
+  if($('wysiwygRow')) $('wysiwygRow').style.display = 'none';
   fixLog = []; updateLogStat();
   pushSnap(); renderPreview(); toast('已清空');
+};
+
+/* ============================================================
+ * F7 格式自检报告导出
+ * ============================================================ */
+function exportSelfCheck(){
+  const d = collect();
+  const issues = runValidation(d);
+  const rep = genSelfCheck(d, issues, (ruleState.mode || 'standard'));
+  const blob = new Blob([rep.md], {type:'text/markdown;charset=utf-8'});
+  downloadBlob(blob, (d.title || '公文') + '_格式自检报告.md');
+  toast('✓ 格式自检报告已导出');
+}
+
+/* ============================================================
+ * F13 变量模板（发文机关 / 年份 / 文号 等占位符填充）
+ * ============================================================ */
+const VAR_PRESETS = {
+  notice: '{{机关}}定于{{年份}}年开展专项工作，现将有关事项通知如下。',
+  decide: '{{机关}}决定，对下列集体和个人予以表彰（详见附件）。',
+  redhead: '{{机关}}\n{{日期}}',
+};
+function fillVar(tpl){
+  const d = collect();
+  const y = (d.date.match(/^(\d{4})/) || ['', ''])[1] || new Date().getFullYear();
+  return (tpl || '')
+    .replace(/\{\{机关\}\}/g, d.org || '')
+    .replace(/\{\{年份\}\}/g, y)
+    .replace(/\{\{文号\}\}/g, d.no || '')
+    .replace(/\{\{标题\}\}/g, d.title || '')
+    .replace(/\{\{日期\}\}/g, dateDisp(d) || '');
+}
+$('btnVar').onclick = () => openModal('modalVar');
+$('varPreset').onchange = () => { if($('varPreset').value && VAR_PRESETS[$('varPreset').value]) $('varTpl').value = VAR_PRESETS[$('varPreset').value]; };
+$('btnVarPreview').onclick = () => {
+  const out = fillVar($('varTpl').value);
+  const box = $('varPreviewBox');
+  box.style.display = 'block';
+  box.textContent = out || '（无可预览内容，请检查占位符或先填写对应公文要素）';
+};
+$('btnVarFillToBody').onclick = () => {
+  const out = fillVar($('varTpl').value).trim();
+  if(!out){ toast('模板为空，未填充'); return; }
+  const cur = $('inBody').value.trim();
+  $('inBody').value = (cur ? cur + '\n' : '') + out;
+  closeModal('modalVar'); pushSnap(); renderPreview();
+  toast('✓ 变量模板已填充到正文末尾');
+};
+
+/* ============================================================
+ * F14 标准内嵌帮助（为什么这样排）
+ * ============================================================ */
+function openHelp(){
+  const items = [
+    {h:'份号（7.2.1）', p:'涉密公文应当标注份号，用 6 位阿拉伯数字顶格编排在版心左上角第一行。非涉密公文可不标注。'},
+    {h:'密级与保密期限（7.2.2）', p:'秘密★1年 / 机密★5年 / 绝密★10年，顶格编排在版心左上角第二行，用★连接保密期限。'},
+    {h:'紧急程度（7.2.3）', p:'特急 / 加急（电报可用特提），顶格编排在版心左上角；如需同时标注密级与紧急程度，紧急程度顶格编排在密级之下。'},
+    {h:'发文机关标志（7.2.4）', p:'由发文机关全称或规范化简称加「文件」组成，红色小标宋体字居中排布；联合行文时并用联合发文机关名称，主办机关排列在前。'},
+    {h:'发文字号（7.2.5）', p:'由发文机关代字、年份、发文顺序号组成，年份用六角括号〔〕括入，如「×政发〔2026〕12号」，居中排布于发文机关标志下空二行。'},
+    {h:'标题（7.3.3）', p:'由发文机关名称、事由和文种组成，二号小标宋体字居中排布，可分一行或多行居中排布；标题末尾一般不加标点符号。'},
+    {h:'主送机关（7.3.2）', p:'编排于标题下空一行位置，居左顶格，回行时仍顶格；最后一个机关名称后标全角冒号。'},
+    {h:'正文结构层次（7.3.3）', p:'第一层「一、」用黑体，第二层「（一）」用楷体，第三层「1.」和第四层「（1）」用仿宋体（不加粗）。标题层级序数须依次规范使用。'},
+    {h:'附件（7.3.7）', p:'附件应与公文正文一起装订，并在附件左上角第一行顶格标识「附件」及顺序号；附件标题居中排布于版心第三行。附件格式要求同正文。'},
+    {h:'发文机关署名、成文日期与印章（7.3.5）', p:'单一机关行文加盖印章时，印章端正、居中下压发文机关署名和成文日期，印章用红色；不加盖印章的公文，成文日期右空四字编排。联合行文时，各发文机关署名按排列顺序分行编排，印章对应套印。'},
+    {h:'附注（7.3.4 / 7.4）', p:'公文印发传达范围等需要说明的事项，居左空二字加圆括号编排在成文日期下一行（如联系人及电话、此件公开发布）。'},
+    {h:'页码（7.5）', p:'一般用四号半角宋体阿拉伯数字，编排在公文版心下边缘之下；单页码居右空一字，双页码居左空一字，一字线两侧各放一条一字线。'},
+    {h:'版记（7.4.2）', p:'抄送机关、印发机关和印发日期置于最后一页版心最下方；版记首条和末条分隔线均与版心等宽，首条与末条之间为各要素。'},
+    {h:'数字用法（GB/T 15835）', p:'公文中的数字除成文日期、部分结构层次序数、缩略语等外，应使用阿拉伯数字；年份应标全，月日不编虚位（如 8 不编为 08）。'},
+  ];
+  $('helpBody').innerHTML = items.map(it => `<div class="help-item"><h4>${esc(it.h)}</h4><p>${esc(it.p)}</p></div>`).join('');
+  openModal('modalHelp');
+}
+$('btnHelp').onclick = openHelp;
+
+/* ============================================================
+ * F12 导出长图（PNG）
+ * ============================================================ */
+function exportLongImage(){
+  toast('正在准备导出长图…（首次需联网加载渲染库）');
+  const load = cb => {
+    if(window.html2canvas) return cb();
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = cb;
+    s.onerror = () => toast('长图导出需联网加载渲染库，当前网络不可用');
+    document.head.appendChild(s);
+  };
+  load(() => {
+    const node = document.querySelector('#paperScroll');
+    if(!node) return;
+    window.html2canvas(node, {backgroundColor:'#ffffff', scale:2, useCORS:true}).then(canvas => {
+      canvas.toBlob(b => { downloadBlob(b, (collect().title || '公文') + '_长图.png'); toast('✓ 长图已导出'); });
+    }).catch(e => toast('长图导出失败：' + e.message));
+  });
+}
+/* F16 精确 PDF 导出：以 DOCX（docx.js 精确构建）为唯一版式来源，
+   经 mammoth 转 HTML 后用精确 A4 打印视图「另存为 PDF」——矢量、可选中、版式完全可控 */
+async function exportExactPdf(){
+  const d = collect();
+  if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
+  toast('正在由 DOCX 生成精确版式 PDF（矢量，可另存为 PDF）…');
+  try{
+    // ① 用 docx.js 精确构建（版心 156×225mm、字号、行距、对齐、分页、红头颜色完全可控）
+    const blob = await buildDocxBlob(d);
+    const buf = await blob.arrayBuffer();
+    // ② DOCX → HTML（mammoth，已内置；忠实还原段落/表格/样式/红头）
+    let html = '';
+    if(window.mammoth){
+      const res = await mammoth.convertToHtml({arrayBuffer: buf});
+      html = res.value;
+    }else{
+      html = document.querySelector('#paperScroll .page')?.innerHTML || '';
+    }
+    // ③ 精确 A4 打印视图 → 另存为 PDF（矢量、可选中，远优于像素栅格）
+    openPdfPrintWindow(html, (d.title || '公文') + '_精确版');
+  }catch(e){
+    toast('精确 PDF 生成失败：' + e.message);
+  }
+}
+/* 打开一个精确 A4 打印窗口（版式由 DOCX 决定），触发「另存为 PDF」 */
+function openPdfPrintWindow(innerHtml, name){
+  const w = window.open('', '_blank');
+  if(!w){ toast('请允许弹出窗口以生成精确 PDF'); return; }
+  w.document.open();
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(name) + '</title>'
+    + '<style>'
+    + '@page{size:A4;margin:37mm 26mm 35mm 28mm;}'
+    + 'html,body{margin:0;padding:0;background:#fff;}'
+    + 'body{font-family:"方正仿宋_GBK","仿宋","FangSong","宋体",serif;font-size:16pt;line-height:2;color:#000;}'
+    + 'h1,h2,h3,h4{font-weight:normal;}'
+    + 'table{border-collapse:collapse;width:100%;}table,td,th{border:1px solid #000;}'
+    + 'img{max-width:100%;}'
+    + '.doc-red{color:#c00;font-family:"方正小标宋简体","小标宋体","STZhongsong",serif;text-align:center;}'
+    + '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+    + '</style></head><body>' + innerHtml + '</body></html>');
+  w.document.close();
+  w.document.title = name;
+  setTimeout(() => { try{ w.focus(); w.print(); }catch(_){} }, 400);
+  toast('✓ 已由 DOCX 生成精确版式，请在打印对话框选择「另存为 PDF」');
+}
+$('btnLongImg').onclick = exportLongImage;
+$('btnSelfCheck').onclick = exportSelfCheck;
+$('btnExactPdf').onclick = exportExactPdf;
+
+/* ============================================================
+ * F9 所见即所得：开关 + 同步回正文
+ * ============================================================ */
+$('ckWysiwyg').addEventListener('change', () => {
+  if($('wysiwygRow')) $('wysiwygRow').style.display = $('ckWysiwyg').checked ? 'flex' : 'none';
+  renderPreview();
+});
+$('btnSyncWysiwyg').onclick = () => {
+  const d = collect();
+  const lines = [];
+  document.querySelectorAll('#paperScroll .gb-content').forEach(g => {
+    (g.innerText || '').split('\n').forEach(l => lines.push(l.trim()));
+  });
+  const drop = new Set([d.title, d.to, dateDisp(d), d.note, '附件', '目录']
+    .concat(d.joint ? d.org.split('\n') : [d.org]).filter(Boolean));
+  const out = lines.filter(l => l
+    && !drop.has(l)
+    && !/^—\s*\d+\s*—$/.test(l)
+    && !/^(抄送|印发)/.test(l)
+    && !/^附件\s*\d*$/.test(l));
+  $('inBody').value = out.join('\n');
+  pushSnap(); renderPreview();
+  toast('✓ 已同步预览改动回正文（建议再次「智能解析」规范格式）');
 };
 
 /* ============================================================
  * 版本历史：撤销 / 重做
  * ============================================================ */
 const SNAP_FIELDS = ['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inDate','inCc',
-  'inCopyNo','inSecret','inSecretTerm','inUrgent','inIssuer','inIssueDate','inSeal'];
+  'inCopyNo','inSecret','inSecretTerm','inUrgent','inIssuer','inIssueDate','inSeal','inNote','inDateMode'];
 const undoStack = [], redoStack = [];
 let undoLock = false, snapTimer = null;
 function snapState(){ const o={type:curType}; SNAP_FIELDS.forEach(f=>o[f]=$(f).value); return JSON.stringify(o); }
@@ -3564,9 +4335,9 @@ document.addEventListener('keydown', e=>{
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
   standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
-             'r_copyno','r_secret','r_issue','r_typo','r_numuse'],
+             'r_copyno','r_secret','r_issue','r_typo','r_numuse','r_politics','r_consistency'],
   strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
-             'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse'],
+             'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse','r_politics','r_consistency'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
 /* 成文日期：GB/T 9704-2012 —— 阿拉伯数字将年月日标全，月、日不编虚位（即 8 不编为 08） */
@@ -3766,7 +4537,7 @@ const RULES = [
   {id:'r_img', name:'图片校验识别（正文/附件图片默认居中、多图保持比例一致）', lv:'warn',
     check: d => {
       const imgs = [];
-      const grab = arr => arr.forEach(l => { const m = l.match(/!\[[^\]]*\]\(([^)]+)\)/); if(m) imgs.push(m[1]); });
+      const grab = arr => arr.forEach(l => { const m = parseImgItem(l); if(m) imgs.push(m.url); });
       grab(d.paras); grab(d.attachParas);
       if(!imgs.length) return null;
       const bad = imgs.filter(u => !/^(data:image\/|https?:\/\/|\/|\.\.?\/)/.test(u.trim())).length;
@@ -3796,11 +4567,17 @@ const RULES = [
       if(soft.length) parts.push(`${soft.length} 处易混词需辨析（${soft.slice(0,3).map(h=>h.bad).join('、')}${soft.length>3?' 等':''}）`);
       return '检测到 ' + parts.join('，') + '；点击「校验修复记录」查看逐条说明';
     }},
-  {id:'r_numuse', name:'数字用法规范（GB/T 15835 出版物上数字用法）', lv:'warn',
+  {id:'r_numuse', name:'数字用法规范（GB/T 15835：千分位/概数/约数/大数单位等）', lv:'warn',
     check: d => {
       const hits = scanNumUse([d.title, d.to, ...d.paras, ...d.attachParas]);
       if(!hits.length) return null;
       return `检测到 ${hits.length} 处数字用法不规范（${hits.slice(0,3).map(h=>h.sample).join('、')}${hits.length>3?' 等':''}）；点击「校验修复记录」查看逐条说明`;
+    },
+    fix: () => {
+      for(const id of ['inTitle','inBody','inAttachBody']){
+        const v = $(id).value; if(!v) continue;
+        $(id).value = v.split('\n').map(x => normNum(x)).join('\n');
+      }
     }},
   /* ---------- 版头要素（GB/T 9704-2012 · 7.2） ---------- */
   {id:'r_copyno', name:'份号格式：涉密公文须编份号，6 位阿拉伯数字顶格', lv:'warn', skip: d => d.plain,
@@ -3868,6 +4645,22 @@ const RULES = [
     fix: () => {
       for(const id of ['inBody','inAttachBody'])
         if($(id).value) $(id).value = $(id).value.split('\n').map(x=>normParallel(x)).join('\n');
+    }},
+  /* ---------- F5 政治术语 / 规范表述 / 禁用词（仅提醒，需人工确认） ---------- */
+  {id:'r_politics', name:'政治术语与规范表述核对（含禁用/不规范表述提醒）', lv:'warn',
+    check: d => {
+      const hits = scanPolitics([d.title, d.to, ...d.paras, ...d.attachParas, d.org, d.note]);
+      if(!hits.length) return null;
+      const top = hits.slice(0, 3).map(h => `「${h.bad}」→「${h.good}」`).join('；');
+      return `检测到 ${hits.length} 处需核对的政治术语 / 规范表述${hits.length>3?'（前 3 项）':''}：${top}；详见「标准帮助」`;
+    }},
+  /* ---------- F6 同篇用词一致性（易混词对并存提醒） ---------- */
+  {id:'r_consistency', name:'同篇用词一致性（如「其它/其他」「帐号/账号」并存）', lv:'warn',
+    check: d => {
+      const found = scanConsistency([d.title, d.to, ...d.paras, ...d.attachParas, d.org]);
+      if(!found.length) return null;
+      const top = found.slice(0, 4).map(p => `「${p.a}」与「${p.b}」`).join('、');
+      return `检测到 ${found.length} 组同篇用词不一致${found.length>4?'（前 4 组）':''}：${top}；建议全文统一为其中一种写法`;
     }},
 ];
 function ruleEnabled(r){
