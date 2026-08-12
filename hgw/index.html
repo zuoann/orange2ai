@@ -3716,7 +3716,7 @@ function estLines(d){
   if(d.title) blocks.push({k:'title', lines: titleBlockLines(d)});
   if(d.to) blocks.push({k:'to', lines: Math.ceil(wLen(d.to)/CPL) + 1});
   for(const b of iterBlocks(d.paras)){
-    if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows, b.colCount, b.headerRows, b.wide), lines: b.rows.length + 1, wide: b.wide});
+    if(b.t==='tb') blocks.push({k:'p', html: tableHTML(b.rows, b.colCount, b.headerRows, b.wide), lines: b.rows.length + 1, wide: b.wide, rows: b.rows, colCount: b.colCount, headerRows: b.headerRows});
     else if(b.t==='imgs'){
       blocks.push({k:'p', html:`<div class="imgwrap">${imgGroupInner(b.items)}</div>`, lines: 9 + b.items.filter(it=>it.caption).length, img:true});
     }
@@ -3773,6 +3773,79 @@ function estLines(d){
   return blocks;
 }
 
+/* 将跨页表格块拆分为多个块，使长表格能在预览中跨页显示；
+   拆分处若遇到纵向合并单元格，会在续页重新生成等效的合并单元格 */
+function splitTableBlock(b, maxBodyRows){
+  const headerRows = b.headerRows || 1;
+  const body = b.rows.slice(headerRows);
+  if(!body.length || body.length <= maxBodyRows) return [b];
+  const chunks = [];
+  let i = 0;
+  while(i < body.length){
+    const end = Math.min(body.length, i + maxBodyRows);
+    const chunkBody = normalizeChunkRows(body.slice(i, end), b.rows, headerRows + i);
+    const chunkRows = b.rows.slice(0, headerRows).concat(chunkBody);
+    chunks.push({
+      ...b,
+      rows: chunkRows,
+      html: tableHTML(chunkRows, b.colCount, headerRows, b.wide),
+      lines: chunkRows.length + 1
+    });
+    i = end;
+  }
+  return chunks;
+}
+function normalizeChunkRows(chunkRows, allRows, startIndex){
+  if(!chunkRows.length) return chunkRows;
+  const rows = chunkRows.map(r => r.map(c => cloneCell(c)));
+  const colCount = rows[0].length;
+  for(let ci = 0; ci < colCount; ci++){
+    if(rows[0][ci].cont){
+      let ri = startIndex - 1, src = null;
+      while(ri >= 0){
+        const c = allRows[ri][ci];
+        if(!c.cont){ src = c; break; }
+        ri--;
+      }
+      if(!src){ continue; }
+      const cspan = src.colSpan || 1;
+      const remaining = src.rowSpan - (startIndex - ri);
+      let rspan = 0;
+      for(let r = 0; r < rows.length && r < remaining; r++){
+        if(rows[r][ci].cont) rspan++;
+        else if(r === 0){ rspan = 1; break; }
+        else break;
+      }
+      if(rspan < 1) rspan = 1;
+      for(let r = 0; r < rspan; r++){
+        for(let c = 0; c < cspan; c++){
+          if(r === 0 && c === 0) rows[r][ci] = cell(src.text, rspan, cspan, false);
+          else rows[r][ci + c] = cell('', 1, 1, true);
+        }
+      }
+      ci += cspan - 1;
+    }
+  }
+  return rows;
+}
+/* 分页拆分表格：第一块尽量填满当前页剩余容量，后续块按整页容量拆分 */
+function paginateTableBlock(b, firstMaxBody, restMaxBody){
+  const headerRows = b.headerRows || 1;
+  const body = b.rows.slice(headerRows);
+  if(!body.length || body.length <= firstMaxBody) return [b];
+  const chunks = [];
+  let i = 0;
+  while(i < body.length){
+    const max = i === 0 ? firstMaxBody : restMaxBody;
+    const end = Math.min(body.length, i + max);
+    const chunkBody = normalizeChunkRows(body.slice(i, end), b.rows, headerRows + i);
+    const chunkRows = b.rows.slice(0, headerRows).concat(chunkBody);
+    chunks.push({...b, rows: chunkRows, html: tableHTML(chunkRows, b.colCount, headerRows, b.wide), lines: chunkRows.length + 1});
+    i = end;
+  }
+  return chunks;
+}
+
 function renderPreview(){
   const d = collect();
   const wrap = $('paperScroll');
@@ -3821,6 +3894,19 @@ function renderPreview(){
       pages.push({land:true, html:[b.html]});
       continue;
     }
+    if(b.rows && used + b.lines > cap){
+      // 长表格跨页拆分：在当前页剩余容量放不下时拆分表格
+      const headerRows = b.headerRows || 1;
+      const firstMax = Math.max(1, cap - used - headerRows - 1);
+      const restMax = Math.max(1, cap - headerRows - 1);
+      for(const chunk of paginateTableBlock(b, firstMax, restMax)){
+        if(used + chunk.lines > cap && cur.length){
+          pages.push({land:false, html:cur}); cur = []; cap = 22; used = 0;
+        }
+        cur.push(chunk.html); used += chunk.lines;
+      }
+      continue;
+    }
     if(used + b.lines > cap && cur.length){
       pages.push({land:false, html:cur}); cur = []; cap = 22; used = 0;
     }
@@ -3838,7 +3924,7 @@ function renderPreview(){
     const ablocks = [{html: attHeadHTML(a, attIsMulti, d.attBanner), lines: (d.attBanner ? 2 : 0) + (a.title ? 3 : 1)}];
     const body = attBodies[ai] || [];
     for(const b of iterBlocks(body)){
-      if(b.t==='tb') ablocks.push({html: tableHTML(b.rows, b.colCount, b.headerRows, b.wide), lines: b.rows.length + 1, wide: b.wide});
+      if(b.t==='tb') ablocks.push({html: tableHTML(b.rows, b.colCount, b.headerRows, b.wide), lines: b.rows.length + 1, wide: b.wide, rows: b.rows, colCount: b.colCount, headerRows: b.headerRows});
       else if(b.t==='imgs'){
         ablocks.push({html:`<div class="imgwrap">${imgGroupInner(b.items)}</div>`, lines: 9 + b.items.filter(it=>it.caption).length});
       }
@@ -3846,13 +3932,26 @@ function renderPreview(){
         lines: Math.ceil((wLen(b.s)+2)/CPL)});
     }
     let cur2 = [], used2 = 0;
+    const attCap = 21;
     for(const b of ablocks){
       if(b.wide){
         if(cur2.length){ pages.push({land:false, html:cur2}); cur2 = []; used2 = 0; }
         pages.push({land:true, html:[b.html]});
         continue;
       }
-      if(used2 + b.lines > 21 && cur2.length){ pages.push({land:false, html:cur2}); cur2 = []; used2 = 0; }
+      if(b.rows && used2 + b.lines > attCap){
+        const headerRows = b.headerRows || 1;
+        const firstMax = Math.max(1, attCap - used2 - headerRows - 1);
+        const restMax = Math.max(1, attCap - headerRows - 1);
+        for(const chunk of paginateTableBlock(b, firstMax, restMax)){
+          if(used2 + chunk.lines > attCap && cur2.length){
+            pages.push({land:false, html:cur2}); cur2 = []; used2 = 0;
+          }
+          cur2.push(chunk.html); used2 += chunk.lines;
+        }
+        continue;
+      }
+      if(used2 + b.lines > attCap && cur2.length){ pages.push({land:false, html:cur2}); cur2 = []; used2 = 0; }
       cur2.push(b.html); used2 += b.lines;
     }
     if(cur2.length) pages.push({land:false, html:cur2});
@@ -3921,7 +4020,8 @@ async function buildDocxBlob(d){
   const {
     Document, Packer, Paragraph, TextRun, AlignmentType, Footer, ImageRun,
     PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
-    DocumentGridType, VerticalAlign, PageOrientation, SimpleField, PageBreak
+    DocumentGridType, VerticalAlign, PageOrientation, SimpleField, PageBreak,
+    TableLayoutType
   } = docx;
 
   // 公文内西文与阿拉伯数字统一使用 Times New Roman（ascii/hAnsi），汉字用对应公文字体（eastAsia）
@@ -4105,13 +4205,17 @@ async function buildDocxBlob(d){
     const colW = colCount ? Math.floor(cwTotal / colCount) : cwTotal;
     return new Table({
       width:{size:100, type:WidthType.PERCENTAGE},
+      layout:TableLayoutType.FIXED,
       borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
       rows: rows.map((r,ri)=> new TableRow({
         tableHeader: (d.tableHeader && ri < headerRows),
+        cantSplit: false,
         children: r.map(c=> {
+          const baseW = {size: colW * c.colSpan, type: WidthType.DXA};
           if(c.cont){
             return new TableCell({
               verticalMerge: 'continue',
+              width: baseW,
               margins:{top:60, bottom:60, left:100, right:100},
               children:[new Paragraph({})]
             });
@@ -4123,7 +4227,7 @@ async function buildDocxBlob(d){
           const opts = {
             rowSpan: c.rowSpan > 1 ? c.rowSpan : undefined,
             columnSpan: c.colSpan > 1 ? c.colSpan : undefined,
-            width: {size: colW * c.colSpan, type: WidthType.DXA},
+            width: baseW,
             margins:{top:60, bottom:60, left:100, right:100},
             verticalAlign: VerticalAlign.CENTER,
             children:[new Paragraph({...paraOpts, children: splitRuns(c.text, ri < headerRows ? F_HEI : F_FS, 12)})]
@@ -4625,25 +4729,73 @@ function exportLongImage(){
     }).catch(e => toast('长图导出失败：' + e.message));
   });
 }
-/* F16 精确 PDF 导出：以 DOCX（docx.js 精确构建）为唯一版式来源，
-   经 mammoth 转 HTML 后用精确 A4 打印视图「另存为 PDF」——矢量、可选中、版式完全可控 */
+/* 构建用于打印/PDF 的连续流 HTML：直接复用预览同源函数（iterBlocks/tableHTML/paraHTML），
+   不经过 docx→mammoth 反向转换，避免合并单元格被 mammoth 破坏；浏览器打印时表格可自然跨页断行 */
+function buildPrintHTML(d){
+  const blocks = estLines(d);
+  const titleHtml = d.title ? (() => {
+    const lines = titleDisplayLines(d.title, d.titleArr);
+    const inner = lines.length > 1
+      ? lines.map(l => `<span class="tl">${esc(l)}</span>`).join('')
+      : esc(d.title);
+    return `<div class="doc-title${d.plain?' plain':''}">${inner}</div>`;
+  })() : '';
+  const toHtml = d.to ? `<div class="doc-to">${esc(d.to)}</div>`
+    : (d.title ? '<div class="title-gap"></div>' : '');
+  const bodyHtml = blocks.filter(b => b.k === 'p').map(b => b.html).join('');
+  const tailBlock = blocks.find(b => b.k === 'tail');
+  const tailHtml = tailBlock ? tailBlock.html : '';
+
+  const renderBlocks = (body) => {
+    let h = '';
+    for(const b of iterBlocks(body)){
+      if(b.t === 'tb'){
+        const tbl = tableHTML(b.rows, b.colCount, b.headerRows, b.wide);
+        h += b.wide ? `<div class="print-landscape">${tbl}</div>` : tbl;
+      } else if(b.t === 'imgs'){
+        h += `<div class="imgwrap">${imgGroupInner(b.items)}</div>`;
+      } else {
+        h += paraHTML(b.s);
+      }
+    }
+    return h;
+  };
+
+  let html = '<div class="print-page print-main">';
+  html += headerHTML(d);
+  html += titleHtml;
+  html += toHtml;
+  html += bodyHtml;
+  html += tailHtml;
+  html += '</div>';
+
+  const attItems = parseAttachList(d.attach).map(attachMeta);
+  if(!attItems.length && d.attachParas.length) attItems.push({num:'', title:''});
+  if(attItems.length){
+    const attBodies = splitAttachBodies(d.attachParas, attItems);
+    const attIsMulti = attItems.length > 1;
+    for(let ai = 0; ai < attItems.length; ai++){
+      html += '<div class="print-page print-attach">';
+      html += attHeadHTML(attItems[ai], attIsMulti, d.attBanner);
+      html += renderBlocks(attBodies[ai] || []);
+      html += '</div>';
+    }
+  }
+
+  html += banjiHTML(d);
+  return html;
+}
+
+/* F16 精确 PDF 导出：直接由 buildPrintHTML 生成连续流 HTML，
+   经精确 A4 打印视图「另存为 PDF」——矢量、可选中、版式完全可控 */
 async function exportExactPdf(){
   const d = collect();
   if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
-  toast('正在由 DOCX 生成精确版式 PDF（矢量，可另存为 PDF）…');
+  toast('正在生成精确版式 PDF（矢量，可另存为 PDF）…');
   try{
-    // ① 用 docx.js 精确构建（版心 156×225mm、字号、行距、对齐、分页、红头颜色完全可控）
-    const blob = await buildDocxBlob(d);
-    const buf = await blob.arrayBuffer();
-    // ② DOCX → HTML（mammoth，已内置；忠实还原段落/表格/样式/红头）
-    let html = '';
-    if(window.mammoth){
-      const res = await mammoth.convertToHtml({arrayBuffer: buf});
-      html = res.value;
-    }else{
-      html = document.querySelector('#paperScroll .page')?.innerHTML || '';
-    }
-    // ③ 精确 A4 打印视图 → 另存为 PDF（矢量、可选中，远优于像素栅格）
+    // 直接由 buildPrintHTML 生成连续流 HTML，避免 docx→mammoth 反向转换破坏合并单元格；
+    // 浏览器打印时表格可自然跨页断行，版式与 Word 导出同源。
+    const html = buildPrintHTML(d);
     openPdfPrintWindow(html, (d.title || '公文') + '_精确版');
   }catch(e){
     toast('精确 PDF 生成失败：' + e.message);
@@ -4653,22 +4805,69 @@ async function exportExactPdf(){
 function openPdfPrintWindow(innerHtml, name){
   const w = window.open('', '_blank');
   if(!w){ toast('请允许弹出窗口以生成精确 PDF'); return; }
+  const css = `
+    @page{size:A4;margin:37mm 26mm 35mm 28mm;}
+    @page landscape{size:A4 landscape;margin:28mm 26mm 28mm 28mm;}
+    html,body{margin:0;padding:0;background:#fff;}
+    body{font-family:"方正仿宋_GBK","仿宋","FangSong","宋体",serif;font-size:16pt;line-height:2;color:#000;}
+    h1,h2,h3,h4{font-weight:normal;}
+    img{max-width:100%;}
+    .fw-logo{text-align:center;color:#c00;font-size:40pt;line-height:1.25;font-family:"方正小标宋简体","小标宋体","STZhongsong",serif;}
+    .fw-no{text-align:center;font-size:16pt;margin-top:77px;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .sign-line{height:0;border-top:3px solid #c00;margin-top:15px;}
+    .doc-title{text-align:center;font-size:22pt;line-height:1.45;margin-top:74px;font-family:"方正小标宋简体","小标宋体","STZhongsong",serif;}
+    .doc-title.plain{margin-top:0;}
+    .doc-to{font-size:16pt;line-height:38.5px;margin-top:38.5px;text-align:justify;text-justify:inter-ideograph;text-indent:0;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .title-gap{height:38.5px;}
+    .p{font-size:16pt;line-height:38.5px;text-align:justify;text-indent:2em;margin:0;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .p.h1{font-family:"Times New Roman","方正黑体_GBK","黑体","SimHei",sans-serif;}
+    .p.h2{font-family:"Times New Roman","方正楷体_GBK","楷体","KaiTi",serif;}
+    .p.h3,.p.h4{font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .p .q{font-family:"方正仿宋_GBK","FangSong_GB2312","仿宋","Times New Roman",serif;}
+    .p.h1 .q{font-family:"方正黑体_GBK","FZHei-B01","黑体","SimHei","Times New Roman",sans-serif;}
+    .p.h2 .q{font-family:"方正楷体_GBK","楷体","KaiTi","Times New Roman",serif;}
+    .p.h3 .q,.p.h4 .q{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif;}
+    .body-f{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif;}
+    .body-f .q{font-family:"方正仿宋_GBK","仿宋","Times New Roman",serif;}
+    .gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:12pt;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;color:#000;}
+    .gt th,.gt td{border:1px solid #000;padding:3px 6px;text-align:center;vertical-align:middle;line-height:1.6;}
+    .gt th{font-family:"Times New Roman","方正黑体_GBK","黑体","SimHei",sans-serif;}
+    .gt td.gw,.gt th.gw{text-align:justify;text-justify:inter-ideograph;line-height:18pt;}
+    .attach-box{position:relative;margin-top:38.5px;font-size:16pt;line-height:38.5px;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;padding-left:2em;}
+    .attach-label{position:absolute;left:0;top:0;}
+    .attach-item{margin-top:0;padding-left:2em;text-indent:-2em;}
+    .signorg,.signdate{font-size:16pt;line-height:38.5px;text-align:right;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .signdate{margin-top:0;}
+    .signdate.no-seal{padding-right:4em;}
+    .doc-note{font-size:16pt;line-height:38.5px;text-indent:2em;margin-top:38.5px;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .vhead{font-size:16pt;line-height:1.6;margin-bottom:8px;font-family:"Times New Roman","方正黑体_GBK","黑体","SimHei",sans-serif;}
+    .vh-item{white-space:nowrap;}
+    .banji{margin-top:38.5px;font-size:14pt;line-height:22pt;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .bj-line{border-top:1px solid #000;margin:6px 0;}
+    .bj-cc .bj-lb{font-family:"Times New Roman","方正黑体_GBK","黑体","SimHei",sans-serif;}
+    .bj-issue{display:flex;justify-content:space-between;}
+    .att-head{font-size:16pt;line-height:38.5px;text-indent:0;font-family:"Times New Roman","方正黑体_GBK","黑体","SimHei",sans-serif;}
+    .att-head .att-num{font-family:"Times New Roman",serif;}
+    .att-title{font-size:22pt;line-height:1.4;text-align:center;text-indent:0;margin-top:38.5px;font-family:"方正小标宋简体","小标宋体","STZhongsong",serif;}
+    .att-banner{font-size:22pt;text-align:center;margin-top:38.5px;font-family:"方正黑体_GBK","黑体","SimHei",sans-serif;}
+    .imgwrap{text-align:center;margin:12px 0;}
+    .imgblk{margin:8px 0;}
+    .imgc img{max-width:100%;height:auto;}
+    .imgcap{text-align:center;font-size:12pt;margin-top:4px;font-family:"Times New Roman","方正仿宋_GBK","仿宋",serif;}
+    .seal-wrap{position:relative;height:0;}
+    .seal-mark{position:absolute;right:38px;top:-52px;width:150px;height:150px;border-radius:50%;border:3px solid #c00;color:#c00;display:grid;place-items:center;font-size:11pt;letter-spacing:1px;text-align:center;opacity:.5;pointer-events:none;font-family:"方正小标宋简体","小标宋体",serif;}
+    .print-page{page-break-after:always;}
+    .print-page:last-child{page-break-after:auto;}
+    .print-landscape{page:landscape;page-break-before:always;page-break-after:always;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}tr{page-break-inside:avoid;}thead{display:table-header-group;}}
+  `;
   w.document.open();
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(name) + '</title>'
-    + '<style>'
-    + '@page{size:A4;margin:37mm 26mm 35mm 28mm;}'
-    + 'html,body{margin:0;padding:0;background:#fff;}'
-    + 'body{font-family:"方正仿宋_GBK","仿宋","FangSong","宋体",serif;font-size:16pt;line-height:2;color:#000;}'
-    + 'h1,h2,h3,h4{font-weight:normal;}'
-    + 'table{border-collapse:collapse;width:100%;}table,td,th{border:1px solid #000;}'
-    + 'img{max-width:100%;}'
-    + '.doc-red{color:#c00;font-family:"方正小标宋简体","小标宋体","STZhongsong",serif;text-align:center;}'
-    + '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
-    + '</style></head><body>' + innerHtml + '</body></html>');
+    + '<style>' + css + '</style></head><body>' + innerHtml + '</body></html>');
   w.document.close();
   w.document.title = name;
   setTimeout(() => { try{ w.focus(); w.print(); }catch(_){} }, 400);
-  toast('✓ 已由 DOCX 生成精确版式，请在打印对话框选择「另存为 PDF」');
+  toast('✓ 已生成可打印版式，请在打印对话框选择「另存为 PDF」');
 }
 $('btnLongImg').onclick = exportLongImage;
 $('btnSelfCheck').onclick = exportSelfCheck;
@@ -5386,13 +5585,9 @@ function guardedExport(kind){
 
 /* ---------- PDF 导出（同源打印 → 另存为 PDF，版式与预览完全一致） ---------- */
 function exportPDF(d){
-  if(!document.querySelectorAll('#paperScroll .pg .page').length){ toast('请先输入公文内容'); return; }
-  const old = document.title;
-  document.title = (d.title || '公文');   // 打印对话框默认文件名
-  const restore = () => { document.title = old; };
-  window.addEventListener('afterprint', restore, {once:true});
-  window.print();                          // 阻塞式，对话框关闭后返回
-  setTimeout(restore, 500);
+  if(!d.title && !d.paras.length){ toast('请先输入公文内容'); return; }
+  const html = buildPrintHTML(d);
+  openPdfPrintWindow(html, d.title || '公文');
   toast('✓ 在打印对话框中选择「另存为 PDF」即可');
 }
 
