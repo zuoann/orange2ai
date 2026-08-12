@@ -3222,6 +3222,25 @@ function smartParse(text){
       }
       continue;
     }
+    // 附件说明逐条全行模式："附件 1 名称" "附件1 名称" "附件 1.名称" "附件一、名称" 等。
+    // 原文档若把每个附件都写成独立一行且均带"附件"前缀，则合并为 "1.名称；2.名称…" 的标准附件说明。
+    const attFull = l.match(/^附件\s*[:：]?\s*([0-9一二三四五六七八九十]+)(?:[\.、．]\s*|\s+)(.+)$/);
+    if(attFull){
+      const num = cn2num(attFull[1]) || attFull[1];
+      const rest = num + '.' + attFull[2].trim();
+      const before = attach;
+      attach = attach ? attach + '；' + rest : rest;
+      attachMode = true; attBodyMode = false;
+      // 仅当原行并非标准"附件：N.名称"或"附件N.名称"时才记录格式校正
+      const isStdAttachLine = /^附件\s*[:：]?\s*\d+\.\S/.test(l);
+      if(!isStdAttachLine){
+        logFix({kind:'fix', cat:'附件说明格式校正', scope:'附件说明',
+          before: before ? before + '；' + l : l,
+          after: attach, status:'fixed', auto:true,
+          msg:'附件说明格式校正为 GB/T 9704-2012 标准（附件：N.名称）'});
+      }
+      continue;
+    }
     // 附件说明行："附件：1.×××" "附件 ×××" "附件1.×××" 等写法
     if(/^附件(?:\s*[:：]\s*\S|\s+\S|(?=\d+\s*[\.、．]))/.test(l)){
       attach = l.replace(/^附件[\s：:]*/, ''); attachMode = true; attBodyMode = false; continue;
@@ -3420,18 +3439,21 @@ function attachMeta(attach){
   if(m) return {num: m[1], title: m[2].trim()};
   return {num: '', title: attach};
 }
-/* 拆分多附件说明：支持 "1.AAA；2.BBB"、"1.AAA2.BBB" 粘连写法、分号/换行分隔，
+/* 拆分多附件说明：支持 "1.AAA；2.BBB"、"1.AAA2.BBB" 粘连写法、
+   "附件 1 AAA 附件 2 BBB" 空格分隔写法、分号/换行分隔，
    每个附件单独成行，自动补齐序号并统一为 "N." 格式 */
 function parseAttachList(attach){
   if(!attach) return [];
   const out = [];
   attach.split(/[；;\n]+/).map(s=>s.trim()).filter(s=>s).forEach(part=>{
+    // 先归一化 "1 名称"、"1、名称"、"1.名称"、"1．名称" → "1.名称"
+    const norm = part.replace(/^(\d+)\s*[\.、．]?\s*/, '$1.');
     // 按 "N." 序号继续拆分粘连写法，如 "1.×××2.×××" → ["1.×××", "2.×××"]
-    out.push(...part.split(/(?=\d+\s*[\.、．])/).map(s=>s.trim()).filter(s=>s));
+    out.push(...norm.split(/(?=\d+\.)/).map(s=>s.trim()).filter(s=>s));
   });
   return out
     .map(s=>s.replace(/[。；;]+$/,''))
-    .map((s,i)=> /^\d+\s*[\.、．]/.test(s) ? s.replace(/^(\d+)\s*[、．]\s*/, '$1.') : (i+1)+'.'+s);
+    .map((s,i)=> /^\d+\./.test(s) ? s : (i+1)+'.'+s);
 }
 /* 附件说明中每个附件名称首字位置（用于回行悬挂缩进对齐），单位 em */
 function namePrefixEm(it){
@@ -4592,9 +4614,9 @@ document.addEventListener('keydown', e=>{
  * ============================================================ */
 const MODE_RULES = {
   loose:    ['r_title','r_body','r_date','r_img','r_bracket'],
-  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
+  standard: ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_attachfmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_issue','r_typo','r_numuse','r_politics','r_consistency'],
-  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
+  strict:   ['r_title','r_body','r_date','r_to','r_org','r_no','r_attach','r_attachfmt','r_sign','r_titlepunct','r_tplen','r_nofmt','r_headings','r_headlvl','r_headcolon','r_headinline','r_headtime','r_headparen','r_punct','r_punctfull','r_color','r_dash','r_parallel','r_land','r_img','r_bracket',
              'r_copyno','r_secret','r_urgent','r_issue','r_ccpunct','r_seal','r_typo','r_numuse','r_politics','r_consistency'],
 };
 let ruleState = JSON.parse(localStorage.getItem('mzw_rules') || 'null') || {mode:'standard', on:{}};
@@ -4624,6 +4646,17 @@ const RULES = [
   {id:'r_attach', name:'附件内容须配套附件说明', lv:'warn',
     check: d => (d.attachParas.length && !d.attach) ? '已填写附件内容但缺少附件说明' : null,
     fix: () => { $('inAttach').value = '1.' + (TYPES.find(x=>x.n===curType).n) + '有关材料'; }},
+  {id:'r_attachfmt', name:'附件说明格式须符合规范（1.名称；2.名称，序号用"."、名称末尾不加标点）', lv:'warn',
+    check: d => {
+      if(!d.attach) return null;
+      const normalized = parseAttachList(d.attach).join('；');
+      const raw = d.attach.replace(/[。；;]+$/,'');
+      return normalized !== raw ? `附件说明格式不规范，已自动校正为「${normalized}」` : null;
+    },
+    fix: () => {
+      const v = $('inAttach').value.trim();
+      if(v) $('inAttach').value = parseAttachList(v).join('；');
+    }},
   {id:'r_sign', name:'上行文须标注签发人', lv:'warn', skip: d => d.t.c !== '上行文',
     check: d => d.signatory ? null : '上行文未标注签发人'},
   {id:'r_titlepunct', name:'标题末尾不加标点符号', lv:'warn',
