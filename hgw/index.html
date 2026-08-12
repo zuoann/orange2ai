@@ -485,6 +485,15 @@
   .modal .m-body::-webkit-scrollbar{width:6px}
   .modal .m-body::-webkit-scrollbar-thumb{background:rgba(var(--cyan-rgb),.25);border-radius:3px}
   .modal .m-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+  /* ═══════════ F17 AI 辅助起草（可选） ═══════════ */
+  .ai-card{border:1px dashed var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px;background:rgba(140,160,180,.05)}
+  .ai-card h4{margin:0 0 8px;font-size:13px;color:var(--cyan);font-weight:600}
+  .ai-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .ai-row label{font-size:12px;color:var(--muted-c);white-space:nowrap;min-width:64px}
+  .ai-inp{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit}
+  .ai-inp:focus{outline:none;border-color:var(--cyan)}
+  .ai-hint{font-size:11px;color:var(--dim);line-height:1.6;margin-top:4px}
+  .ai-status{font-size:12px;color:var(--cyan);min-height:16px;margin-top:8px;white-space:pre-wrap}
 
   /* 校验面板 */
   .modes{display:flex;gap:8px;margin-bottom:12px}
@@ -1057,6 +1066,7 @@
     <div class="toolbar">
       <span class="t">◈ 实时版式预览 · A4（210×297mm）</span>
       <span class="meta">版心 <b>156×225mm</b> · 每页 <b>22</b> 行 × 每行 <b>28</b> 字 · 正文 <b>三号方正仿宋_GBK</b></span>
+      <button class="btn btn-ghost" id="btnAiDraft" style="margin-left:auto;padding:6px 12px;font-size:12px">🤖 AI 起草</button>
     </div>
     <div class="paper-scroll" id="paperScroll"></div>
   </div>
@@ -1084,6 +1094,45 @@
         <button class="btn btn-primary" id="btnVarPreview">👁 预览填充结果</button>
       </div>
       <div id="varPreviewBox" style="margin-top:10px;font-size:12px;color:var(--muted-c);white-space:pre-wrap;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI 辅助起草（F17，可选） -->
+<div class="mask hidden" id="modalAi">
+  <div class="modal" style="max-width:720px">
+    <div class="m-head">🤖 AI 辅助起草（可选 · OpenAI 兼容接口）<span class="x" data-x="modalAi">✕</span></div>
+    <div class="m-body">
+      <div class="ai-card">
+        <h4>① 接口配置（仅本机保存，按需填写）</h4>
+        <div class="ai-row"><label>启用</label><input type="checkbox" id="ckAiOn"><span style="font-size:12px;color:var(--muted-c)">在工具栏显示本按钮（默认开，取消则隐藏）</span></div>
+        <div class="ai-row"><label>API 地址</label><input class="ai-inp" id="aiBase" placeholder="https://api.openai.com/v1"></div>
+        <div class="ai-row"><label>API 密钥</label><input class="ai-inp" id="aiKey" type="password" placeholder="sk-..." autocomplete="off"></div>
+        <div class="ai-row"><label>模型</label><input class="ai-inp" id="aiModel" placeholder="gpt-4o-mini"></div>
+        <div class="row" style="margin-top:4px">
+          <button class="btn btn-ghost" id="btnAiSaveCfg">💾 保存配置（本机 localStorage）</button>
+        </div>
+        <div class="ai-hint">支持所有 OpenAI 兼容服务：DeepSeek（https://api.deepseek.com/v1，模型 deepseek-chat）、通义千问（dashscope）、智谱 GLM（open.bigmodel.cn/api/paas/v4）、OpenAI 等。密钥仅存于本机浏览器 localStorage，请自行保管；若接口与网页跨域，需该服务允许 CORS。</div>
+      </div>
+      <div class="ai-card">
+        <h4>② 起草要求</h4>
+        <textarea id="aiPrompt" rows="5" placeholder="例如：以「通知」文种，起草关于组织开展 2026 年秋季学期教学检查工作的通知。要点：检查时间、范围、重点内容、工作要求。语气正式，篇幅约 600 字。"></textarea>
+        <div class="row mt" style="margin-top:8px">
+          <button class="btn btn-ghost" id="btnAiCtx">📎 载入当前公文要素</button>
+          <button class="btn btn-primary" id="btnAiGo">🤖 起草</button>
+        </div>
+      </div>
+      <div class="ai-card">
+        <h4>③ 草稿（可编辑，确认后插入正文）</h4>
+        <textarea id="aiResult" rows="10" placeholder="生成结果将显示在此，可修改后再插入正文。"></textarea>
+        <div class="ai-status" id="aiStatus"></div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" id="btnAiAppend">➕ 插入到正文末尾</button>
+      <button class="btn btn-primary" id="btnAiToBody">📋 替换正文</button>
+      <button class="btn btn-ghost" id="btnAiRetry">🔄 重新生成</button>
+      <button class="btn btn-ghost" data-x="modalAi">关闭</button>
     </div>
   </div>
 </div>
@@ -3438,6 +3487,11 @@ function renderPreview(){
   let pages = [], cur = [], cap = d.plain ? 19 : 10, used = 0;
   for(const b of blocks){
     if(b.k==='title'||b.k==='to') continue; // 已在头部区
+    if(b.k==='toc'){ // F8 目录：与 Word/PDF 一致，目录独占一页
+      cur.push(b.html); used += b.lines;
+      pages.push({land:false, html:cur}); cur=[]; cap=22; used=0;
+      continue;
+    }
     if(b.wide){
       // 宽表格（横排）：独立成横向页，不挤占纵向页
       if(cur.length){ pages.push({land:false, html:cur}); cur=[]; cap=22; used=0; }
@@ -3544,7 +3598,7 @@ async function buildDocxBlob(d){
   const {
     Document, Packer, Paragraph, TextRun, AlignmentType, Footer, ImageRun,
     PageNumber, LineRuleType, BorderStyle, Table, TableRow, TableCell, WidthType,
-    DocumentGridType, VerticalAlign, PageOrientation
+    DocumentGridType, VerticalAlign, PageOrientation, SimpleField, PageBreak
   } = docx;
 
   // 公文内西文与阿拉伯数字统一使用 Times New Roman（ascii/hAnsi），汉字用对应公文字体（eastAsia）
@@ -3695,7 +3749,7 @@ async function buildDocxBlob(d){
   }));
 
   // 正文：一级方正黑体、二级方正楷体、三级与四级均为方正仿宋（不加粗）；全部两端对齐
-  const bodyPara = (p, extraOpts={}) => {
+  const bodyPara = (p, extraOpts={}, outline=true) => {
     const k = classify(p);
     const pp = (k === 'h4') ? normFourthParen(p) : p;   // 四级标题括号统一全角，与正文字体（仿宋）一致
     const font = k==='h1' ? F_HEI : k==='h2' ? F_KAI : F_FS;
@@ -3706,10 +3760,16 @@ async function buildDocxBlob(d){
         kids = [...splitRuns(pp.slice(0, ci+1), F_KAI, 16), ...splitRuns(pp.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
       else kids = splitRuns(pp, font, 16);
     } else kids = splitRuns(pp, font, 16);
+    // 一级标题→大纲1级、二级标题→大纲2级（以此类推）；仅设置大纲级别，不改变字体/字号/行距，
+    // 便于在 Word 中「引用 → 目录 → 自动目录」生成二级（及更深）目录，且文字可选中、版式不变。
+    // docx 8.5.0 的 outlineLevel 直接写入 w:val（Word 0 基：0=大纲1级，1=大纲2级…），
+    // 且 docx.Level 枚举在本构建下取不到值，故用字符串字面量。
+    const OL = {h1: '0', h2: '1', h3: '2', h4: '3'};
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,   // 两端对齐
       indent:{firstLine: PT(32)},          // 段首空二字（三号字 2×16pt）
       spacing:{...line578},
+      ...(outline && OL[k] ? {outlineLevel: OL[k]} : {}),
       ...extraOpts,
       children: kids
     });
@@ -3780,23 +3840,21 @@ async function buildDocxBlob(d){
       }
     });
   };
-  // F8 目录（TOC）：按正文标题层级生成目录与估算页码（与预览一致），置于正文之前
+  // F8 目录（TOC）：置于正文之前。
+  // 预览用「按行数估算页码」的静态目录（浏览器无法计算真实页码，见 renderPreview）；
+  // Word 导出则插入**原生可更新域目录**（w:fldSimple TOC），直接利用正文标题已设置的大纲级别，
+  // 在 Word 中 Ctrl+A 后按 F9（或右键「更新域」）即生成带真实页码、可跳转、可更新的二级（及更深）目录。
   if(d.toc){
-    const toc = buildTOC(d);
-    if(toc.length){
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER, spacing:{before: PT(28.9*2), after: PT(28.9)},
-        children:[run('目录', F_BS, 22)]
-      }));
-      toc.forEach(it => {
-        children.push(new Paragraph({
-          alignment: AlignmentType.LEFT,
-          indent:{left: PT(it.lv * 32)},
-          spacing:{...line578},
-          children:[run(it.text + '（第' + it.page + '页）', F_FS, 16)]
-        }));
-      });
-    }
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER, spacing:{before: PT(28.9*2), after: PT(28.9)},
+      children:[run('目录', F_BS, 22)]
+    }));
+    children.push(new Paragraph({
+      spacing:{before: PT(28.9), after: PT(28.9)},
+      children:[ new SimpleField('TOC \\o "1-3" \\h \\z \\u', run('（请在 Word 中选中全文后按 F9，或右键「更新域」生成目录）', F_FS, 16)) ]
+    }));
+    // 更新域后让目录独占一页：在目录域之后插入分页符，后续正文自动换页（不会额外空一行）。
+    children.push(new Paragraph({ children:[ new PageBreak() ] }));
   }
   for(const b of iterBlocks(d.paras)){
     if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
@@ -3891,7 +3949,7 @@ async function buildDocxBlob(d){
       for(const b of iterBlocks(body)){
         if(b.t==='tb'){ children.push(docxTable(b.rows)); if(b.wide) wideIdx.add(children.length-1); }
         else if(b.t==='imgs'){ await pushImgGroup(b.items); }
-        else children.push(bodyPara(b.s));
+        else children.push(bodyPara(b.s, {}, false));
       }
     }
   }
@@ -3968,7 +4026,9 @@ async function buildDocxBlob(d){
           margin:{top: TW(37), bottom: TW(35), left: TW(28), right: TW(26),
                   header: TW(15), footer: TW(28)}
         },
-        grid:{type: DocumentGridType.linesAndChars, linePitch: 580, charSpace: 1786}
+        // 文档网格：指定行和字符网格 —— 每行 28 字、每页 22 行（GB/T 9704-2012 公文版心 156×225mm）
+        // 字符跨度 = 版心宽 156mm(8844tw) / 28 ≈ 316tw；行跨度 = 版心高 225mm(12756tw) / 22 ≈ 580tw
+        grid:{type: DocumentGridType.LINES_AND_CHARS, linePitch: 580, charSpace: 316}
       },
       footers:{default: landscape ? lpOddFooter : oddFooter, even: landscape ? lpEvenFooter : evenFooter},
       children: kids
@@ -5102,6 +5162,145 @@ $('btnBatch').onclick = () => { renderBatchList(); openModal('modalBatch'); };
 $('btnHist').onclick = () => { renderHist(); openModal('modalHist'); };
 $('btnRuleLib').onclick = () => { renderLibList(); openModal('modalLib'); };
 $('btnLayout').onclick = () => openLayoutModal();
+
+/* ---------- F17 AI 辅助起草（可选 · OpenAI 兼容接口） ---------- */
+const AI_SYS_PROMPT = `你是一名资深的党政机关公文起草专家，精通《党政机关公文处理工作条例》与 GB/T 9704-2012《党政机关公文格式》。
+请按以下要求起草公文正文（仅正文内容，不含标题、主送机关与落款，除非用户明确要求）：
+1. 使用规范层级标题：一级“一、”，二级“（一）”，三级“1.”，四级“（1）”；序号后接标题词，层级清晰。
+2. 正文为书面语，庄重、准确、简洁；避免口语、网络用语、夸张修辞与主观评价。
+3. 输出为纯文本，每段一行；不要使用 Markdown 标题符号（#）、加粗或列表符号。
+4. 标点符号使用全角；数字用法符合《出版物上数字用法》。
+5. 根据用户指定的文种（通知/报告/请示/函/纪要/决定等）采用相应结构、语气与惯用表述。
+6. 不编造具体文号、日期、人名、单位名称、数据等事实；如必须占位，请用【】标注待填项。
+7. 篇幅与要点严格遵循用户要求。`;
+
+const AI_CFG_KEY = 'hgw_ai_cfg';
+function loadAiCfg(){ try { return JSON.parse(localStorage.getItem(AI_CFG_KEY)) || {}; } catch(e){ return {}; } }
+function saveAiCfg(cfg){ try { localStorage.setItem(AI_CFG_KEY, JSON.stringify(cfg)); return true; } catch(e){ return false; } }
+function aiCfgOn(){ return localStorage.getItem('hgw_ai_on') !== '0'; }
+
+function openAiModal(){
+  const c = loadAiCfg();
+  $('aiBase').value  = c.base  || 'https://api.openai.com/v1';
+  $('aiKey').value   = c.key   || '';
+  $('aiModel').value = c.model || 'gpt-4o-mini';
+  $('ckAiOn').checked = aiCfgOn();
+  $('aiResult').value = '';
+  $('aiStatus').textContent = '';
+  openModal('modalAi');
+}
+
+function aiCtxText(){
+  const d = collect();
+  const parts = [];
+  if(d.t && d.t.n)        parts.push('文种：' + d.t.n);
+  if(d.title)             parts.push('标题：' + d.title);
+  if(d.to)                parts.push('主送机关：' + d.to);
+  if(d.org)               parts.push('发文机关：' + d.org);
+  if(d.signatory)         parts.push('落款机关：' + d.signatory);
+  return parts.join('；');
+}
+
+async function aiDraft(){
+  const base  = ($('aiBase').value || '').trim().replace(/\/+$/, '');
+  const key   = ($('aiKey').value  || '').trim();
+  const model = ($('aiModel').value || '').trim() || 'gpt-4o-mini';
+  const prompt = ($('aiPrompt').value || '').trim();
+  if(!base || !key){ $('aiStatus').textContent = '⚠ 请先填写 API 地址与密钥（可点「保存配置」）'; return; }
+  if(!prompt){ $('aiStatus').textContent = '⚠ 请填写起草要求'; return; }
+  const ctx = aiCtxText();
+  const userMsg = (ctx ? '【当前公文要素】\n' + ctx + '\n\n' : '') + '【起草要求】\n' + prompt;
+  const url = base + '/chat/completions';
+  const body = JSON.stringify({
+    model, stream: true, temperature: 0.7,
+    messages: [ {role:'system', content: AI_SYS_PROMPT}, {role:'user', content: userMsg} ]
+  });
+  const out = $('aiResult'); out.value = '';
+  const status = $('aiStatus');
+  status.textContent = '⏳ 正在起草…';
+  $('btnAiGo').disabled = true; $('btnAiRetry').disabled = true;
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body
+    });
+    if(!resp.ok){
+      let msg = 'HTTP ' + resp.status;
+      try { const j = await resp.json(); if(j && j.error && j.error.message) msg += ' · ' + j.error.message; } catch(e){}
+      throw new Error(msg);
+    }
+    if(!resp.body){ // 非流式兜底
+      const j = await resp.json();
+      out.value = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+      status.textContent = '✓ 完成（可编辑后插入正文）';
+      return;
+    }
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder('utf-8');
+    let buf = '';
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for(const ln of lines){
+        const s = ln.trim();
+        if(!s || !s.startsWith('data:')) continue;
+        const data = s.slice(5).trim();
+        if(data === '[DONE]') continue;
+        try {
+          const j = JSON.parse(data);
+          const delta = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+          if(delta) out.value += delta;
+        } catch(e){}
+      }
+    }
+    status.textContent = '✓ 完成（可编辑后插入正文）';
+  } catch(e){
+    let m = e.message || String(e);
+    if(/Failed to fetch/i.test(m)) m += '（多为跨域 CORS 或网络/地址错误；请确认接口地址可访问且允许跨域）';
+    status.textContent = '✕ ' + m;
+  } finally {
+    $('btnAiGo').disabled = false; $('btnAiRetry').disabled = false;
+  }
+}
+
+function aiInsertToBody(append){
+  const text = ($('aiResult').value || '').trim();
+  if(!text){ $('aiStatus').textContent = '⚠ 暂无草稿可插入'; return; }
+  let lines = text.split('\n').map(s => s.trim()).filter(s => s);
+  if(typeof normalizeHeadings === 'function') lines = normalizeHeadings(lines);
+  const cur = $('inBody').value.trim();
+  $('inBody').value = (append && cur) ? (cur + '\n' + lines.join('\n')) : lines.join('\n');
+  pushSnap(); renderPreview();
+  closeModal('modalAi');
+  toast(append ? '✓ 已插入到正文末尾' : '✓ 已写入正文（建议再点「智能解析」规范格式）');
+}
+
+$('btnAiDraft').onclick  = openAiModal;
+$('btnAiGo').onclick     = aiDraft;
+$('btnAiRetry').onclick  = aiDraft;
+$('btnAiCtx').onclick    = () => {
+  const c = aiCtxText();
+  const ta = $('aiPrompt');
+  ta.value = (ta.value ? ta.value.replace(/\s*$/, '') + '\n' : '') + (c ? '当前公文要素：' + c + '\n' : '') + '请起草：';
+  ta.focus();
+};
+$('btnAiSaveCfg').onclick = () => {
+  const cfg = { base: $('aiBase').value.trim(), key: $('aiKey').value.trim(), model: $('aiModel').value.trim() };
+  $('aiStatus').textContent = saveAiCfg(cfg)
+    ? '✓ 配置已保存到本机 localStorage（密钥仅存于本地浏览器）'
+    : '⚠ 保存失败（浏览器可能禁用了 localStorage）';
+};
+$('btnAiToBody').onclick = () => aiInsertToBody(false);
+$('btnAiAppend').onclick = () => aiInsertToBody(true);
+$('ckAiOn').onchange = () => {
+  localStorage.setItem('hgw_ai_on', $('ckAiOn').checked ? '1' : '0');
+  $('btnAiDraft').style.display = $('ckAiOn').checked ? '' : 'none';
+};
+if(!aiCfgOn()) $('btnAiDraft').style.display = 'none';
 
 /* ---------- 模态框通用 ---------- */
 function openModal(id){ $(id).classList.remove('hidden'); }
