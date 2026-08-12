@@ -2000,6 +2000,21 @@ function buildTableGrid(rawRows, colCount){
   }
   return rows;
 }
+/* 估算各逻辑列自然宽度（twips）：按每列最大单元格文字宽度 */
+function tableColumnNaturalWidths(rows, colCount){
+  const colW = new Array(colCount).fill(0);
+  for(const r of rows){
+    let ci = 0;
+    for(const c of r){
+      if(!c.cont){
+        const w = textWidthTwips(c.text);
+        if(w > colW[ci]) colW[ci] = w;
+      }
+      ci += c.colSpan;
+    }
+  }
+  return colW;
+}
 /* 估算表格实际宽度（twips）：按各逻辑列最大单元格自然宽度 + 边距 */
 function tableNaturalWidth(rows, colCount){
   const colW = new Array(colCount).fill(0);
@@ -4202,38 +4217,62 @@ async function buildDocxBlob(d){
   const BD = {style:BorderStyle.SINGLE, size:4, color:'000000'};
   const docxTable = (rows, colCount, headerRows, wide) => {
     const cwTotal = wide ? LW : BXW;
-    const colW = colCount ? Math.floor(cwTotal / colCount) : cwTotal;
+    // 按各列内容自然宽度比例分配版心宽度，避免简单等宽导致宽内容列被过度挤压
+    const colWidths = (() => {
+      if(!colCount) return [];
+      const minW = 400, pad = 200;
+      const natural = tableColumnNaturalWidths(rows, colCount).map(w => Math.max(minW, w + pad));
+      let total = natural.reduce((a,b)=>a+b,0);
+      if(total !== cwTotal){
+        const factor = cwTotal / total;
+        const scaled = natural.map(w => Math.max(minW, Math.floor(w * factor)));
+        total = scaled.reduce((a,b)=>a+b,0);
+        scaled[colCount-1] += cwTotal - total;
+        return scaled;
+      }
+      return natural;
+    })();
     return new Table({
       width:{size:100, type:WidthType.PERCENTAGE},
       layout:TableLayoutType.FIXED,
+      columnWidths: colWidths,
       borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
       rows: rows.map((r,ri)=> new TableRow({
         tableHeader: (d.tableHeader && ri < headerRows),
         cantSplit: false,
-        children: r.map(c=> {
-          const baseW = {size: colW * c.colSpan, type: WidthType.DXA};
-          if(c.cont){
-            return new TableCell({
-              verticalMerge: 'continue',
-              width: baseW,
-              margins:{top:60, bottom:60, left:100, right:100},
-              children:[new Paragraph({})]
-            });
+        children: (() => {
+          let ci = 0;
+          const cells = [];
+          for(const c of r){
+            let w = 0;
+            for(let k=0; k<c.colSpan && ci+k < colCount; k++) w += colWidths[ci+k] || 0;
+            const baseW = {size: w, type: WidthType.DXA};
+            if(c.cont){
+              cells.push(new TableCell({
+                verticalMerge: 'continue',
+                width: baseW,
+                margins:{top:60, bottom:60, left:100, right:100},
+                children:[new Paragraph({})]
+              }));
+            } else {
+              const wrap = cellWraps(c.text, w);
+              const paraOpts = wrap
+                ? {alignment: AlignmentType.JUSTIFIED, spacing:{line: PT(18), lineRule: LineRuleType.EXACT}}
+                : {alignment: AlignmentType.CENTER};
+              const opts = {
+                verticalMerge: c.rowSpan > 1 ? 'restart' : undefined,
+                columnSpan: c.colSpan > 1 ? c.colSpan : undefined,
+                width: baseW,
+                margins:{top:60, bottom:60, left:100, right:100},
+                verticalAlign: VerticalAlign.CENTER,
+                children:[new Paragraph({...paraOpts, children: splitRuns(c.text, ri < headerRows ? F_HEI : F_FS, 12)})]
+              };
+              cells.push(new TableCell(opts));
+            }
+            ci += c.colSpan;
           }
-          const wrap = cellWraps(c.text, colW * c.colSpan);
-          const paraOpts = wrap
-            ? {alignment: AlignmentType.JUSTIFIED, spacing:{line: PT(18), lineRule: LineRuleType.EXACT}}
-            : {alignment: AlignmentType.CENTER};
-          const opts = {
-            rowSpan: c.rowSpan > 1 ? c.rowSpan : undefined,
-            columnSpan: c.colSpan > 1 ? c.colSpan : undefined,
-            width: baseW,
-            margins:{top:60, bottom:60, left:100, right:100},
-            verticalAlign: VerticalAlign.CENTER,
-            children:[new Paragraph({...paraOpts, children: splitRuns(c.text, ri < headerRows ? F_HEI : F_FS, 12)})]
-          };
-          return new TableCell(opts);
-        })
+          return cells;
+        })()
       }))
     });
   };
