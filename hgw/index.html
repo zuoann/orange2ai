@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<!-- PDF 文本提取：pdfjs-dist 2.x 兼容版本（UMD 全局 pdfjsLib），用于导入 .pdf 时抽取正文 -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 <style>
   
   /* ═══════════════════════════════════════════════════════════════
@@ -889,8 +891,8 @@
       <div id="paneUpload" class="hidden">
         <div class="drop" id="dropZone">
           <div class="ico">📄</div>
-          <p>点击选择或拖拽文件到此处<br><b>支持 .txt / .docx / .md</b>（自动提取正文与表格，净化无关符号）</p>
-          <input type="file" id="fileInput" accept=".txt,.docx,.md,.markdown" style="display:none">
+          <p>点击选择或拖拽文件到此处<br><b>支持 .txt / .doc / .docx / .wps / .pdf / .md</b>（自动提取正文、表格与内嵌图片；.doc / .wps 为纯前端尽力解析，图片建议另存为 .docx 后上传；.pdf 已支持识别内嵌图片）</p>
+          <input type="file" id="fileInput" accept=".txt,.doc,.docx,.wps,.pdf,.md,.markdown" style="display:none">
         </div>
         <div class="row mt">
           <button class="btn btn-primary" id="btnParse2">⌁ 智能解析</button>
@@ -2048,6 +2050,153 @@ function htmlToText(node){
     }
   });
   return out;
+}
+/* ---------- 公文导入：图片识别与二进制文档尽力解析 ---------- */
+// 将 docx 经 mammoth 转换得到的 HTML（图片已内嵌为 data: URI）转为导入文本：
+// 文本/表格按原逻辑保留，<img> 转为 Markdown 图片行 ![图N](data:...) 以便智能解析识别为图片块（自动识别并保留原文档内图片）
+function docxHtmlToImportText(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  let imgN = 0;
+  function walk(node){
+    let out = '';
+    node.childNodes.forEach(c => {
+      if(c.nodeType === 3){ out += c.textContent; }
+      else if(c.nodeName === 'TABLE'){ out += '\n\n' + tableToMd(c) + '\n\n'; }
+      else if(c.nodeName === 'BR'){ out += '\n'; }
+      else if(c.nodeName === 'IMG'){
+        const src = c.getAttribute('src') || '';
+        if(src.startsWith('data:')){
+          out += '\n\n![图' + (++imgN) + '](' + src + ')\n\n';   // 内嵌图片：自动识别并保留
+        } else if(src){
+          out += '\n\n![' + (c.getAttribute('alt') || '') + '](' + src + ')\n\n';
+        }
+      }
+      else {
+        const tag = (c.nodeName || '').toLowerCase();
+        const pre = (tag === 'p' || tag === 'div' || /^h[1-6]$/.test(tag) || tag === 'li' || tag === 'tr') ? '\n' : '';
+        out += pre + walk(c);
+      }
+    });
+    return out;
+  }
+  const text = walk(doc.body).replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
+  return { text, imgCount: imgN };
+}
+// 纯前端尽力解析二进制 .doc / .wps：扫描 UTF-16LE 中的中文/标点/ASCII 连续片段以恢复正文文本。
+// 说明：二进制复合文档无法可靠提取图片与复杂版式，仅作文本兜底，建议另存为 .docx 以获得完整效果。
+function extractBinaryDocText(buf){
+  const u16 = new Uint16Array(buf);
+  const CJK = c => (c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF);
+  const PUN = c => (c >= 0x3000 && c <= 0x303F) || (c >= 0xFF00 && c <= 0xFFEF);
+  const ASC = c => (c >= 0x20 && c <= 0x7E);
+  const runs = [];
+  let cur = '';
+  const flush = () => {
+    if(cur.length >= 2){
+      const hasCJK = /[一-鿿]/.test(cur);            // 含中文 或 较长 ASCII 片段才保留，过滤字节噪声
+      if(hasCJK || cur.length >= 6) runs.push(cur.replace(/\s+/g, ' ').trim());
+    }
+    cur = '';
+  };
+  for(let i = 0; i < u16.length; i++){
+    const c = u16[i];
+    if(CJK(c) || PUN(c) || ASC(c) || c === 0x0A || c === 0x0D) cur += String.fromCharCode(c);
+    else flush();
+  }
+  flush();
+  return runs.join('\n');
+}
+// 纯前端提取 PDF 正文与内嵌图片：借助 pdfjs-dist（全局 pdfjsLib）。
+// 文本按页、按行（y 坐标）归并；图片通过渲染整页后在操作符列表中定位图像绘制处，裁切对应区域得到 PNG（data URI），按位置与文本交错排列。
+async function extractPdfText(buf){
+  if(!window.pdfjsLib) throw new Error('PDF 解析库未加载（请检查网络以加载 pdfjs-dist）');
+  if(!pdfjsLib.GlobalWorkerOptions.workerSrc){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+  }
+  const OPS = pdfjsLib.OPS;
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+  const pages = [];
+  let imgTotal = 0;
+  // 矩阵相乘（6 元素 [a,b,c,d,e,f]）与点的仿射变换
+  const mul = (m,a)=>[ m[0]*a[0]+m[2]*a[1], m[1]*a[0]+m[3]*a[1], m[0]*a[2]+m[2]*a[3], m[1]*a[2]+m[3]*a[3], m[0]*a[4]+m[2]*a[5]+m[4], m[1]*a[4]+m[3]*a[5]+m[5] ];
+  const apply = (m,x,y)=>[ m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5] ];
+  const IMG_OPS = new Set([ OPS.paintImageXObject, OPS.paintImageXObjectUsingColorSpace, OPS.paintInlineImageXObject, OPS.paintInlineImageXObjectGroup ]);
+  for(let p = 1; p <= pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 1.5 });
+    // 渲染整页到离屏画布：图片以最终像素形式呈现，颜色空间最可靠
+    let pageCanvas = null;
+    try{
+      pageCanvas = document.createElement('canvas');
+      pageCanvas.width = Math.ceil(viewport.width);
+      pageCanvas.height = Math.ceil(viewport.height);
+      await page.render({ canvasContext: pageCanvas.getContext('2d'), viewport }).promise;
+    }catch(e){ pageCanvas = null; }
+    const content = await page.getTextContent();
+    const elements = []; // {y, kind:'text'|'img', text|uri}
+    // 文本行：按 y（transform[5]，自顶向下）归并，同行按 x 从左到右拼接
+    const byY = {};
+    for(const it of content.items){
+      if(!it.str) continue;
+      const y = Math.round(it.transform[5]);
+      (byY[y] = byY[y] || []).push(it);
+    }
+    for(const y of Object.keys(byY).map(Number).sort((a,b)=>b-a)){
+      const row = byY[y].sort((a,b)=>a.transform[4]-b.transform[4]);
+      elements.push({ y, kind:'text', text: row.map(r=>r.str).join('') });
+    }
+    // 图片：遍历操作符列表，跟踪 CTM 定位绘制区域，从整页画布裁切
+    if(pageCanvas){
+      try{
+        const ops = await page.getOperatorList();
+        let ctm = [1,0,0,1,0,0];
+        const ctmStack = [];   // 处理 q/Q（save/restore 图形状态）避免 CTM 跨图累积
+        const seen = new Set();
+        const vt = viewport.transform;
+        for(let i = 0; i < ops.fnArray.length; i++){
+          const fn = ops.fnArray[i], arg = ops.argsArray[i];
+          if(fn === OPS.save) ctmStack.push(ctm.slice());
+          else if(fn === OPS.restore){ if(ctmStack.length) ctm = ctmStack.pop(); }
+          else if(fn === OPS.setTransform) ctm = arg.slice();
+          else if(fn === OPS.transform) ctm = mul(ctm, arg);
+          else if(IMG_OPS.has(fn)){
+            // 单位正方形四角经 ctm 得到页面坐标，再经视口变换到屏幕像素
+            const us = [[0,0],[1,0],[1,1],[0,1]].map(c=>apply(ctm, c[0], c[1]));
+            const yTop = Math.max(...us.map(c=>c[1])); // 用户空间 y（向上）越大越靠上
+            const sc = us.map(c=>apply(vt, c[0], c[1]));
+            const xs = sc.map(c=>c[0]), ys = sc.map(c=>c[1]);
+            const x0 = Math.floor(Math.min(...xs)), x1 = Math.ceil(Math.max(...xs));
+            const y0 = Math.floor(Math.min(...ys)), y1 = Math.ceil(Math.max(...ys));
+            const w = x1 - x0, h = y1 - y0;
+            if(w > 4 && h > 4){
+              const cx = Math.max(0, x0), cy = Math.max(0, y0);
+              const cw = Math.min(w, pageCanvas.width - cx), ch = Math.min(h, pageCanvas.height - cy);
+              const key = cx + '_' + cy + '_' + cw + '_' + ch;
+              if(cw > 4 && ch > 4 && !seen.has(key)){
+                seen.add(key);
+                try{
+                  const c2 = document.createElement('canvas');
+                  c2.width = cw; c2.height = ch;
+                  c2.getContext('2d').drawImage(pageCanvas, cx, cy, cw, ch, 0, 0, cw, ch);
+                  const uri = c2.toDataURL('image/png');
+                  if(uri && uri.length > 50){ imgTotal++; elements.push({ y: Math.round(yTop), kind:'img', uri, n: imgTotal }); }
+                }catch(e){ /* 个别图片裁切失败不影响整体 */ }
+              }
+            }
+          }
+        }
+      }catch(e){ /* 获取操作符列表失败时仅保留文本 */ }
+    }
+    // 文本与图片按 y 自顶向下排序（交错排列）
+    elements.sort((a,b)=> b.y - a.y);
+    let out = '';
+    for(const el of elements){
+      if(el.kind === 'text') out += el.text + '\n';
+      else out += '![图' + el.n + '](' + el.uri + ')\n';
+    }
+    pages.push(out);
+  }
+  return { text: pages.join('\n\n'), imgCount: imgTotal };
 }
 /* 将制表符分隔的表格行（如从 Excel 复制）规范为 Markdown 管道格式，保持原文顺序内联呈现。
    规则：连续两行及以上的制表符行，或单行含 3 列（≥2 个制表符）视为表格。 */
@@ -4083,25 +4232,57 @@ $('fileInput').onchange = e => handleFile(e.target.files[0]);
 
 async function handleFile(f){
   if(!f) return;
+  const name = f.name.toLowerCase();
   try{
-    if(f.name.toLowerCase().endsWith('.docx')){
-      const buf = await f.arrayBuffer();
+    const buf = await f.arrayBuffer();
+    let text = '';
+    let imgCount = 0;
+    let pdfParseError = false;
+    // 判定是否为 ZIP 容器（.docx 及部分 .wps 实为 OOXML，按 ZIP 解析）
+    const isZip = buf.byteLength >= 4 && buf[0] === 0x50 && buf[1] === 0x4B && buf[2] === 0x03 && buf[3] === 0x04;
+    if(name.endsWith('.docx') || isZip){
+      // 内嵌图片转为 data: URI，导入时一并识别保留
+      const convertImage = mammoth.images.imgElement(async function(image){
+        try{
+          const b64 = await image.readAsBase64String();
+          return { src: 'data:' + (image.contentType || 'image/png') + ';base64,' + b64 };
+        }catch(e){ return { src: '' }; }   // 个别图片读取失败时不中断整体导入
+      });
       try{
-        // convertToHtml 保留表格结构；再将含表格的 HTML 转为纯文本（表格保留为 Markdown 管道格式）
-        const res = await mammoth.convertToHtml({arrayBuffer: buf});
-        $('rawText').value = htmlToText(new DOMParser().parseFromString(res.value, 'text/html').body)
-          .replace(/\n{3,}/g,'\n\n').replace(/[ \t]{2,}/g,' ').trim();
+        const res = await mammoth.convertToHtml({ arrayBuffer: buf, convertImage });
+        const r1 = docxHtmlToImportText(res.value);
+        text = r1.text; imgCount = r1.imgCount;
       }catch(e){
-        // 失败时回退到纯文本提取
-        const r = await mammoth.extractRawText({arrayBuffer: buf});
-        $('rawText').value = r.value;
+        // 失败时回退到纯文本提取（不保留图片）
+        const r = await mammoth.extractRawText({ arrayBuffer: buf });
+        text = r.value;
       }
-    }else{
-      $('rawText').value = await f.text();
+    } else if(name.endsWith('.doc') || name.endsWith('.wps')){
+      // 二进制复合文档：纯前端尽力恢复正文文本，无法可靠提取图片与复杂版式
+      text = extractBinaryDocText(buf);
+      if(!text.trim()){ text = (await f.text()).replace(/[^\x09\x0A\x0D\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF]/g, ' '); }
+      toast('⚠ 「' + f.name + '」为二进制格式，已尽力恢复正文文本；图片与复杂版式暂无法提取，建议另存为 .docx 后上传以保留图片');
+    } else if(name.endsWith('.pdf')){
+      // PDF：纯前端抽取正文文本与内嵌图片（pdfjs-dist），按位置与文本交错排列；成功/图片数由下方统一提示
+      try{
+        const r = await extractPdfText(buf);
+        text = r.text; imgCount = r.imgCount;
+      }catch(e){
+        text = (await f.text()).replace(/[^\x09\x0A\x0D\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF]/g, ' ');
+        pdfParseError = true;
+        toast('⚠ 「' + f.name + '」PDF 解析异常（' + e.message + '），已尽力按文本读取');
+      }
+    } else {
+      text = await f.text();
     }
-    toast('✓ 文件「'+f.name+'」读取成功，请点击智能解析');
+    $('rawText').value = text;
+    if(imgCount > 0){
+      toast('✓ 已读取「' + f.name + '」，识别并保留 ' + imgCount + ' 张图片（点击智能解析即可显示与导出）');
+    } else if(!(name.endsWith('.doc') || name.endsWith('.wps')) && !pdfParseError){
+      toast('✓ 文件「' + f.name + '」读取成功，请点击智能解析');
+    }
     document.querySelector('.tab[data-tab=paste]').click();
-  }catch(err){ toast('文件读取失败：'+err.message); }
+  }catch(err){ toast('文件读取失败：' + err.message); }
 }
 
 /* ---------- 示例 ---------- */
