@@ -1719,6 +1719,7 @@ function endWithPeriod(s){
 }
 function fixHeadingColon(lines){
   return lines.map(l=>{
+    if(TABLE_COMMENT_RE.test(l)) return l;
     const lv = headingLevelOf(l);
     const ci = l.search(/[:：]/);
     if(ci < 0) return l;
@@ -1733,6 +1734,7 @@ function splitHeadingInlineBody(lines){
   const out = [];
   for(let i = 0; i < lines.length; i++){
     const p = lines[i];
+    if(TABLE_COMMENT_RE.test(p)){ out.push(p); continue; }
     const lv = headingLevelOf(p);
     if(lv !== 0 && lv !== 1){ out.push(p); continue; }   // 仅处理一、/（一）标题
     const m = p.match(/^((?:[一二三四五六七八九十百]+[、.．，,])|(?:[（(][一二三四五六七八九十]+[)）]))(.*?)([:：])(.+)$/);
@@ -1774,6 +1776,7 @@ function headingPrefixLen(s){
 }
 function splitInlineHeadings(line){
   if(!line || line.length < 3) return [line];
+  if(TABLE_COMMENT_RE.test(line)) return [line];
   const starts = [];
   for(let i = 0; i < line.length; i++){
     const prev = i > 0 ? line[i-1] : '';
@@ -1793,13 +1796,24 @@ function splitInlineHeadings(line){
   }
   return segs.filter(s => s.trim().length > 0);
 }
+const TABLE_COMMENT_RE = /^\s*<!--TABLE:/;
 function normalizeHeadings(lines){
+  // 结构化表格注释（<!--TABLE:{...}-->）属数据载体，必须完全跳过标题拆分/层级编排/标点规范，
+  // 否则 JSON 中的半角标点、括号、破折号会被全角化或破坏，导致表格无法渲染。
+  const workLines = lines.filter(l => !TABLE_COMMENT_RE.test(l));
   // 1) 同一行内多个标题拆分为独立段落（每个标题及其承接正文各占一行）
-  lines = lines.flatMap(splitInlineHeadings);
+  let processed = workLines.flatMap(splitInlineHeadings);
   // 再按原始标记拆分/改冒号（避免层级编排的末位标点清理误删正文句号），最后统一层级序数编排
   // fixTimeColon：时间表达中的全角冒号（12：00）修正为半角（12:00），且不参与后续标题冒号处理
   // 注意：此处不再前置 normHeadOrd；normalizeHeadingLevels 会自己识别不规则序号并按父级上下文推断层级。
-  return normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(lines.map(l => fixTimeColon(l)))));
+  processed = normalizeHeadingLevels(splitHeadingInlineBody(fixHeadingColon(processed.map(l => fixTimeColon(l)))));
+  // 按原始顺序合并：表格注释行原样保留，非表格行按处理后的顺序填充
+  const out = []; let pi = 0;
+  for(const l of lines){
+    if(TABLE_COMMENT_RE.test(l)){ out.push(l); }
+    else { out.push(processed[pi++]); }
+  }
+  return out;
 }
 
 /* ---------- 标点符号格式与完整性修复 ----------
@@ -1821,7 +1835,8 @@ function fixPunct(s){
 }
 /* 连接号智能规范：年份/时间/地域起止→一字线"—"；数值范围起止→浪纹"～" */
 function normDash(s){
-    const dashCore = t => {
+  if(TABLE_COMMENT_RE.test(s)) return s;
+  const dashCore = t => {
     const VC = '年|天|个|倍|万|亿|元|%|名|项|次|页|条|份|所|间|辆|台|人|吨|度|％|厘米|毫米|米|km|kg|℃|°C';
     t = t.replace(/(\d{4})\s*年?\s*[-–—]\s*年?\s*(\d{4})/g, '$1—$2');                 // A 年份跨度（可选"年"）→ 一字线
     t = t.replace(/(\d{4})\s*[-–]\s*(\d{1,2})\s*[-–]\s*(\d{1,2})/g, '$1—$2—$3');      // C 日期 YYYY-MM-DD → 一字线
@@ -1844,12 +1859,13 @@ function normParallel(s){
   return s.replace(new RegExp('('+item+')\\s*[、，,]\\s*(?=('+item+'))','g'), '$1');
 }
 /* 全字段轻量规范（标题/主送/署名/日期/附件说明等）：六角括号、时间半角冒号、连接号 */
-function normText(s){ return normBracket(fixTimeColon(normDash(s))); }
+function normText(s){ if(TABLE_COMMENT_RE.test(s)) return s; return normBracket(fixTimeColon(normDash(s))); }
 /* 正文/附件标点符号全角化：半角标点 → 全角（时间冒号除外，保持半角）。
    保护：时间表达、URL/邮箱/data URI、Markdown 链接与图片、行首层级序号「N.」「N、」、
    数字（含小数点/千分位/版本号）、英文缩写（U.S.A / i.e.）、连续点（省略号）。 */
 function normPunctFull(s){
   if(!s) return s;
+  if(TABLE_COMMENT_RE.test(s)) return s;
   const held = [];
   const hold = m => '\uE000' + String.fromCharCode(0xE100 + held.length) + '\uE001' + (held.push(m), '');
   // 1) 时间表达（12:00 / 12：00 / 12:00:00），全角冒号先修正为半角并整体保护
@@ -2066,7 +2082,9 @@ function iterBlocks(paras){
     // 强制横排标记：独立的"横排"/"横向"/"【横排】"行，不渲染，仅作用于紧随其后的表格
     if(line==='横排' || line==='横向' || /^【?横(排|向)】?$/.test(line)){ force=true; i++; continue; }
     // 结构化表格注释：<!--TABLE:{...}-->（由 docx / 网页富文本导入时生成，保留 rowspan/colspan）
-    const tblMatch = line.match(/^<!--TABLE:(.+?)-->$/);
+    // 使用贪婪匹配 (.+) + 行尾 -->，避免 JSON 内部若含 "-->" 子串时被非贪婪截断。
+    // 兜底兼容被误规范化的 <!—TABLE:…—>（em dash）与 <！--TABLE：…-->（全角标点）
+    const tblMatch = line.match(/^<[!！](?:--|—)TABLE[:：](.+)(?:--|—)>\s*$/);
     if(tblMatch){
       try{
         const t = deserializeTable(tblMatch[1]);
