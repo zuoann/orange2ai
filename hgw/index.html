@@ -1690,7 +1690,7 @@ function headingLevelOf(p){
    不删除、不转句号、不拆分标题；全角冒号须修正为半角（公文规范：时间使用半角冒号） */
 function hasTimeColon(s){ return /\d{1,2}[:：]\d{1,2}(?::\d{1,2})?/.test(s); }
 function colonIsTime(s, ci){ return /\d/.test(s[ci-1]||'') && /\d/.test(s[ci+1]||''); }
-function fixTimeColon(s){ return s.replace(/\d{1,2}[:：]\d{1,2}(?:[:：]\d{1,2})?/g, t => t.replace(/：/g, ':')); }
+function fixTimeColon(s){ if(/^\s*<!--/.test(s)) return s; return s.replace(/\d{1,2}[:：]\d{1,2}(?:[:：]\d{1,2})?/g, t => t.replace(/：/g, ':')); }
 /* ---------- 标题接排正文：段末句号（GB/T 9704-2012 7.3.3）----------
  * 规范：一级/二级标题独占一行时末尾不加标点；标题后接着排印正文的，该段为完整段落，末尾须加句号。
  * headInlineBody：判定「序号+标题短语」之后是否还接排有实质正文。
@@ -1819,6 +1819,7 @@ function normalizeHeadings(lines){
 /* ---------- 标点符号格式与完整性修复 ----------
  * 直引号→中文弯引号（成对交替）；书名号/括号缺右半自动在句末补齐；连接号交由 normDash 处理 */
 function fixQuotes(s){
+  if(/^\s*<!--/.test(s)) return s;   // 表格等 HTML 注释行不做引号处理
   let t = s, open = true;
   t = t.replace(/"/g, () => { const q = open ? '“' : '”'; open = !open; return q; });
   open = true;
@@ -1826,6 +1827,7 @@ function fixQuotes(s){
   return t;
 }
 function fixPunct(s){
+  if(/^\s*<!--/.test(s)) return s;   // 表格等 HTML 注释行不做标点处理
   let t = fixQuotes(s);
   for(const [l, r] of [['“','”'],['‘','’'],['《','》'],['（','）']]){
     const miss = (t.split(l).length-1) - (t.split(r).length-1);
@@ -1855,6 +1857,7 @@ function normDash(s){
 }
 /* 并列成分间顿号删除：书名号《》或引号""包裹的并列项之间的顿号、逗号 */
 function normParallel(s){
+  if(/^\s*<!--/.test(s)) return s;   // 表格等 HTML 注释行不做并列顿号处理
   const item = '《[^》]+》|“[^”]+”|‘[^’]+’';
   return s.replace(new RegExp('('+item+')\\s*[、，,]\\s*(?=('+item+'))','g'), '$1');
 }
@@ -1932,6 +1935,7 @@ function convDash(s){ return normDash(s); }
 function punctIssueCount(paras){
   let n = 0;
   for(const p of paras){
+    if(/^\s*<!--/.test(p)) continue;   // 表格等 HTML 注释行不计标点问题
     if(/"|'/.test(p)){ n++; continue; }
     for(const [l,r] of [['“','”'],['‘','’'],['《','》'],['（','）']]){
       if(p.split(l).length !== p.split(r).length){ n++; break; }
@@ -2861,6 +2865,7 @@ function scanNumUse(lines){
 }
 /* 数字用法一键规范化（仅修复安全的千分位逗号项；概数/约数属语义判断，仅提醒） */
 function normNum(s){
+  if(/^\s*<!--/.test(s)) return s;   // 表格等 HTML 注释行不做数字处理
   return (s || '').replace(/(\d),(\d{3})(?!\d)/g, '$1$2');   // 1,000,000 → 1000000
 }
 
@@ -4234,7 +4239,7 @@ async function buildDocxBlob(d){
     })();
     return new Table({
       width:{size:100, type:WidthType.PERCENTAGE},
-      layout:TableLayoutType.FIXED,
+      layout:TableLayoutType.AUTOFIT,   // 根据内容自动调整表格布局（Word「自动调整→根据内容」）
       columnWidths: colWidths,
       borders:{top:BD, bottom:BD, left:BD, right:BD, insideHorizontal:BD, insideVertical:BD},
       rows: rows.map((r,ri)=> new TableRow({
