@@ -2198,6 +2198,65 @@ async function extractPdfText(buf){
   }
   return { text: pages.join('\n\n'), imgCount: imgTotal };
 }
+/* 导入净化：用于 .doc / .pdf / .wps 等二进制/版式文件抽取后的二次清洗。
+   自动识别并清除（1）乱码与控制字符（BOM、零宽、替换符、C0/C1 控制符、常见
+   UTF-8 字节被误读为 Latin-1 产生的乱码字符）；（2）空白回行与纯装饰/标点空行。
+   保留正文、图片标记（![图N](data:...)）与表格结构；不改变语义文字。
+   返回 {text, garbled, blanks} 供导入报告。 */
+function sanitizeImportedText(raw){
+  let s = raw == null ? '' : String(raw);
+  let garbled = 0, blanks = 0;
+  s = s.replace(/\r\n?/g, '\n');
+  // 1) BOM / 零宽 / 软连字符 / 替换符 / 控制字符（保留 \n \t）
+  const b1 = s.length;
+  s = s.replace(/[\uFEFF\u200B\u200C\u200D\u00AD\u2060]/g, '')
+        .replace(/\uFFFD/g, '')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+  garbled += (b1 - s.length);
+  // 2) 常见 mojibake 映射回正确字符（UTF-8 字节被 Latin-1 解码）
+  const MOJI = {
+    '\u00E2\u20AC\u201C':'“', '\u00E2\u20AC\u201D':'”',
+    '\u00E2\u20AC\u2018':'‘', '\u00E2\u20AC\u2019':'’',
+    '\u00E2\u20AC\u2013':'–', '\u00E2\u20AC\u2014':'—',
+    '\u00E2\u20AC\u2026':'…', '\u00E2\u20AC\u201E':'„',
+    '\u00C2\u00B0':'°', '\u00C2\u00A9':'©', '\u00C2\u00AE':'®',
+    '\u00C2\u00A3':'£', '\u00C2\u00A5':'¥', '\u00C2\u00AB':'«',
+    '\u00C2\u00BB':'»', '\u00C2\u00B1':'±', '\u00E2\u0082\u00AC':'€',
+    '\u00C3\u00A9':'é', '\u00C3\u00A8':'è', '\u00C3\u00A0':'à',
+    '\u00C3\u00A7':'ç', '\u00C3\u00B1':'ñ', '\u00C3\u00B2':'ò',
+    '\u00C3\u00B9':'ù', '\u00C3\u00A4':'ä', '\u00C3\u00B6':'ö',
+    '\u00C3\u00BC':'ü', '\u00C3\u00A2':'â', '\u00C3\u00AA':'ê',
+    '\u00C3\u00AE':'î', '\u00C3\u00B4':'ô', '\u00C3\u00BB':'û',
+    '\u00C3\u0097':'×', '\u00C3\u00B7':'÷'
+  };
+  let moji = 0;
+  for(const k in MOJI){
+    let idx = s.indexOf(k);
+    while(idx !== -1){ s = s.slice(0, idx) + MOJI[k] + s.slice(idx + k.length); moji++; idx = s.indexOf(k); }
+  }
+  garbled += moji;
+  // 3) 残余双字节 Latin-1 乱码（两个相邻 U+0080–U+00FF）删除
+  const b2 = s.length;
+  s = s.replace(/[\u0080-\u00FF][\u0080-\u00FF]/g, '');
+  garbled += (b2 - s.length);
+  // 4) 空白回行与装饰空行折叠
+  const out = [];
+  let prevBlank = false;
+  for(const ln of s.split('\n')){
+    const t = ln.replace(/^\s+/, '').replace(/\s+$/, '');
+    if(t === ''){ blanks++; continue; }   // 清除空白回行：直接丢弃空行
+    // 纯装饰/标点/空白行（连续重复标点或全角空格）视为乱码回行，跳过
+    if(/^[\s\-－—~～・．.。=＝_·]+$/.test(t) && t.length <= 40){ blanks++; prevBlank = false; continue; }
+    out.push(t); prevBlank = false;
+  }
+  while(out.length && out[0] === '') out.shift();
+  while(out.length && out[out.length-1] === '') out.pop();
+  let text = out.join('\n');
+  // 5) 行内多余空格压缩（中文间去空格、连续空格→单空格；仅限同行空格/制表符，不动换行，避免误吞段落空白回行）；不破坏 data: URI（均为 ASCII 可见字符）
+  //    用前向断言，避免「甲 乙 丙」中重叠的「乙 丙」因共享字符被跳过
+  text = text.replace(/([一-鿿])[ \t]+(?=[一-鿿])/g, '$1').replace(/[ \t]{2,}/g, ' ');
+  return { text, garbled, blanks };
+}
 /* 将制表符分隔的表格行（如从 Excel 复制）规范为 Markdown 管道格式，保持原文顺序内联呈现。
    规则：连续两行及以上的制表符行，或单行含 3 列（≥2 个制表符）视为表格。 */
 function normalizeTableLines(lines){
@@ -4238,6 +4297,9 @@ async function handleFile(f){
     let text = '';
     let imgCount = 0;
     let pdfParseError = false;
+    let pdfErrMsg = '';
+    let sanGarbled = 0, sanBlanks = 0;
+    const needSanitize = name.endsWith('.doc') || name.endsWith('.wps') || name.endsWith('.pdf');
     // 判定是否为 ZIP 容器（.docx 及部分 .wps 实为 OOXML，按 ZIP 解析）
     const isZip = buf.byteLength >= 4 && buf[0] === 0x50 && buf[1] === 0x4B && buf[2] === 0x03 && buf[3] === 0x04;
     if(name.endsWith('.docx') || isZip){
@@ -4261,25 +4323,34 @@ async function handleFile(f){
       // 二进制复合文档：纯前端尽力恢复正文文本，无法可靠提取图片与复杂版式
       text = extractBinaryDocText(buf);
       if(!text.trim()){ text = (await f.text()).replace(/[^\x09\x0A\x0D\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF]/g, ' '); }
-      toast('⚠ 「' + f.name + '」为二进制格式，已尽力恢复正文文本；图片与复杂版式暂无法提取，建议另存为 .docx 后上传以保留图片');
     } else if(name.endsWith('.pdf')){
-      // PDF：纯前端抽取正文文本与内嵌图片（pdfjs-dist），按位置与文本交错排列；成功/图片数由下方统一提示
+      // PDF：纯前端抽取正文文本与内嵌图片（pdfjs-dist），按位置与文本交错排列
       try{
         const r = await extractPdfText(buf);
         text = r.text; imgCount = r.imgCount;
       }catch(e){
         text = (await f.text()).replace(/[^\x09\x0A\x0D\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF]/g, ' ');
-        pdfParseError = true;
-        toast('⚠ 「' + f.name + '」PDF 解析异常（' + e.message + '），已尽力按文本读取');
+        pdfParseError = true; pdfErrMsg = e.message;
       }
     } else {
       text = await f.text();
     }
+    // 导入净化：自动识别并清除二进制/版式文件抽取后的乱码与空白回行（.doc/.pdf/.wps）
+    if(needSanitize){
+      const r = sanitizeImportedText(text);
+      text = r.text; sanGarbled = r.garbled; sanBlanks = r.blanks;
+    }
     $('rawText').value = text;
+    const cleanTip = (sanGarbled || sanBlanks)
+      ? `｜已自动净化：清除乱码 ${sanGarbled} 处、折叠空白回行 ${sanBlanks} 处` : '';
     if(imgCount > 0){
-      toast('✓ 已读取「' + f.name + '」，识别并保留 ' + imgCount + ' 张图片（点击智能解析即可显示与导出）');
-    } else if(!(name.endsWith('.doc') || name.endsWith('.wps')) && !pdfParseError){
-      toast('✓ 文件「' + f.name + '」读取成功，请点击智能解析');
+      toast('✓ 已读取「' + f.name + '」，识别并保留 ' + imgCount + ' 张图片（点击智能解析即可显示与导出）' + cleanTip);
+    } else if(name.endsWith('.doc') || name.endsWith('.wps')){
+      toast('⚠ 「' + f.name + '」为二进制格式，已尽力恢复正文并自动净化；图片与复杂版式暂无法提取，建议另存为 .docx 后上传以保留图片' + cleanTip);
+    } else if(pdfParseError){
+      toast('⚠ 「' + f.name + '」PDF 解析异常（' + pdfErrMsg + '），已尽力按文本读取并净化' + cleanTip);
+    } else {
+      toast('✓ 文件「' + f.name + '」读取成功，请点击智能解析' + cleanTip);
     }
     document.querySelector('.tab[data-tab=paste]').click();
   }catch(err){ toast('文件读取失败：' + err.message); }
