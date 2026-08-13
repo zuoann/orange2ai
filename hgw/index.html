@@ -366,6 +366,10 @@
   .fw-no.letter-style{text-align:right;margin-top:22px}
   .sign-line{height:0;border-top:3px solid var(--red);margin-top:15px}
   .sign-double{border-top:3px solid var(--red);margin-top:15px}
+  .stat-bar{padding:5px 12px;font-size:12px;color:var(--muted-c);border-bottom:1px solid var(--line);background:var(--panel2);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .stat-bar b{color:var(--txt);font-weight:600}
+  .stat-bar .warn{color:#e65100}
+  #rhLogoName{color:var(--cyan)}
   .sign-double2{border-top:1px solid var(--red);margin-top:3px}
   .doc-title.plain{margin-top:0}
   .doc-title{text-align:center;font-size:22pt;line-height:1.45;margin-top:74px;
@@ -985,7 +989,7 @@
           </select></div>
       </div>
       <div class="field" id="fLogo"><label>发文机关标志（红头）<small>红色小标宋，居中</small></label>
-        <input type="text" id="inLogo" value="××××××文件"></div>
+        <div style="display:flex;gap:6px;align-items:center"><input type="text" id="inLogo" value="××××××文件" style="flex:1"><button class="btn btn-ghost" id="btnRedHead" style="white-space:nowrap;padding:5px 8px;font-size:12px">🎨 红头样式</button></div></div>
       <div class="field" id="fNo"><label>发文字号<small>三号仿宋；政发202611号 / (2026) / &lt;2026&gt; 等写法自动规范为〔2026〕</small></label>
         <input type="text" id="inNo" placeholder="如：×政发〔2026〕12号"></div>
       <div class="field hidden" id="fSignatory"><label>签发人<small>上行文需标注，三号方正仿宋"签发人：" + 三号方正楷体姓名</small></label>
@@ -1142,6 +1146,7 @@
       <span class="meta">版心 <b>156×225mm</b> · 每页 <b>22</b> 行 × 每行 <b>28</b> 字 · 正文 <b>三号方正仿宋_GBK</b></span>
       <button class="btn btn-ghost" id="btnAiDraft" style="margin-left:auto;padding:6px 12px;font-size:12px">🤖 AI 起草</button>
     </div>
+    <div id="statBar" class="stat-bar"></div>
     <div class="paper-scroll" id="paperScroll"></div>
   </div>
 </main>
@@ -1168,6 +1173,35 @@
         <button class="btn btn-primary" id="btnVarPreview">👁 预览填充结果</button>
       </div>
       <div id="varPreviewBox" style="margin-top:10px;font-size:12px;color:var(--muted-c);white-space:pre-wrap;display:none"></div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+      <h4 style="margin:0 0 6px;font-size:13px;color:var(--cyan)">📦 批量生成（多份公文）</h4>
+      <p style="font-size:12px;color:var(--muted-c);margin:0 0 8px">每行一份公文，用 <code>|</code> 分隔「变量=值」。模板中可用 <code>{{变量}}</code> 引用（含 机关/年份/文号/标题/日期 及自定义变量，如 班级）。</p>
+      <textarea id="varBatchRows" rows="5" placeholder="班级=2024级计算机1班 | 日期=2026年9月1日&#10;班级=2024级计算机2班 | 日期=2026年9月2日"></textarea>
+      <div class="row mt">
+        <button class="btn btn-primary" id="btnVarBatch" style="flex:1">📦 批量生成并加入队列</button>
+      </div>
+      <div id="varBatchInfo" style="font-size:12px;color:var(--muted-c);margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 红头样式可视化编辑 -->
+<div class="mask hidden" id="modalRedHead">
+  <div class="modal" style="max-width:440px">
+    <div class="m-head">🎨 红头样式（可视化编辑）<span class="x" data-x="modalRedHead">✕</span></div>
+    <div class="m-body">
+      <p style="font-size:12px;color:var(--muted-c);margin:0 0 10px">调整当前红头（<b id="rhLogoName">—</b>）的字号、红色与字间距，可保存为机构预设；切换文种或文档、且红头文字命中预设时自动套用。</p>
+      <div class="row"><label style="width:60px;font-size:12px">字号</label><input type="range" id="rhSize" min="22" max="60" step="1" style="flex:1"><span id="rhSizeV" style="width:34px;text-align:right;font-size:12px">40</span></div>
+      <div class="row"><label style="width:60px;font-size:12px">红色</label><input type="color" id="rhColor" value="#e60012" style="flex:1;height:28px"><span id="rhColorV" style="width:70px;font-size:12px">#e60012</span></div>
+      <div class="row"><label style="width:60px;font-size:12px">字间距</label><input type="range" id="rhSpacing" min="0" max="10" step="1" style="flex:1"><span id="rhSpacingV" style="width:34px;text-align:right;font-size:12px">2</span></div>
+      <div class="row" style="margin-top:6px"><label style="width:60px;font-size:12px">机构预设</label><select id="rhPreset" style="flex:1"><option value="">— 选择 / 新建 —</option></select></div>
+      <div class="row mt">
+        <button class="btn btn-ghost" id="btnRhSave">💾 保存为机构预设</button>
+        <button class="btn btn-ghost" id="btnRhDel">🗑 删除预设</button>
+      </div>
+      <div class="row mt">
+        <button class="btn btn-primary" id="btnRhApply" style="flex:1">✓ 应用并预览</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3635,6 +3669,26 @@ function smartParse(text){
 }
 
 /* ---------- 采集要素 ---------- */
+/* 红头可视化样式（默认符合 GB/T 9704-2012 标准红 #e60012） */
+const RH_KEY = 'mzw_redhead';
+let RH = loadRedHead();
+function loadRedHead(){ try{ const o=JSON.parse(localStorage.getItem(RH_KEY)); if(o && typeof o.size==='number') return o; }catch(e){} return {size:40, color:'#e60012', spacing:2}; }
+function saveRedHead(){ try{ localStorage.setItem(RH_KEY, JSON.stringify(RH)); }catch(e){} }
+const RHP_KEY = 'mzw_redheads';
+let RHP = loadRedHeads();
+function loadRedHeads(){ try{ const a=JSON.parse(localStorage.getItem(RHP_KEY)); if(Array.isArray(a)) return a; }catch(e){} return []; }
+function saveRedHeads(){ try{ localStorage.setItem(RHP_KEY, JSON.stringify(RHP)); }catch(e){} }
+function redHeadStyle(rh){ return `font-size:${rh.size}pt;letter-spacing:${rh.spacing}px;color:${rh.color}`; }
+function hexToDocx(hex){ return (hex||'#e60012').replace('#','').toUpperCase().padEnd(6,'0').slice(0,6); }
+let lastRhLogo = null;
+function syncRedHead(d){
+  if(d.logo !== lastRhLogo){
+    lastRhLogo = d.logo;
+    const p = RHP.find(x => x.logo === d.logo);
+    if(p){ RH = {size:p.size, color:p.color, spacing:p.spacing}; saveRedHead(); }
+  }
+}
+
 function collect(){
   const t = TYPES.find(x=>x.n===curType);
   const plain = t.f === 'plain';
@@ -3705,7 +3759,8 @@ function headerHTML(d){
   if(secretText(d)) vh.push(`<div class="vh-item">${esc(secretText(d))}</div>`);
   if(d.urgent)      vh.push(`<div class="vh-item">${esc(d.urgent)}</div>`);
   if(vh.length) h += `<div class="vhead">${vh.join('')}</div>`;
-  h += `<div class="fw-logo${letter?' letter-style':''}${vh.length?' has-vh':''}">${esc(d.logo)}</div>`;
+  const rhStyle = (!letter) ? ` style="${redHeadStyle(RH)}"` : '';
+  h += `<div class="fw-logo${letter?' letter-style':''}${vh.length?' has-vh':''}"${rhStyle}>${esc(d.logo)}</div>`;
   // 纪要「第X期」等文种特有要素：红头标志下方居中显示（GB/T 9704-2012 纪要格式）
   if((d.t.n === '纪要' || d.t.n === '公报') && d.minuteNo)
     h += `<div class="minutes-no">第${esc(d.minuteNo)}期</div>`;
@@ -4013,8 +4068,25 @@ function paginateTableBlock(b, firstMaxBody, restMaxBody){
   return chunks;
 }
 
+function countChars(text){ return (text||'').replace(/\s/g,'').length; }
+function estimatePages(chars, plain){
+  const perPage = CPL * 22;                 // 28 字 × 22 行
+  if(chars <= 0) return 1;
+  const firstCap = plain ? CPL*19 : CPL*10; // 首页容量（红头占行，通用格式占行较少）
+  if(chars <= firstCap) return 1;
+  return 1 + Math.ceil((chars - firstCap) / perPage);
+}
+function updateStats(d){
+  const bar = $('statBar'); if(!bar) return;
+  const text = d.paras.join('') + '\n' + d.attachParas.join('');
+  const chars = countChars(text);
+  const pages = estimatePages(chars, d.plain);
+  bar.innerHTML = `字数 <b>${chars.toLocaleString()}</b> · 约 <b>${pages}</b> 页` + (pages > 10 ? ' <span class="warn">⚠ 篇幅较长，建议拆分或压缩</span>' : '');
+}
+
 function renderPreview(){
   const d = collect();
+  syncRedHead(d); updateStats(d);
   const wrap = $('paperScroll');
   if(!d.title && !d.paras.length && !d.attachParas.length){
     wrap.innerHTML = `<div class="pg"><div class="page"><div class="empty-tip">◈ 等待公文内容输入 ◈<br><br>选择文种 → 粘贴或上传文本 → 智能解析</div></div></div>`;
@@ -4272,7 +4344,7 @@ async function buildDocxBlob(d){
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing:{before: TW(Math.max(0, 35 - vheadItems.length * 10))},
-      children:[run(d.logo, F_BS, 40, {color:'FF0000'})]
+      children:[run(d.logo, F_BS, RH.size, {color: hexToDocx(RH.color)})]
     }));
     // 纪要「第X期」等文种特有要素（红头标志下空一行，居中）
     if((d.t.n === '纪要' || d.t.n === '公报') && d.minuteNo)
@@ -4889,15 +4961,25 @@ const VAR_PRESETS = {
   decide: '{{机关}}决定，对下列集体和个人予以表彰（详见附件）。',
   redhead: '{{机关}}\n{{日期}}',
 };
-function fillVar(tpl){
+function currentVarBase(){
   const d = collect();
   const y = (d.date.match(/^(\d{4})/) || ['', ''])[1] || new Date().getFullYear();
-  return (tpl || '')
-    .replace(/\{\{机关\}\}/g, d.org || '')
-    .replace(/\{\{年份\}\}/g, y)
-    .replace(/\{\{文号\}\}/g, d.no || '')
-    .replace(/\{\{标题\}\}/g, d.title || '')
-    .replace(/\{\{日期\}\}/g, dateDisp(d) || '');
+  return {机关: d.org || '', 年份: y, 文号: d.no || '', 标题: d.title || '', 日期: dateDisp(d) || ''};
+}
+function fillVarWith(tpl, vals, base){
+  const all = Object.assign({}, base || {}, vals || {});
+  return (tpl || '').replace(/\{\{([^}]+)\}\}/g, (m,k)=> (k in all ? all[k] : m));
+}
+function fillVar(tpl){ return fillVarWith(tpl, {}, currentVarBase()); }
+function parseVarRows(text){
+  return (text||'').split('\n').map(s=>s.trim()).filter(Boolean).map(line=>{
+    const o = {};
+    line.split('|').forEach(p=>{
+      const i = p.indexOf('=');
+      if(i > 0){ const k = p.slice(0,i).trim(), v = p.slice(i+1).trim(); if(k) o[k] = v; }
+    });
+    return o;
+  }).filter(o=>Object.keys(o).length);
 }
 $('btnVar').onclick = () => openModal('modalVar');
 $('varPreset').onchange = () => { if($('varPreset').value && VAR_PRESETS[$('varPreset').value]) $('varTpl').value = VAR_PRESETS[$('varPreset').value]; };
@@ -4914,6 +4996,74 @@ $('btnVarFillToBody').onclick = () => {
   $('inBody').value = (cur ? cur + '\n' : '') + out;
   closeModal('modalVar'); pushSnap(); renderPreview();
   toast('✓ 变量模板已填充到正文末尾');
+};
+
+/* 红头样式可视化编辑 + 变量模板批量生成（F13 增强） */
+$('btnRedHead').onclick = () => openRedHead();
+function openRedHead(){
+  $('rhLogoName').textContent = $('inLogo').value || '（空）';
+  $('rhSize').value = RH.size; $('rhSizeV').textContent = RH.size;
+  $('rhColor').value = RH.color; $('rhColorV').textContent = RH.color;
+  $('rhSpacing').value = RH.spacing; $('rhSpacingV').textContent = RH.spacing;
+  renderRhPresets();
+  openModal('modalRedHead');
+}
+function renderRhPresets(){
+  const sel = $('rhPreset');
+  sel.innerHTML = '<option value="">— 选择 / 新建 —</option>' + RHP.map((p,i)=>`<option value="${i}">${esc(p.name || p.logo || ('预设'+(i+1)))}</option>`).join('');
+}
+$('rhSize').oninput = e => { RH.size = +e.target.value; $('rhSizeV').textContent = RH.size; saveRedHead(); renderPreview(); };
+$('rhSpacing').oninput = e => { RH.spacing = +e.target.value; $('rhSpacingV').textContent = RH.spacing; saveRedHead(); renderPreview(); };
+$('rhColor').oninput = e => { RH.color = e.target.value; $('rhColorV').textContent = RH.color; saveRedHead(); renderPreview(); };
+$('btnRhSave').onclick = () => {
+  const name = $('inLogo').value.trim();
+  if(!name){ toast('请先填写发文机关标志（红头）'); return; }
+  const rec = {name, logo:name, size:RH.size, color:RH.color, spacing:RH.spacing};
+  const i = RHP.findIndex(p=>p.logo===name);
+  if(i>=0) RHP[i]=rec; else RHP.push(rec);
+  saveRedHeads(); renderRhPresets(); toast('✓ 已保存机构红头预设');
+};
+$('btnRhDel').onclick = () => {
+  const v = $('rhPreset').value;
+  if(v===''){ toast('请先在「机构预设」中选择要删除的预设'); return; }
+  RHP.splice(+v,1); saveRedHeads(); renderRhPresets(); toast('✓ 已删除预设');
+};
+$('rhPreset').onchange = () => {
+  const v = $('rhPreset').value;
+  if(v==='') return;
+  const p = RHP[+v]; if(!p) return;
+  RH = {size:p.size, color:p.color, spacing:p.spacing}; saveRedHead();
+  $('rhSize').value=RH.size; $('rhSizeV').textContent=RH.size;
+  $('rhColor').value=RH.color; $('rhColorV').textContent=RH.color;
+  $('rhSpacing').value=RH.spacing; $('rhSpacingV').textContent=RH.spacing;
+  renderPreview();
+};
+$('btnRhApply').onclick = () => { closeModal('modalRedHead'); renderPreview(); };
+
+/* 变量模板批量生成 */
+$('btnVarBatch').onclick = () => {
+  const tpl = $('varTpl').value;
+  const rows = parseVarRows($('varBatchRows').value);
+  if(!rows.length){ toast('请填写批量变量行（每行 变量=值 | …）'); return; }
+  const base = currentVarBase();
+  let added = 0;
+  rows.forEach(r => {
+    const filled = fillVarWith(tpl, r, base).trim();
+    if(!filled) return;
+    const st = JSON.parse(snapState());
+    st.inBody = filled;
+    if(r['标题'] != null) st.inTitle = r['标题'];
+    if(r['机关'] != null) st.inLogo = r['机关'];
+    if(r['文号'] != null) st.inNo = r['文号'];
+    if(r['日期'] != null) st.inDate = r['日期'];
+    if(r['机关'] != null) st.inOrg = r['机关'];
+    const name = (r['标题'] || base.标题 || $('inTitle').value || '变量公文').slice(0,30);
+    batch.push({id: Date.now()+Math.random(), name, type: st.type, state: JSON.stringify(st), pr:0});
+    added++;
+  });
+  saveBatch(); renderBatchList();
+  $('varBatchInfo').textContent = `✓ 已生成 ${added} 份并加入批量队列（在「📦 批量导出」中导出 ZIP）`;
+  toast(`✓ 批量生成 ${added} 份`);
 };
 
 /* ============================================================
