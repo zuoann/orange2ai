@@ -514,6 +514,62 @@
   .iss.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#fde68a}
   .iss.info{background:rgba(var(--cyan-rgb),.08);border:1px solid rgba(var(--cyan-rgb),.3);color:var(--cyan)}
   .iss.ok{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}
+  /* ---------- 公文合规体检报告 ---------- */
+  .doc-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px 10px;background:color-mix(in srgb,var(--cyan) 7%,transparent);border:1px solid color-mix(in srgb,var(--cyan) 22%,transparent);border-radius:var(--rad)}
+  .dt-cap{font-size:12px;color:var(--muted-c);font-weight:700;white-space:nowrap}
+  #docTabList{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+  .dt-tab{display:flex;align-items:center;gap:6px;max-width:190px;padding:6px 10px;border-radius:9px;background:var(--bg-2);border:1px solid var(--line);cursor:pointer;font-size:12.5px;color:var(--ink-c);transition:.15s}
+  .dt-tab:hover{border-color:var(--cyan)}
+  .dt-tab.active{background:color-mix(in srgb,var(--cyan) 18%,transparent);border-color:var(--cyan);color:var(--cyan);font-weight:700}
+  .dt-tab .dt-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dt-tab .x{cursor:pointer;opacity:.5;font-weight:800;font-size:11px;padding:0 2px}
+  .dt-tab .x:hover{opacity:1;color:#ef4444}
+  .dt-new{padding:6px 12px;border-radius:9px;border:1px dashed var(--cyan);background:transparent;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap}
+  .dt-new:hover{background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+  .dt-bar{display:flex;gap:6px;align-items:center}
+  .ver-row{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;margin-bottom:7px;background:var(--bg-2);border:1px solid var(--line)}
+  .ver-row:hover{border-color:var(--cyan)}
+  .ver-main{flex:1;min-width:0}
+  .ver-sum{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ver-meta{font-size:11px;color:var(--muted-c);margin-top:2px}
+  .ver-act{display:flex;gap:6px;flex-shrink:0}
+  .anno-panel{position:fixed;top:0;right:0;height:100%;width:320px;background:var(--bg-1);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.18);transform:translateX(100%);transition:transform .25s;z-index:60;display:flex;flex-direction:column}
+  .anno-panel.open{transform:translateX(0)}
+  .anno-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700}
+  .anno-list{flex:1;overflow:auto;padding:10px}
+  .anno-card{background:var(--bg-2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:9px 10px;margin-bottom:9px;cursor:pointer}
+  .anno-card:hover{border-color:var(--cyan)}
+  .anno-quote{font-size:11.5px;color:var(--muted-c);background:color-mix(in srgb,var(--cyan) 8%,transparent);padding:4px 7px;border-radius:6px;margin-bottom:5px;max-height:48px;overflow:hidden}
+  .anno-com{font-size:13px;line-height:1.5}
+  .anno-meta{font-size:11px;color:var(--muted-c);margin-top:5px;display:flex;justify-content:space-between}
+  .anno-empty{color:var(--muted-c);font-size:13px;text-align:center;padding:30px 10px}
+  mark.hl{background:rgba(250,204,21,.45);border-radius:2px;padding:0 1px}
+  .hi-flash{animation:hiflash 1.2s ease}
+  @keyframes hiflash{0%{background:rgba(34,211,238,.5)}100%{background:rgba(250,204,21,.45)}}
+  .health-top{display:flex;gap:18px;align-items:center;margin-bottom:14px}
+  .health-score-box{text-align:center;flex:0 0 auto;padding:10px 18px;border-radius:var(--rad);background:rgba(var(--cyan-rgb),.1);border:1px solid rgba(var(--cyan-rgb),.3)}
+  .health-score{font-size:38px;font-weight:800;color:var(--cyan);line-height:1}
+  .health-score-cap{font-size:11px;color:var(--muted-c);margin-top:4px}
+  .health-meta{flex:1;min-width:0}
+  .health-stat{font-size:13px;font-weight:600;margin-bottom:6px}
+  .health-bar{height:10px;border-radius:99px;background:rgba(var(--cyan-rgb),.15);overflow:hidden}
+  .health-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#22d3ee,#0ea5e9);transition:width .4s}
+  .health-groups{display:flex;flex-direction:column;gap:14px}
+  .hg-h{font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:6px;padding-left:8px;border-left:3px solid var(--cyan)}
+  .hi{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;margin-bottom:6px;font-size:12.5px}
+  .hi-ic{flex:0 0 auto;font-weight:800;width:18px;text-align:center}
+  .hi-main{min-width:0}
+  .hi-name{font-weight:600}
+  .hi-msg{color:var(--muted-c);margin-top:2px}
+  .hi-ad{color:#fde68a;margin-top:2px;font-size:11.5px}
+  .hi.err{background:rgba(230,0,18,.08);border:1px solid rgba(230,0,18,.28)}
+  .hi.err .hi-ic{color:#fca5a5}
+  .hi.warn{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25)}
+  .hi.warn .hi-ic{color:#fbbf24}
+  .hi.info{background:rgba(var(--cyan-rgb),.07);border:1px solid rgba(var(--cyan-rgb),.25)}
+  .hi.info .hi-ic{color:var(--cyan)}
+  .hi.ok{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.22)}
+  .hi.ok .hi-ic{color:#a7f3d0}
   #checkResult{margin-top:12px}
 
   /* 校验修复记录面板 */
@@ -855,6 +911,16 @@
   <!-- 左侧面板 -->
   <div class="left">
 
+    <div class="doc-tabs">
+      <span class="dt-cap">📑 多文档</span>
+      <div id="docTabList"></div>
+      <button class="dt-new" id="btnNewDoc">＋ 新建</button>
+      <div class="dt-bar">
+        <button class="btn btn-ghost" id="btnSaveVer" style="padding:5px 10px;font-size:12px">💾 存版本</button>
+        <button class="btn btn-ghost" id="btnVerHist" style="padding:5px 10px;font-size:12px">🕑 历史</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2><span class="num">01</span>选择公文文种<span class="tag">DOCUMENT TYPE</span></h2>
       <div class="types" id="typeGrid"></div>
@@ -1046,6 +1112,14 @@
         <button class="btn btn-ghost" id="btnVar">⌨ 变量模板</button>
       </div>
       <div class="row mt">
+        <button class="btn btn-primary" id="btnHealth" style="background:linear-gradient(90deg,#0ea5e9,#22d3ee)">🩺 公文合规体检</button>
+        <span style="font-size:11px;color:var(--muted-c);align-self:center">按文种审查要素完整性、文号格式、层级跳级与日期逻辑</span>
+      </div>
+      <div class="row mt">
+        <button class="btn btn-primary" id="btnAnnoPanel" style="background:linear-gradient(90deg,#a78bfa,#f472b6)">📋 审阅批注</button>
+        <span style="font-size:11px;color:var(--muted-c);align-self:center">选中预览文字可批注留痕，支持导出审阅版</span>
+      </div>
+      <div class="row mt">
         <button class="btn btn-ghost" id="btnHelp">❔ 标准帮助</button>
         <button class="btn btn-ghost" id="btnLongImg">🖼 导出长图</button>
       </div>
@@ -1182,6 +1256,79 @@
       <button class="btn btn-ghost" id="btnLogExpJson">⬇ 导出 JSON</button>
       <button class="btn btn-ghost" id="btnLogExpHtml">⬇ 导出 HTML</button>
       <button class="btn btn-red" id="btnLogClear2" style="margin-left:auto">🧹 清空</button>
+    </div>
+  </div>
+</div>
+
+<!-- 公文合规体检 -->
+<div class="mask hidden" id="modalHealth">
+  <div class="modal" style="max-width:760px">
+    <div class="m-head">🩺 公文合规体检<span class="x" data-x="modalHealth">✕</span></div>
+    <div class="m-body">
+      <div class="health-top">
+        <div class="health-score-box">
+          <div class="health-score" id="healthScore">—</div>
+          <div class="health-score-cap">合规评分 / 100</div>
+        </div>
+        <div class="health-meta">
+          <div class="health-stat" id="healthStat"></div>
+          <div class="health-bar"><div class="health-bar-fill" id="healthScoreBar"></div></div>
+          <div style="font-size:11px;color:var(--muted-c);margin-top:6px">按文种审查要素完整性、文号格式、层级跳级与日期逻辑，结果仅供参考，最终以人工复核为准。</div>
+        </div>
+      </div>
+      <div class="health-groups" id="healthGroups"></div>
+    </div>
+    <div class="m-foot" style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="btnHealthExp">⬇ 导出体检报告</button>
+      <button class="btn btn-ghost" id="btnHealthClose" style="margin-left:auto" data-x="modalHealth">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 版本历史 -->
+<div class="mask hidden" id="modalVersions">
+  <div class="modal" style="max-width:560px">
+    <div class="m-head">🕑 版本历史<span class="x" data-x="modalVersions">✕</span></div>
+    <div class="m-body">
+      <div style="font-size:12px;color:var(--muted-c);margin-bottom:10px">当前公文已自动记录编辑版本，可一键恢复到任意历史版本（恢复前建议先「存版本」备份现状）。</div>
+      <div id="verList"></div>
+      <div id="verEmpty" class="anno-empty" style="display:none">暂无版本记录。点击「💾 存版本」即可保存当前状态。</div>
+    </div>
+    <div class="m-foot" style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="btnSnapVer">💾 保存当前为版本</button>
+      <button class="btn btn-ghost" id="btnVerClose" style="margin-left:auto" data-x="modalVersions">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 审阅批注面板 -->
+<div class="anno-panel" id="annoPanel">
+  <div class="anno-head">
+    <span>📋 审阅批注</span>
+    <button class="btn btn-ghost" id="btnAnnoClose" style="margin-left:auto;padding:4px 9px;font-size:12px">✕ 收起</button>
+  </div>
+  <div class="anno-list" id="annoList"></div>
+  <div style="padding:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-primary" id="btnAddAnno" style="width:100%">📝 添加批注（选中预览文字）</button>
+    <div class="dt-bar" style="gap:8px">
+      <button class="btn btn-ghost" id="btnRevMode" style="flex:1;padding:5px 8px;font-size:12px">🔄 修订模式</button>
+      <button class="btn btn-primary" id="btnExportReview" style="flex:1;padding:5px 8px;font-size:12px">⬇ 导出审阅版</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批注输入 -->
+<div class="mask hidden" id="modalAnno">
+  <div class="modal" style="max-width:480px">
+    <div class="m-head">📝 添加批注<span class="x" data-x="modalAnno">✕</span></div>
+    <div class="m-body">
+      <div style="font-size:12px;color:var(--muted-c);margin-bottom:6px">批注引文</div>
+      <div id="annoQuote" style="background:color-mix(in srgb,var(--cyan) 8%,transparent);border-left:3px solid var(--cyan);padding:8px 10px;border-radius:6px;font-size:13px;margin-bottom:12px;max-height:80px;overflow:auto"></div>
+      <textarea id="annoComment" rows="4" placeholder="填写审阅意见…"></textarea>
+    </div>
+    <div class="m-foot" style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="btnAnnoOk" style="margin-left:auto">确定批注</button>
+      <button class="btn btn-ghost" id="btnAnnoCancel">取消</button>
     </div>
   </div>
 </div>
@@ -3993,6 +4140,7 @@ function renderPreview(){
     </div></div>`;
   }).join('');
   fitImgRows();
+  applyAnnotations();
   fitPages();
 }
 
@@ -4076,6 +4224,24 @@ async function buildDocxBlob(d){
     }
     flush();
     return runs;
+  }
+  // 审阅版：在 splitRuns 基础上，将命中批注引文的子串包裹为黄色高亮 run
+  function splitRunsHL(s, font, pt, extra, hlSet){
+    if(!hlSet || !hlSet.length) return splitRuns(s, font, pt, extra);
+    const ranges = [];
+    for(const h of hlSet){ if(!h) continue; let idx = s.indexOf(h); while(idx >= 0){ ranges.push([idx, idx + h.length]); idx = s.indexOf(h, idx + h.length); } }
+    if(!ranges.length) return splitRuns(s, font, pt, extra);
+    ranges.sort((a,b)=>a[0]-b[0]);
+    const merged = [];
+    for(const r of ranges){ const last = merged[merged.length-1]; if(last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]); else merged.push([r[0], r[1]]); }
+    const runs = []; let pos = 0;
+    for(const [a,b] of merged){
+      if(a > pos) runs.push(...splitRuns(s.slice(pos, a), font, pt, extra));
+      runs.push(...splitRuns(s.slice(a, b), font, pt, {...extra, highlight:'yellow'}));
+      pos = b;
+    }
+    if(pos < s.length) runs.push(...splitRuns(s.slice(pos), font, pt, extra));
+    return runs.length ? runs : splitRuns(s, font, pt, extra);
   }
 
   const line578 = {line: PT(28.9), lineRule: LineRuleType.EXACT};
@@ -4201,9 +4367,9 @@ async function buildDocxBlob(d){
     if(k === 'h2'){
       const ci = pp.indexOf('。');
       if(ci >= 0 && ci < pp.length - 1 && pp.slice(ci+1).trim())
-        kids = [...splitRuns(pp.slice(0, ci+1), F_KAI, 16), ...splitRuns(pp.slice(ci+1), F_FS, 16)];  // 句号后文本用仿宋（与正文同字体）
-      else kids = splitRuns(pp, font, 16);
-    } else kids = splitRuns(pp, font, 16);
+        kids = [...splitRunsHL(pp.slice(0, ci+1), F_KAI, 16, {}, d._hl), ...splitRunsHL(pp.slice(ci+1), F_FS, 16, {}, d._hl)];  // 句号后文本用仿宋（与正文同字体）
+      else kids = splitRunsHL(pp, font, 16, {}, d._hl);
+    } else kids = splitRunsHL(pp, font, 16, {}, d._hl);
     // 一级标题→大纲1级、二级标题→大纲2级（以此类推）；仅设置大纲级别，不改变字体/字号/行距，
     // 便于在 Word 中「引用 → 目录 → 自动目录」生成二级（及更深）目录，且文字可选中、版式不变。
     // docx 8.5.0 的 outlineLevel 直接写入 w:val（Word 0 基：0=大纲1级，1=大纲2级…），
@@ -4540,6 +4706,21 @@ async function buildDocxBlob(d){
     } else cur.push(children[i]);
   }
   if(cur.length) sections.push(makeSection(cur, false, sections.length===0));
+
+  // 审阅版：追加「批注与修订记录」独立章节（批注含引文高亮 + 修订留痕）
+  if(d._review){
+    const revParas = [];
+    revParas.push(new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:PT(28.9*2), after:PT(28.9)}, children:[run('批注与修订记录', F_BS, 22)] }));
+    const annos = d._review.annos || [], revs = d._review.revs || [];
+    if(!annos.length && !revs.length) revParas.push(new Paragraph({ spacing:{after:PT(14)}, children:[run('（本稿暂无批注与修订记录）', F_FS, 12)] }));
+    annos.forEach((a,i)=>{
+      revParas.push(new Paragraph({ spacing:{before:PT(14), after:PT(4)}, children:[run((i+1)+'. 批注（'+(a.author||'匿名')+' · '+fmtTime(a.ts)+'）', F_HEI, 12)] }));
+      revParas.push(new Paragraph({ spacing:{after:PT(4)}, children:[run('引文：'+(a.text||''), F_FS, 10)] }));
+      revParas.push(new Paragraph({ spacing:{after:PT(10)}, children:[run('意见：'+(a.comment||''), F_FS, 12)] }));
+    });
+    revs.forEach((r,i)=>{ revParas.push(new Paragraph({ spacing:{before:PT(10), after:PT(10)}, children:[run('修订'+(i+1)+'：'+(r.text||''), F_FS, 12)] })); });
+    sections.push(makeSection(revParas, false, false));
+  }
 
   const docu = new Document({
     creator:'左岸',
@@ -5443,6 +5624,109 @@ $('btnFixAll').onclick = () => {
   updateLogStat();
   toast(n ? `⚒ 已自动修复 ${n} 处` : '没有可自动修复的问题');
 };
+
+/* ============================================================
+ * 公文合规体检（独立于「一键修复/规则库」的要素与文种合规审查）
+ *   - 要素完整性（按文种必需要素）
+ *   - 文种—格式匹配（红头/主送/信函/命令）
+ *   - 发文字号结构深度校验
+ *   - 标题层级跳级检测
+ *   - 日期逻辑一致性（成文/印发先后、将来日期）
+ * 每项：{ cat, name, applies(d), run(d) → {level,msg,advice}|null }
+ *   level: err(错误) / warn(提醒) / info(提示) / ok(通过)；run 返回 null 表示不适用
+ * ============================================================ */
+const HEALTH = [
+  /* —— 文种与格式匹配 —— */
+  { cat:'文种与格式匹配', name:'通用格式不应使用红头标志', applies:d=>d.plain && d.logo && d.logo!=='××××××文件',
+    run:d=> d.logo ? {level:'warn', msg:'当前为「通用」文种，但填写了发文机关标志（红头）', advice:'如非红头文书，请清空发文机关标志；如需红头，请将文种切换为具体文种'} : {level:'ok'} },
+  { cat:'文种与格式匹配', name:'上行文须标注签发人', applies:d=>d.t.c==='上行文',
+    run:d=> d.signatory ? {level:'ok'} : {level:'err', msg:'上行文（'+d.type+'）须标注签发人', advice:'在「签发人」处填写签发人姓名（三号楷体）'} },
+  { cat:'文种与格式匹配', name:'公布性公文一般不编排主送机关', applies:d=>d.t.c==='公布文' && !!d.to,
+    run:d=> d.to ? {level:'warn', msg:'公布性公文（'+d.type+'）一般不编排主送机关', advice:'如面向全社会公布，建议删除主送机关'} : {level:'ok'} },
+  { cat:'文种与格式匹配', name:'「函」应采用信函式格式', applies:d=>d.t.f==='letter',
+    run:d=> ({level:'info', msg:'「函」为平行文，标准采用信函式格式（发文机关标志下加武文线、发文字号居右顶格）', advice:'本工具按一般格式排版，如需严格信函式，请确认发文机关标志为机关名称全称、发文字号右对齐'}) },
+  { cat:'文种与格式匹配', name:'命令（令）格式', applies:d=>d.type.indexOf('令')>=0,
+    run:d=>{ const a=[]; if(d.to) a.push('命令（令）一般不编排主送机关'); if(d.logo.indexOf('令')<0) a.push('命令（令）发文机关标志应为「××人民政府令」形式'); return a.length?{level:'warn', msg:a.join('；'), advice:'命令（令）标志用「××人民政府令」，通常无主送机关、无抄送'}:{level:'ok'}; } },
+
+  /* —— 要素完整性 —— */
+  { cat:'要素完整性', name:'标题必填', applies:d=>true,
+    run:d=> d.title ? {level:'ok'} : {level:'err', msg:'公文标题缺失', advice:'填写标题（建议：发文机关+事由+文种）'} },
+  { cat:'要素完整性', name:'正文必填', applies:d=>true,
+    run:d=> d.paras.length ? {level:'ok'} : {level:'err', msg:'正文内容缺失', advice:'在正文框填写公文内容'} },
+  { cat:'要素完整性', name:'发文字号必填', applies:d=>!d.plain,
+    run:d=> d.no ? {level:'ok'} : {level:'err', msg:'发文字号缺失', advice:'填写如 ×政发〔2026〕1号'} },
+  { cat:'要素完整性', name:'发文机关署名必填', applies:d=>!d.plain,
+    run:d=> d.org ? {level:'ok'} : {level:'err', msg:'发文机关署名缺失', advice:'在「发文机关署名」处填写机关全称或规范化简称'} },
+  { cat:'要素完整性', name:'成文日期格式', applies:d=>!d.plain,
+    run:d=> DATE_STD.test(d.date) ? {level:'ok'} : {level:'warn', msg:'成文日期格式不规范（应如 2026年8月6日，月日不编虚位）：'+d.date, advice:'按「2026年8月6日」格式填写，月日不编虚位'} },
+  { cat:'要素完整性', name:'主送机关必填', applies:d=>!d.plain && !['公布文','平行文','会议纪要'].includes(d.t.c),
+    run:d=> d.to ? {level:'ok'} : {level:'err', msg:'主送机关缺失', advice:'在「主送机关」处填写（最后一个机关后标全角冒号）'} },
+  { cat:'要素完整性', name:'请示须注明联系人及电话（附注）', applies:d=>d.type==='请示',
+    run:d=> (d.note && /联系/.test(d.note) && /\d{7,}/.test(d.note)) ? {level:'ok'} : {level:'warn', msg:'请示应在附注处注明联系人及电话', advice:'在「附注」处填写，如：（联系人：张三 电话：13800000000）'} },
+
+  /* —— 发文字号规范 —— */
+  { cat:'发文字号规范', name:'发文字号结构（机关代字+〔年份〕+序号+号）', applies:d=>!d.plain && !!d.no,
+    run:d=> /^[\u4e00-\u9fa5A-Za-z]+〔\d{4}〕\d+号?$/.test(d.no) ? {level:'ok'} : {level:'warn', msg:'发文字号结构不规范：应为「机关代字+〔年份〕+序号+号」，如 ×政发〔2026〕12号', advice:'按「××发〔2026〕12号」格式修正（年份用六角括号〔〕）'} },
+  { cat:'发文字号规范', name:'发文字号年份合理', applies:d=>!d.plain && d.no && /〔(\d{4})〕/.test(d.no),
+    run:d=>{ const y=+d.no.match(/〔(\d{4})〕/)[1]; const now=new Date().getFullYear(); return (y>=2000 && y<=now+1) ? {level:'ok'} : {level:'warn', msg:'发文字号年份异常：'+y, advice:'年份应为 4 位且为合理年份'}; } },
+  { cat:'发文字号规范', name:'发文字号序号（不带「第」、不编虚位）', applies:d=>!d.plain && !!d.no,
+    run:d=>{ if(/第/.test(d.no)) return {level:'warn', msg:'发文字号序号不应带「第」字（应为 12号 而非 第12号）', advice:'删除「第」字'}; if(/〔\d{4}〕0\d/.test(d.no)) return {level:'warn', msg:'发文字号序号不应编虚位（01→1）', advice:'序号去掉前导零'}; return {level:'ok'}; } },
+
+  /* —— 正文结构 —— */
+  { cat:'正文结构', name:'标题层级连续性（不跳级）', applies:d=>true,
+    run:d=>{ const seq=[]; for(const arr of [d.paras, d.attachParas]) for(const l of arr){ const lv=headingLevelOf(l); if(lv>=0) seq.push(lv); }
+      for(let i=1;i<seq.length;i++){ if(seq[i]-seq[i-1] > 1) return {level:'warn', msg:'标题层级跳级：出现「一、」后直接「1.」等跨级用法', advice:'严格按 一、→（一）→1.→（1） 依次编排，补全缺失层级'}; }
+      return seq.length ? {level:'ok'} : null; } },
+
+  /* —— 日期逻辑 —— */
+  { cat:'日期逻辑', name:'成文日期不晚于印发日期', applies:d=>!!d.date && !!d.issueDate && DATE_STD.test(d.date) && DATE_STD.test(d.issueDate),
+    run:d=>{ const a=ymd(d.date), b=ymd(d.issueDate); if(a==null||b==null) return null; return a<=b ? {level:'ok'} : {level:'err', msg:'成文日期（'+d.date+'）晚于印发日期（'+d.issueDate+'），逻辑矛盾', advice:'调整成文日期或印发日期，使印发不早于成文'}; } },
+  { cat:'日期逻辑', name:'成文日期不为将来', applies:d=>!!d.date && DATE_STD.test(d.date),
+    run:d=>{ const a=ymd(d.date); if(a==null) return null; const now=new Date(); const t=now.getFullYear()*10000+(now.getMonth()+1)*100+now.getDate(); return a<=t ? {level:'ok'} : {level:'warn', msg:'成文日期为将来日期：'+d.date, advice:'请核对成文日期'}; } },
+
+  /* —— 版记与附件 —— */
+  { cat:'版记与附件', name:'印发机关与印发日期应同时标注', applies:d=>!d.plain,
+    run:d=> (d.issuer && !d.issueDate) || (!d.issuer && d.issueDate) ? {level:'warn', msg:'印发机关、印发日期应同时标注于版记末行', advice:'二者一并填写或一并留空'} : {level:'ok'} },
+  { cat:'版记与附件', name:'抄送机关末尾用句号', applies:d=>!d.plain && !!d.cc,
+    run:d=> /[。.]$/.test(d.cc) ? {level:'ok'} : {level:'warn', msg:'抄送机关末尾应加句号', advice:'在抄送机关后加全角句号「。」'} },
+  { cat:'版记与附件', name:'附件内容须配套附件说明', applies:d=>!d.plain,
+    run:d=> (d.attachParas.length && !d.attach) ? {level:'warn', msg:'已填写附件内容但缺少附件说明', advice:'在「附件说明」处填写 1.名称；2.名称'} : {level:'ok'} },
+];
+function ymd(s){ const m=String(s).match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/); return m? +m[1]*10000 + +m[2]*100 + +m[3] : null; }
+function genHealth(d){
+  const groups={}; let err=0,warn=0,info=0,ok=0,total=0;
+  for(const h of HEALTH){ if(!h.applies(d)) continue; const r=h.run(d); if(!r) continue;
+    (groups[h.cat]=groups[h.cat]||[]).push({name:h.name, ...r}); total++;
+    if(r.level==='err')err++; else if(r.level==='warn')warn++; else if(r.level==='info')info++; else ok++; }
+  const score=Math.max(0,Math.min(100,100-err*12-warn*5-info*2));
+  const order=['文种与格式匹配','要素完整性','发文字号规范','正文结构','日期逻辑','版记与附件'];
+  const groupsArr=order.filter(c=>groups[c]).map(c=>({cat:c, items:groups[c]}));
+  return {score, counts:{err,warn,info,ok,total}, groups:groupsArr};
+}
+function renderHealth(){
+  const d=collect(); const rep=genHealth(d);
+  $('healthScore').textContent=rep.score;
+  $('healthScoreBar').style.width=rep.score+'%';
+  $('healthStat').textContent='错误 '+rep.counts.err+' · 提醒 '+rep.counts.warn+' · 提示 '+rep.counts.info+' · 通过 '+rep.counts.ok+'（共 '+rep.counts.total+' 项）';
+  $('healthGroups').innerHTML = rep.groups.map(g=>`<div class="hg"><div class="hg-h">${g.cat}</div>${g.items.map(it=>{const cls=it.level==='err'?'err':it.level==='warn'?'warn':it.level==='info'?'info':'ok'; const ic=it.level==='err'?'✕':it.level==='warn'?'⚠':it.level==='info'?'ℹ':'✓'; return `<div class="hi ${cls}"><span class="hi-ic">${ic}</span><div class="hi-main"><div class="hi-name">${esc(it.name)}</div>${it.msg?`<div class="hi-msg">${esc(it.msg)}</div>`:''}${it.advice?`<div class="hi-ad">整改建议：${esc(it.advice)}</div>`:''}</div></div>`;}).join('')}</div>`).join('') || '<div class="iss ok">✓ 未发现需关注的事项</div>';
+  openModal('modalHealth');
+}
+function exportHealth(){
+  const d=collect(); const rep=genHealth(d); const L=[];
+  L.push('# 公文合规体检报告'); L.push('');
+  L.push('- 生成时间：'+new Date().toLocaleString('zh-CN'));
+  L.push('- 文种：'+(d.type||'—'));
+  L.push('- 标题：'+(d.title||'（未填）'));
+  L.push('- 合规评分：'+rep.score+' / 100');
+  L.push('- 问题统计：错误 '+rep.counts.err+' · 提醒 '+rep.counts.warn+' · 提示 '+rep.counts.info+' · 通过 '+rep.counts.ok+'（共 '+rep.counts.total+' 项）'); L.push('');
+  for(const g of rep.groups){ L.push('## '+g.cat); for(const it of g.items){ const tag=it.level==='err'?'【错误】':it.level==='warn'?'【提醒】':it.level==='info'?'【提示】':'【通过】'; L.push('- '+tag+it.name+(it.msg?('：'+it.msg):'')); if(it.advice) L.push('  - 整改建议：'+it.advice); } L.push(''); }
+  L.push('—— 本报告由「慧公文」智能排版助手依据 GB/T 9704-2012 自动生成，仅供参考，最终以人工复核为准。');
+  downloadBlob(new Blob([L.join('\n')],{type:'text/markdown;charset=utf-8'}), (d.title||'公文')+'_合规体检报告.md');
+  toast('✓ 合规体检报告已导出');
+}
+$('btnHealth').onclick = renderHealth;
+$('btnHealthExp').onclick = exportHealth;
+$('btnHealthClose') && ($('btnHealthClose').onclick = () => closeModal('modalHealth'));
 /* 规则导入 / 导出 */
 $('btnRuleExp').onclick = () => {
   const blob = new Blob([JSON.stringify(ruleState, null, 2)], {type:'application/json'});
@@ -6011,6 +6295,275 @@ function tryRestorePrompt(){
 setInterval(() => { if(SNAP_FIELDS.some(f => ($(f).value||'').trim())) saveDraft(); }, 8000);
 window.addEventListener('beforeunload', saveDraft);
 
+/* ============================================================
+ * 多文档工作台：多标签并行编辑 + 自动保存(防丢) + 编辑版本历史
+ * （单文档「草稿自动保存/断点恢复」已由 mzw_draft 提供；本模块在其之上
+ *   增加「多份公文并行编辑」与「按文档的版本历史快照」）
+ * ============================================================ */
+const WS_KEY = 'mzw_workspace_v2';
+let ANNO = [];   // 当前公文批注列表（③审阅批注使用），随文档切换一起序列化
+const DOC_FIELDS = ['inLogo','inNo','inSignatory','inTitle','inTo','inBody','inAttach','inAttachBody','inOrg','inDate','inCc',
+  'inCopyNo','inSecret','inSecretTerm','inUrgent','inIssuer','inIssueDate','inSeal','inNote','inDateMode','inTitleArr','inMinuteNo',
+  'ckJoint','ckAttBanner','ckToc','ckWysiwyg','ckTableHeader'];
+let WS = { docs: [], active: 0 };
+let wsSaveTimer = null, wsRestored = false;
+
+function serializeDoc(){
+  const f = { type: curType };
+  DOC_FIELDS.forEach(id => { const el = $(id); if(!el) return; f[id] = el.type === 'checkbox' ? el.checked : el.value; });
+  try { f.annos = JSON.parse(JSON.stringify(ANNO)); } catch(e){ f.annos = []; }
+  try { f.revs = JSON.parse(JSON.stringify(REVS)); } catch(e){ f.revs = []; }
+  return f;
+}
+function applyDoc(f){
+  if(!f) return;
+  const t = TYPES.find(x => x.n === (f.type || curType)) || TYPES[0];
+  curType = t.n;
+  const plain = t.f === 'plain';
+  ['fLogo','fNo','fCc','fVersionHead','fVersionHead2','fIssue','fSeal'].forEach(x => $(x) && $(x).classList.toggle('hidden', plain));
+  $('fSignatory') && $('fSignatory').classList.toggle('hidden', t.c !== '上行文');
+  DOC_FIELDS.forEach(id => { const el = $(id); if(!el || !(id in f)) return; if(el.type === 'checkbox') el.checked = !!f[id]; else el.value = f[id]; });
+  ANNO = Array.isArray(f.annos) ? f.annos.slice() : [];
+  REVS = Array.isArray(f.revs) ? f.revs.slice() : [];
+  renderTypes(); renderPreview();
+  if(typeof renderAnnos === 'function') renderAnnos();
+}
+function docDisplayName(d){ return (d.name && d.name.trim()) || '未命名公文'; }
+function docName(){ const t = $('inTitle').value.trim(); return t ? t.slice(0,16) : (curType + '·未命名'); }
+function makeDoc(name){ return { id:'d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name:name||'未命名公文', fields:null, updated:Date.now(), versions:[] }; }
+function persistWS(){
+  try{
+    const data = { docs: WS.docs.map(d => ({ id:d.id, name:d.name, fields:d.fields, updated:d.updated, versions:d.versions })), active: WS.active };
+    localStorage.setItem(WS_KEY, JSON.stringify(data));
+  }catch(e){}
+}
+function saveActiveDoc(){
+  const d = WS.docs[WS.active]; if(!d) return;
+  d.fields = serializeDoc(); d.name = docName(); d.updated = Date.now();
+  persistWS();
+}
+function scheduleWS(){ clearTimeout(wsSaveTimer); wsSaveTimer = setTimeout(saveActiveDoc, 800); }
+function renderTabs(){
+  const list = $('docTabList'); if(!list) return;
+  list.innerHTML = WS.docs.map((d,i) => `<div class="dt-tab ${i===WS.active?'active':''}" data-i="${i}"><span class="dt-name">${esc(docDisplayName(d))}</span>${WS.docs.length>1?'<span class="x" data-x="'+i+'">✕</span>':''}</div>`).join('');
+}
+function switchDoc(i){
+  if(i === WS.active || i < 0 || i >= WS.docs.length) return;
+  saveActiveDoc();
+  WS.active = i;
+  applyDoc(WS.docs[i].fields);
+  renderTabs(); persistWS();
+}
+function blankFields(){
+  const f = { type: curType };
+  DOC_FIELDS.forEach(id => { const el = $(id); if(!el) return; f[id] = el.type === 'checkbox' ? false : ''; });
+  f.annos = [];
+  return f;
+}
+function newDoc(){
+  saveActiveDoc();
+  const d = makeDoc('未命名公文');
+  d.fields = blankFields();
+  WS.docs.push(d); WS.active = WS.docs.length - 1;
+  applyDoc(d.fields);
+  renderTabs(); persistWS();
+  toast('✓ 已新建空白公文（点「💾 存版本」可随时备份）');
+}
+function closeDoc(i){
+  if(WS.docs.length <= 1){ toast('至少保留一份公文'); return; }
+  if(!confirm('关闭该公文？其内容仍可能留存于「版本历史」与本地草稿中。')) return;
+  WS.docs.splice(i, 1);
+  if(WS.active >= WS.docs.length) WS.active = WS.docs.length - 1;
+  applyDoc(WS.docs[WS.active].fields);
+  renderTabs(); persistWS();
+}
+function snapshotVersion(label){
+  const d = WS.docs[WS.active]; if(!d) return;
+  const body0 = ($('inBody').value.trim().split('\n')[0] || '').slice(0, 22);
+  const summary = (($('inTitle').value.trim()) || curType) + (body0 ? '：' + body0 : '');
+  d.versions.unshift({ ts: Date.now(), label: label || '', fields: serializeDoc(), summary });
+  if(d.versions.length > 30) d.versions.length = 30;
+  persistWS();
+  toast('✓ 已保存版本（共 ' + d.versions.length + ' 个）');
+}
+function renderVersions(){
+  const d = WS.docs[WS.active]; if(!d) return;
+  const box = $('verList'), empty = $('verEmpty');
+  if(!d.versions.length){ box.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  box.innerHTML = d.versions.map((v,i) => {
+    const t = new Date(v.ts), pad = n => String(n).padStart(2,'0');
+    const when = `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+    return `<div class="ver-row"><div class="ver-main"><div class="ver-sum">${esc(v.summary || ('版本 '+(i+1)))}</div><div class="ver-meta">${when}${v.label?' · '+esc(v.label):''}</div></div><div class="ver-act"><button class="btn btn-ghost" data-res="${i}" style="padding:4px 9px;font-size:12px">恢复</button><button class="btn btn-ghost" data-del="${i}" style="padding:4px 9px;font-size:12px">删除</button></div></div>`;
+  }).join('');
+}
+function restoreVersion(i){
+  const d = WS.docs[WS.active], v = d.versions[i]; if(!v) return;
+  if(!confirm('恢复到该版本？当前内容将被覆盖（可先点「保存当前为版本」备份现状）')) return;
+  applyDoc(v.fields); saveActiveDoc(); renderTabs();
+  closeModal('modalVersions');
+  toast('✓ 已恢复到该版本');
+}
+function initWS(){
+  try{
+    const raw = localStorage.getItem(WS_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      if(o && Array.isArray(o.docs) && o.docs.length){
+        WS = { docs: o.docs, active: Math.min(o.active|0, o.docs.length-1) };
+        if(!WS.docs[WS.active] || !WS.docs[WS.active].fields) WS.active = 0;
+        wsRestored = true;
+        applyDoc(WS.docs[WS.active].fields);
+        renderTabs();
+        return;
+      }
+    }
+  }catch(e){}
+  WS = { docs: [ makeDoc(docName()) ], active: 0 };
+  WS.docs[0].fields = serializeDoc();
+  renderTabs(); persistWS();
+}
+
+/* 多文档工作台：输入/文种变化即自动保存当前文档到工作台（防丢） */
+DOC_FIELDS.forEach(id => { const el = $(id); if(!el) return; const ev = el.type === 'checkbox' ? 'change' : 'input'; el.addEventListener(ev, scheduleWS); });
+$('typeGrid') && $('typeGrid').addEventListener('click', scheduleWS);
+$('docTabList').addEventListener('click', e => {
+  const x = e.target.closest('.x');
+  if(x){ e.stopPropagation(); closeDoc(+x.dataset.x); return; }
+  const tab = e.target.closest('.dt-tab');
+  if(tab) switchDoc(+tab.dataset.i);
+});
+$('btnNewDoc').onclick = newDoc;
+$('btnSaveVer').onclick = () => snapshotVersion('');
+$('btnVerHist').onclick = () => { renderVersions(); openModal('modalVersions'); };
+$('btnSnapVer').onclick = () => { snapshotVersion('手动保存'); renderVersions(); };
+$('btnVerClose') && ($('btnVerClose').onclick = () => closeModal('modalVersions'));
+$('verList').addEventListener('click', e => {
+  const r = e.target.closest('[data-res]'), dl = e.target.closest('[data-del]');
+  if(r){ restoreVersion(+r.dataset.res); }
+  else if(dl){ const d = WS.docs[WS.active], i = +dl.dataset.del; if(d.versions[i] && confirm('删除该版本？')){ d.versions.splice(i,1); persistWS(); renderVersions(); } }
+});
+window.addEventListener('beforeunload', saveActiveDoc);
+setInterval(saveActiveDoc, 12000);
+
+/* ============================================================
+ * ③ 审阅批注：批注捕获 + 审阅面板 + 修订模式 + 导出审阅版
+ * ============================================================ */
+let REVS = [];   // 当前公文修订记录（随文档切换一起序列化）
+function fmtTime(ts){ const t = new Date(ts || Date.now()), p = n => String(n).padStart(2,'0'); return t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate())+' '+p(t.getHours())+':'+p(t.getMinutes()); }
+function uid(){ return 'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+/* 在预览中把批注引文包裹为 <mark> 高亮（renderPreview 每次重渲后调用） */
+function wrapText(root, text, id){
+  if(!text) return false;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while((node = walker.nextNode())){
+    const i = node.nodeValue.indexOf(text);
+    if(i >= 0){
+      try{
+        const range = document.createRange();
+        range.setStart(node, i); range.setEnd(node, i + text.length);
+        const mark = document.createElement('mark');
+        mark.className = 'hl'; mark.dataset.ano = id;
+        range.surroundContents(mark);
+        return true;
+      }catch(e){ return false; }
+    }
+  }
+  return false;
+}
+function applyAnnotations(){
+  const root = $('paperScroll'); if(!root) return;
+  root.querySelectorAll('mark.hl').forEach(m => { const p = m.parentNode; while(m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); });
+  if(!ANNO || !ANNO.length) return;
+  ANNO.forEach(a => { if(a && a.text) wrapText(root, a.text, a.id); });
+}
+
+/* 从预览当前选区新增批注 */
+function addAnnoFromSelection(){
+  const sel = (window.getSelection && window.getSelection()) || {};
+  const text = (sel.toString && sel.toString().trim()) || '';
+  if(!text){ toast('请先在预览中选中要批注的文字'); return; }
+  $('annoComment').value = '';
+  $('annoQuote').textContent = text.slice(0, 80);
+  $('annoQuote').dataset.text = text;
+  openModal('modalAnno');
+}
+function confirmAnno(){
+  const text = $('annoQuote').dataset.text || '';
+  const comment = $('annoComment').value.trim();
+  if(!text){ closeModal('modalAnno'); return; }
+  ANNO.push({ id: uid(), text, comment, author: '审阅人', ts: Date.now() });
+  closeModal('modalAnno');
+  renderPreview(); renderAnnos();
+  toast('✓ 已添加批注');
+}
+function deleteAnno(id){ ANNO = ANNO.filter(a => a.id !== id); renderPreview(); renderAnnos(); }
+function locateAnno(id){
+  const root = $('paperScroll'); if(!root) return;
+  const m = root.querySelector('mark.hl[data-ano="'+id+'"]');
+  if(m){ m.scrollIntoView({behavior:'smooth', block:'center'}); m.classList.add('hi-flash'); setTimeout(()=>m.classList.remove('hi-flash'), 1200); }
+}
+function renderAnnos(){
+  const list = $('annoList'); if(!list) return;
+  const items = [];
+  (ANNO||[]).forEach(a => items.push({kind:'anno', a}));
+  (REVS||[]).forEach(r => items.push({kind:'rev', r}));
+  if(!items.length){ list.innerHTML = '<div class="anno-empty">暂无批注与修订。在预览中选中文字点「📝 添加批注」即可留痕；开启「修订模式」可记录正文改动。</div>'; return; }
+  list.innerHTML = items.map(it => it.kind==='anno'
+    ? `<div class="anno-card" data-loc="${it.a.id}"><div class="anno-quote">${esc(it.a.text)}</div><div class="anno-com">${esc(it.a.comment||'（无意见）')}</div><div class="anno-meta"><span>${esc(it.a.author||'匿名')} · ${fmtTime(it.a.ts)}</span><span data-del="${it.a.id}" style="color:#ef4444;cursor:pointer">删除</span></div></div>`
+    : `<div class="anno-card" data-loc="rev" style="border-left-color:#f59e0b"><div class="anno-com" style="color:#fbbf24">🔄 ${esc(it.r.text)}</div><div class="anno-meta"><span>${fmtTime(it.r.ts)}</span></div></div>`).join('');
+}
+
+/* 修订模式：开启时记录正文基线，导出/存版本时比对生成修订记录 */
+let revMode = false, revBaseline = '';
+function toggleRevMode(){
+  revMode = !revMode;
+  if(revMode){ revBaseline = $('inBody').value; $('btnRevMode').classList.add('on'); toast('✓ 修订模式已开启，将记录后续正文改动'); }
+  else { recordRevs(); $('btnRevMode').classList.remove('on'); toast('修订模式已关闭，已记录差异'); }
+  renderAnnos();
+}
+function recordRevs(){
+  if(!revBaseline) return;
+  const a = revBaseline.split('\n'), b = $('inBody').value.split('\n');
+  const n = Math.max(a.length, b.length);
+  for(let i=0;i<n;i++){
+    const x = (a[i]||'').trim(), y = (b[i]||'').trim();
+    if(x && !y) REVS.push({ ts: Date.now(), text:'第'+(i+1)+'行 删除：'+x });
+    else if(!x && y) REVS.push({ ts: Date.now(), text:'第'+(i+1)+'行 新增：'+y });
+    else if(x !== y) REVS.push({ ts: Date.now(), text:'第'+(i+1)+'行 修改：'+x+' → '+y });
+  }
+  revBaseline = $('inBody').value;
+}
+
+/* 导出审阅版（批注引文高亮 + 末尾「批注与修订记录」章节） */
+function exportReview(){
+  const d = collect();
+  d._hl = (ANNO||[]).map(a => a.text).filter(Boolean);
+  d._review = { annos: (ANNO||[]).map(a=>({author:a.author, ts:a.ts, text:a.text, comment:a.comment})), revs: (REVS||[]).map(r=>({ts:r.ts, text:r.text})) };
+  buildDocxBlob(d).then(blob => {
+    downloadBlob(blob, (d.title||'公文') + '_审阅版.docx');
+    toast('✓ 审阅版已导出（含批注高亮与修订记录）');
+  }).catch(e => toast('导出失败：' + e.message));
+}
+function openAnnoPanel(){ const p = $('annoPanel'); if(p){ p.classList.add('open'); renderAnnos(); } }
+function closeAnnoPanel(){ const p = $('annoPanel'); if(p) p.classList.remove('open'); }
+
+$('btnAnnoPanel') && ($('btnAnnoPanel').onclick = openAnnoPanel);
+$('btnAnnoClose') && ($('btnAnnoClose').onclick = closeAnnoPanel);
+$('btnAddAnno') && ($('btnAddAnno').onclick = addAnnoFromSelection);
+$('btnAnnoOk') && ($('btnAnnoOk').onclick = confirmAnno);
+$('btnAnnoCancel') && ($('btnAnnoCancel').onclick = () => closeModal('modalAnno'));
+$('btnRevMode') && ($('btnRevMode').onclick = toggleRevMode);
+$('btnExportReview') && ($('btnExportReview').onclick = exportReview);
+$('annoList').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if(del){ deleteAnno(del.dataset.del); return; }
+  const card = e.target.closest('[data-loc]');
+  if(card && card.dataset.loc !== 'rev') locateAnno(card.dataset.loc);
+});
+
 /* ---------- 初始化 ---------- */
 $('inDate').value = todayCN();
 renderTypes();
@@ -6019,7 +6572,8 @@ renderExpTpls();
 renderPreview();
 undoStack.push(snapState());
 updateUndoUI();
-tryRestorePrompt();
+initWS();
+if(!wsRestored) tryRestorePrompt();
 </script>
 
   <button id="themeBtn" title="切换视觉风格（12 种风格 · 5 大风格族）"><span class="ic">&#127912;</span><span>主题</span></button>
