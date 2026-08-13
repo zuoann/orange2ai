@@ -426,7 +426,7 @@ official-doc-formatter/
 └── README.md    # 本文档
 ```
 
-> 网页版（https://www.205099.xyz/hgw/）即由本目录的 `index.html` 单文件托管，无任何额外构建步骤。
+> 网页版 https://www.205099.xyz/hgw/  即由本目录的 `index.html` 单文件托管，无任何额外构建步骤。
 
 ---
 
@@ -460,4 +460,4 @@ A：正文中的批注短语会以黄色高亮（`w:highlight w:val="yellow"`）
 
 ## 📄 许可
 
-本工具供公文写作辅助使用，版式规范依据 GB/T 9704-2012。生成内容请按本机关公文审核流程把关后正式印发。
+本工具供公文写作辅助使用，版式规范依据 GB/T 9704-2012。生成内容请按本机关公文审核流程把关后正式印发。Email：zuoang@gmail.com
