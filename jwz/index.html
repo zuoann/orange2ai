@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>菌物志 · 菌菌有神 · 云南野生菌识别</title>
+  <meta name="description" content="菌物志 · 菌菌有神——收录 100 种云南常见野生菌的图鉴与识别助手：按菌盖颜色、菌褶、菌环、菌托、生境、季节等特征逐步识别，附食用/毒性安全提示。" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // 提前应用主题，避免闪烁
+    try { document.documentElement.dataset.theme = localStorage.getItem("junjun_theme") || "forest"; } catch (e) { document.documentElement.dataset.theme = "forest"; }
+  </script>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="spore-field" id="sporeField" aria-hidden="true"></div>
+
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="brand" href="#home">
+        <span class="brand-mark" aria-hidden="true">🍄</span>
+        <span class="brand-text">菌物志<small>菌菌有神 · 云南野生菌识别</small></span>
+      </a>
+      <div class="header-right">
+        <nav class="main-nav" id="mainNav" aria-label="主导航">
+          <a href="#gallery">图鉴</a>
+          <a href="#identify">特征识别</a>
+          <a href="#photo">拍照识别</a>
+          <a href="#safety">安全指南</a>
+        </nav>
+        <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="主题切换">
+          <button class="theme-btn active" data-theme="forest" title="森系深绿" aria-label="森系深绿主题" aria-pressed="true"></button>
+          <button class="theme-btn" data-theme="cream" title="奶油小清新" aria-label="奶油小清新主题" aria-pressed="false"></button>
+          <button class="theme-btn" data-theme="matcha" title="抹茶奶绿" aria-label="抹茶奶绿主题" aria-pressed="false"></button>
+          <button class="theme-btn" data-theme="morandi" title="莫兰迪灰粉" aria-label="莫兰迪灰粉主题" aria-pressed="false"></button>
+          <button class="theme-btn" data-theme="dusk" title="暮色紫夜" aria-label="暮色紫夜主题" aria-pressed="false"></button>
+        </div>
+        <button class="music-toggle" id="musicToggle" title="开启背景音乐" aria-label="切换背景音乐" aria-pressed="false">
+          <span class="music-icon" id="musicIcon">🔇</span>
+        </button>
+        <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== 首页 / Hero ===================== -->
+    <section class="hero" id="home">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <p class="hero-kicker">🍄 云南 · 野生菌王国 · 100 种图鉴</p>
+        <h1>山野有菌，<br /><span class="grad-text">万物有神。</span></h1>
+        <p class="hero-sub">
+          收录云南常见野生菌的图鉴与关键识别特征，支持按菌盖颜色、菌褶、菌环、菌托、
+          生境与季节逐步筛选识别，并标注食用安全与易混淆毒菌。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#identify">开始识别</a>
+          <a class="btn btn-ghost" href="#gallery">浏览图鉴</a>
+        </div>
+        <div class="hero-stats" id="heroStats"></div>
+        <p class="hero-quote" id="heroQuote" aria-live="polite"></p>
+      </div>
+      <div class="hero-mushrooms" id="heroMushrooms" aria-hidden="true"></div>
+    </section>
+
+    <!-- ===================== 图鉴 ===================== -->
+    <section class="section" id="gallery">
+      <div class="section-head">
+        <h2>野生菌图鉴</h2>
+        <p class="section-sub">点击卡片查看识别要点、食用安全与易混淆种。</p>
+      </div>
+
+      <div class="gallery-tools">
+        <div class="search-box">
+          <input type="search" id="searchInput" placeholder="搜索名称 / 学名 / 别名…" autocomplete="off" />
+        </div>
+        <div class="chip-row" id="categoryChips" role="group" aria-label="按安全性筛选">
+          <button class="chip active" data-cat="all">全部</button>
+          <button class="chip" data-cat="edible">可食用</button>
+          <button class="chip" data-cat="caution">慎食（需彻底加工）</button>
+          <button class="chip" data-cat="toxic">有毒 / 剧毒</button>
+        </div>
+      </div>
+
+      <div class="mushroom-grid" id="mushroomGrid"></div>
+      <p class="empty-tip" id="emptyTip" hidden>没有找到匹配的菌子，试试更换关键词或筛选条件。</p>
+    </section>
+
+    <!-- ===================== 特征识别 ===================== -->
+    <section class="section section-alt" id="identify">
+      <div class="section-head">
+        <h2>特征识别助手</h2>
+        <p class="section-sub">逐项回答菌子的特征，系统会实时缩小候选范围。不确定的项可跳过。</p>
+      </div>
+
+      <div class="wizard" id="wizard">
+        <div class="wizard-progress">
+          <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+          <span class="progress-text" id="progressText"></span>
+        </div>
+
+        <div class="wizard-main">
+          <div class="question-panel">
+            <p class="question-label" id="questionLabel">第 1 步</p>
+            <h3 class="question-title" id="questionTitle"></h3>
+            <div class="question-options" id="questionOptions"></div>
+            <div class="question-actions">
+              <button class="btn btn-ghost" id="btnSkip">跳过此项</button>
+              <button class="btn btn-ghost" id="btnPrev" disabled>上一步</button>
+              <button class="btn btn-primary" id="btnReset">重新开始</button>
+            </div>
+          </div>
+
+          <div class="match-panel">
+            <h3 class="match-title">候选菌种 <span class="match-count" id="matchCount"></span></h3>
+            <div class="match-list" id="matchList"></div>
+            <p class="match-note" id="matchNote"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="warning-banner" role="note">
+        <strong>⚠️ 重要提示：</strong>仅凭外观或单一特征无法可靠鉴定野生菌。本工具仅作科普参考，
+        不能替代专业鉴定。任何野生菌，<em>拿不准就不吃</em>；出现不适请立即就医。
+      </div>
+    </section>
+
+    <!-- ===================== 拍照识别 ===================== -->
+    <section class="section" id="photo">
+      <div class="section-head">
+        <h2>拍照识别</h2>
+        <p class="section-sub">上传野生菌照片，由 AI 神经网络识别，并与本站毒性数据库交叉比对。</p>
+      </div>
+
+      <div class="ai-settings" id="aiSettings">
+        <div class="ai-settings-row">
+          <label for="aiProvider">识别引擎</label>
+          <select id="aiProvider">
+            <option value="tf">本地神经网络（免费 · 免密钥）</option>
+            <option value="plantid">Plant.id 云端识别（高精度 · 需密钥）</option>
+            <option value="gcv">Google Vision 云端识别（需密钥）</option>
+          </select>
+        </div>
+        <div class="ai-settings-row" id="apiKeyRow" hidden>
+          <label for="aiKey">API Key</label>
+          <input type="password" id="aiKey" placeholder="粘贴密钥（仅保存在本机浏览器）" autocomplete="off" />
+        </div>
+        <div class="ai-settings-row ai-status" id="aiEngineStatus"></div>
+      </div>
+
+      <div class="photo-wrap">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="上传照片">
+          <div class="dropzone-icon" aria-hidden="true">📷</div>
+          <p class="dropzone-title">点击或拖拽照片到这里</p>
+          <p class="dropzone-sub">支持 JPG / PNG，建议拍摄菌盖、菌褶、菌柄、菌托多角度</p>
+          <input type="file" id="fileInput" accept="image/*" hidden />
+        </div>
+
+        <div class="photo-result" id="photoResult" hidden>
+          <div class="photo-preview-wrap">
+            <img id="photoPreview" alt="已上传的菌子照片" />
+          </div>
+          <div class="photo-report">
+            <h3>识别报告 <span class="engine-badge" id="engineBadge"></span></h3>
+            <div class="photo-loading" id="photoLoading" hidden>
+              <span class="spinner" aria-hidden="true"></span>
+              <span id="photoLoadingText">正在加载模型…</span>
+            </div>
+            <div id="photoReportBody"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="photo-note">
+        <p>
+          <b>识别方式：</b>默认使用<b>本地神经网络</b>（TensorFlow.js + MobileNet 提取图像特征，
+          每种菌建有多张真实参考图，并对上传照片做多尺度裁剪/翻转等<b>数据增强</b>后取相似度最高者匹配），
+          无需密钥；在「识别引擎」中填入 <b>Plant.id</b> 或 <b>Google Vision</b> 的 API Key 后，
+          可切换为更高精度的云端识别。所有结果<b>仅供参考，不构成食用依据</b>——野生菌请务必多重确认后再决定是否食用。
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================== 安全指南 ===================== -->
+    <section class="section section-alt" id="safety">
+      <div class="section-head">
+        <h2>安全指南</h2>
+        <p class="section-sub">吃菌季，安全第一。请牢记以下要点。</p>
+      </div>
+
+      <div class="safety-grid">
+        <article class="safety-card safety-danger">
+          <h3>🚫 常见致命误区</h3>
+          <ul>
+            <li>「颜色鲜艳才有毒」——错。致命鹅膏、灰花纹鹅膏等剧毒菌多为<b>白色或灰色</b>。</li>
+            <li>「银针 / 大蒜 / 大米变黑就是有毒」——错。民间检测方法<b>不可靠</b>。</li>
+            <li>「虫吃过、动物吃过就安全」——错。昆虫与人体的代谢不同。</li>
+            <li>「高温久煮一定去毒」——对<b>部分</b>毒素无效（如鹅膏肽类）。</li>
+          </ul>
+        </article>
+
+        <article class="safety-card safety-safe">
+          <h3>✅ 采食原则</h3>
+          <ul>
+            <li>只吃<b>100% 确认</b>的菌种；拿不准的坚决不采、不吃、不卖。</li>
+            <li>不混合多种野生菌一起烹饪，便于溯源。</li>
+            <li>见手青、牛肝菌等<b>必须彻底煮熟</b>（高温 + 足够时长），不宜凉拌。</li>
+            <li>饮酒会增加部分菌类中毒风险，吃菌时尽量不饮酒。</li>
+            <li>老人、儿童、孕妇及体弱者尽量少吃或不吃野生菌。</li>
+          </ul>
+        </article>
+
+        <article class="safety-card safety-firstaid">
+          <h3>🚑 误食中毒怎么办</h3>
+          <ol>
+            <li><b>立即拨打 120</b>，尽快前往医院，切勿自行服药拖延。</li>
+            <li>意识清醒者可在专业人员指导下<b>催吐</b>，昏迷者切勿强行催吐。</li>
+            <li><b>保留剩余的菌子样本或照片</b>，供医生与专家鉴定。</li>
+            <li>如有多人同时进食，<b>无论是否出现症状</b>都应就医观察。</li>
+            <li>记住进食时间、进食量，便于医生判断病情。</li>
+          </ol>
+        </article>
+      </div>
+
+      <div class="warning-banner" role="note">
+        <strong>郑重声明：</strong>本网站内容仅用于科普教育，所有「可食用」判断均基于成熟、
+        无污染的野生菌个体，且必须以正确、彻底的加工为前提。本网站不对任何实际采食行为负责。
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>🍄 菌物志 · 菌菌有神（云南野生菌识别 · 科普演示项目）</p>
+    <p class="footer-note">识别结果仅供参考，不构成医学或食用建议。珍爱生命，慎食野生菌。</p>
+    <p class="footer-note">图片来源：Wikipedia / Wikimedia Commons（版权归原作者，详见 <code>images/CREDITS.md</code>）。</p>
+  </footer>
+
+  <!-- 菌种详情弹窗 -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalName">
+      <button class="modal-close" id="modalClose" aria-label="关闭">×</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
