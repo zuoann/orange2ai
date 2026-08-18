@@ -159,6 +159,126 @@
   --badge-caution-bg: rgba(217, 176, 108, 0.16); --badge-caution-fg: #e0bd7e; --badge-toxic-fg: #e39aa0;
 }
 
+/* 暖阳浅金 */
+[data-theme="sun"] {
+  --bg: #fbf6ec; --bg-2: #f5ecd9;
+  --surface: rgba(255, 255, 255, 0.62); --surface-solid: #fffdf6;
+  --glass: rgba(255, 255, 255, 0.62); --glass-strong: rgba(255, 255, 255, 0.92);
+  --header-bg: rgba(251, 246, 236, 0.75); --scrim: rgba(70, 60, 40, 0.5);
+  --ink: #4a4233; --ink-soft: #7a7060; --ink-faint: #a89d8a;
+  --line: #eee3cd; --line-soft: rgba(200, 170, 110, 0.26);
+  --sage: #b8a06a; --sage-deep: #8a7442; --moss: #c9a85e; --moss-deep: #8a7442;
+  --teal: #c9b06a; --amber: #e0a83c; --amber-soft: #f6e8c8; --rose: #d9a08f; --rose-soft: #f4e0d0;
+  --lavender: #b3a4d6; --danger: #c0785f; --danger-soft: #f6e0d6; --safe: #7a9a5e; --caution: #b8863c;
+  --grad: linear-gradient(120deg, #c9a85e 0%, #e0a83c 45%, #e09a5f 100%);
+  --art-a: #f5edd8; --art-b: #ebe0c6; --card-sheen: rgba(255, 255, 255, 0.7); --brand-glow: rgba(224, 168, 60, 0.45);
+  --alt-grad: linear-gradient(180deg, #f5ecd9, rgba(245, 236, 217, 0.4));
+  --body-grad:
+    radial-gradient(900px 520px at 12% -6%, #faf0d8 0%, transparent 55%),
+    radial-gradient(820px 480px at 96% 8%, #f6e2c0 0%, transparent 55%),
+    #fbf6ec;
+  --glow1: rgba(224, 168, 60, 0.16); --glow2: rgba(201, 176, 106, 0.18); --glow3: rgba(224, 154, 95, 0.14);
+  --shadow: 0 20px 50px rgba(150, 120, 70, 0.14); --shadow-sm: 0 8px 24px rgba(150, 120, 70, 0.11);
+  --badge-edible-bg: #e8ecd4; --badge-edible-fg: #5c7a3a;
+  --badge-caution-bg: #f2e2c0; --badge-caution-fg: #9a7430; --badge-toxic-fg: #b0523e;
+}
+
+/* 极简黑白 */
+[data-theme="mono"] {
+  --bg: #0e0e0e; --bg-2: #161616;
+  --surface: rgba(20, 20, 20, 0.62); --surface-solid: #1a1a1a;
+  --glass: rgba(255, 255, 255, 0.05); --glass-strong: rgba(255, 255, 255, 0.11);
+  --header-bg: rgba(14, 14, 14, 0.72); --scrim: rgba(0, 0, 0, 0.7);
+  --ink: #f2f2f2; --ink-soft: #b8b8b8; --ink-faint: #7a7a7a;
+  --line: rgba(255, 255, 255, 0.14); --line-soft: rgba(255, 255, 255, 0.1);
+  --sage: #9a9a9a; --sage-deep: #d0d0d0; --moss: #c0c0c0; --moss-deep: #e0e0e0;
+  --teal: #a8a8a8; --amber: #d8d8d8; --amber-soft: rgba(255, 255, 255, 0.1); --rose: #b8b8b8; --rose-soft: rgba(255, 255, 255, 0.08);
+  --lavender: #c0c0c0; --danger: #e0a0a0; --danger-soft: rgba(224, 160, 160, 0.14); --safe: #a0c0a0; --caution: #d0c0a0;
+  --grad: linear-gradient(120deg, #c8ccd0 0%, #9aa0a6 45%, #d8dade 100%);
+  --art-a: #1c1c1c; --art-b: #141414; --card-sheen: rgba(255, 255, 255, 0.08); --brand-glow: rgba(200, 204, 208, 0.5);
+  --alt-grad: linear-gradient(180deg, #161616, rgba(22, 22, 22, 0.4));
+  --body-grad:
+    radial-gradient(1000px 620px at 12% -8%, #1e1e1e 0%, transparent 58%),
+    radial-gradient(900px 560px at 96% 6%, #161616 0%, transparent 55%),
+    #0e0e0e;
+  --glow1: rgba(255, 255, 255, 0.06); --glow2: rgba(255, 255, 255, 0.08); --glow3: rgba(255, 255, 255, 0.05);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.5); --shadow-sm: 0 10px 28px rgba(0, 0, 0, 0.4);
+  --badge-edible-bg: rgba(160, 192, 160, 0.16); --badge-edible-fg: #a8d0b0;
+  --badge-caution-bg: rgba(208, 192, 160, 0.16); --badge-caution-fg: #d8c8a8; --badge-toxic-fg: #e0a0a0;
+}
+
+/* 海盐蓝 */
+[data-theme="ocean"] {
+  --bg: #eef4f8; --bg-2: #e2ecf2;
+  --surface: rgba(255, 255, 255, 0.62); --surface-solid: #fbfdfe;
+  --glass: rgba(255, 255, 255, 0.62); --glass-strong: rgba(255, 255, 255, 0.92);
+  --header-bg: rgba(238, 244, 248, 0.75); --scrim: rgba(30, 50, 66, 0.5);
+  --ink: #33414a; --ink-soft: #64737d; --ink-faint: #93a3ad;
+  --line: #dbe4ea; --line-soft: rgba(120, 160, 190, 0.26);
+  --sage: #7fa8c0; --sage-deep: #4f738c; --moss: #6f9db8; --moss-deep: #4f738c;
+  --teal: #8fb8c8; --amber: #d0a860; --amber-soft: #f2e8d0; --rose: #d09a8f; --rose-soft: #f2ded8;
+  --lavender: #a8a0c8; --danger: #c0786a; --danger-soft: #f4e0da; --safe: #5c9a7a; --caution: #b08840;
+  --grad: linear-gradient(120deg, #6f9db8 0%, #8fb8c8 45%, #d0a860 100%);
+  --art-a: #eaf0f4; --art-b: #dde7ee; --card-sheen: rgba(255, 255, 255, 0.7); --brand-glow: rgba(111, 157, 184, 0.45);
+  --alt-grad: linear-gradient(180deg, #e2ecf2, rgba(226, 236, 242, 0.4));
+  --body-grad:
+    radial-gradient(900px 520px at 12% -6%, #e6f0f6 0%, transparent 55%),
+    radial-gradient(820px 480px at 96% 8%, #e6eef4 0%, transparent 55%),
+    #eef4f8;
+  --glow1: rgba(111, 157, 184, 0.16); --glow2: rgba(143, 184, 200, 0.18); --glow3: rgba(208, 168, 96, 0.12);
+  --shadow: 0 20px 50px rgba(80, 120, 145, 0.14); --shadow-sm: 0 8px 24px rgba(80, 120, 145, 0.11);
+  --badge-edible-bg: #e0ecf2; --badge-edible-fg: #3a6a8a;
+  --badge-caution-bg: #f2e8d0; --badge-caution-fg: #9a7430; --badge-toxic-fg: #b0523e;
+}
+
+/* 樱花粉 */
+[data-theme="sakura"] {
+  --bg: #fbf2f4; --bg-2: #f7e8ec;
+  --surface: rgba(255, 255, 255, 0.62); --surface-solid: #fffafb;
+  --glass: rgba(255, 255, 255, 0.62); --glass-strong: rgba(255, 255, 255, 0.92);
+  --header-bg: rgba(251, 242, 244, 0.75); --scrim: rgba(80, 50, 60, 0.5);
+  --ink: #4a3a3e; --ink-soft: #7a686c; --ink-faint: #a89498;
+  --line: #f0dde0; --line-soft: rgba(220, 160, 180, 0.28);
+  --sage: #c0a0b0; --sage-deep: #8a6474; --moss: #c89aac; --moss-deep: #8a6474;
+  --teal: #b8c0c8; --amber: #d0a860; --amber-soft: #f4e6d0; --rose: #e0a0b0; --rose-soft: #f8dfe6;
+  --lavender: #b0a0c8; --danger: #c06070; --danger-soft: #f8e0e6; --safe: #7aa08a; --caution: #b08840;
+  --grad: linear-gradient(120deg, #c89aac 0%, #e0a0b0 45%, #d0a0b8 100%);
+  --art-a: #f8ecef; --art-b: #f0dde2; --card-sheen: rgba(255, 255, 255, 0.7); --brand-glow: rgba(224, 160, 176, 0.45);
+  --alt-grad: linear-gradient(180deg, #f7e8ec, rgba(247, 232, 236, 0.4));
+  --body-grad:
+    radial-gradient(900px 520px at 12% -6%, #faeaf0 0%, transparent 55%),
+    radial-gradient(820px 480px at 96% 8%, #fae8ee 0%, transparent 55%),
+    #fbf2f4;
+  --glow1: rgba(224, 160, 176, 0.16); --glow2: rgba(200, 154, 172, 0.18); --glow3: rgba(208, 168, 96, 0.1);
+  --shadow: 0 20px 50px rgba(160, 110, 130, 0.14); --shadow-sm: 0 8px 24px rgba(160, 110, 130, 0.11);
+  --badge-edible-bg: #e2f0e6; --badge-edible-fg: #4a7a5c;
+  --badge-caution-bg: #f2e6cc; --badge-caution-fg: #9a7430; --badge-toxic-fg: #b0505e;
+}
+
+/* 深空蓝 */
+[data-theme="midnight"] {
+  --bg: #0d1220; --bg-2: #131a2c;
+  --surface: rgba(18, 26, 46, 0.62); --surface-solid: #182036;
+  --glass: rgba(255, 255, 255, 0.05); --glass-strong: rgba(255, 255, 255, 0.11);
+  --header-bg: rgba(13, 18, 32, 0.72); --scrim: rgba(4, 7, 16, 0.66);
+  --ink: #e8edf7; --ink-soft: #b3bdce; --ink-faint: #7c869c;
+  --line: rgba(190, 200, 230, 0.18); --line-soft: rgba(190, 200, 230, 0.14);
+  --sage: #7fa0c8; --sage-deep: #bcd0e8; --moss: #7f9cc8; --moss-deep: #aebcd8;
+  --teal: #7fb0c8; --amber: #d8a868; --amber-soft: rgba(216, 168, 104, 0.14); --rose: #d08a9c; --rose-soft: rgba(208, 138, 156, 0.14);
+  --lavender: #a8a0d0; --danger: #d88a94; --danger-soft: rgba(216, 138, 148, 0.16); --safe: #8cc4a0; --caution: #d8b06c;
+  --grad: linear-gradient(120deg, #7f9cc8 0%, #7fb0c8 45%, #d8a868 100%);
+  --art-a: #1c2438; --art-b: #151b2c; --card-sheen: rgba(255, 255, 255, 0.1); --brand-glow: rgba(127, 156, 200, 0.6);
+  --alt-grad: linear-gradient(180deg, #131a2c, rgba(19, 26, 44, 0.4));
+  --body-grad:
+    radial-gradient(1000px 620px at 12% -8%, #1c2440 0%, transparent 58%),
+    radial-gradient(900px 560px at 96% 6%, #1c1c30 0%, transparent 55%),
+    #0d1220;
+  --glow1: rgba(127, 156, 200, 0.16); --glow2: rgba(127, 176, 200, 0.14); --glow3: rgba(216, 168, 104, 0.1);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.42); --shadow-sm: 0 10px 28px rgba(0, 0, 0, 0.32);
+  --badge-edible-bg: rgba(140, 196, 160, 0.16); --badge-edible-fg: #9fd4b4;
+  --badge-caution-bg: rgba(216, 176, 108, 0.16); --badge-caution-fg: #e0bd7e; --badge-toxic-fg: #e39aa0;
+}
+
 /* ============================== 基础 ============================== */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -234,7 +354,7 @@ main, .site-footer { position: relative; z-index: 1; }
 .main-nav a:hover { background: var(--glass-strong); color: var(--ink); transform: translateY(-1px); }
 
 /* 主题切换 */
-.theme-switcher { display: flex; align-items: center; gap: 7px; padding: 4px 8px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line-soft); }
+.theme-switcher { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line-soft); }
 .theme-btn {
   width: 22px; height: 22px; padding: 0; border-radius: 50%;
   border: 2px solid transparent; cursor: pointer;
@@ -247,6 +367,11 @@ main, .site-footer { position: relative; z-index: 1; }
 .theme-btn[data-theme="matcha"] { background: radial-gradient(circle at 32% 30%, #fbfdf6, #a8c88f 68%, #8fae6f); }
 .theme-btn[data-theme="morandi"] { background: radial-gradient(circle at 32% 30%, #fbfaf7, #c7a2a2 68%, #8d988c); }
 .theme-btn[data-theme="dusk"] { background: radial-gradient(circle at 32% 30%, #8f88c4, #141321 74%); }
+.theme-btn[data-theme="sun"] { background: radial-gradient(circle at 32% 30%, #fffdf6, #e0a83c 66%, #c9a85e); }
+.theme-btn[data-theme="mono"] { background: radial-gradient(circle at 32% 30%, #f2f2f2, #9aa0a6 60%, #0e0e0e); }
+.theme-btn[data-theme="ocean"] { background: radial-gradient(circle at 32% 30%, #fbfdfe, #8fb8c8 66%, #6f9db8); }
+.theme-btn[data-theme="sakura"] { background: radial-gradient(circle at 32% 30%, #fffafb, #e0a0b0 66%, #c89aac); }
+.theme-btn[data-theme="midnight"] { background: radial-gradient(circle at 32% 30%, #7f9cc8, #0d1220 74%); }
 
 /* 音乐开关 */
 .music-toggle {
@@ -495,8 +620,8 @@ main, .site-footer { position: relative; z-index: 1; }
   .brand { font-size: 1.2rem; }
   .brand-text small { display: none; }
   .header-right { gap: 6px; }
-  .theme-btn { width: 19px; height: 19px; }
-  .theme-switcher { gap: 5px; padding: 3px 6px; }
+  .theme-btn { width: 16px; height: 16px; }
+  .theme-switcher { gap: 4px; padding: 4px 6px; max-width: 112px; justify-content: center; }
   .music-toggle, .nav-toggle { width: 38px; height: 38px; }
   .section { padding: 54px 16px; }
   .section-head h2 { font-size: 1.55rem; }
