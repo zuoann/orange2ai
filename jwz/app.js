@@ -22,7 +22,8 @@
   var CATEGORY = {
     edible:  { label: "可食用", cls: "badge-edible" },
     caution: { label: "慎食", cls: "badge-caution" },
-    toxic:   { label: "有毒/剧毒", cls: "badge-toxic" }
+    toxic:   { label: "有毒/剧毒", cls: "badge-toxic" },
+    unknown: { label: "待核实", cls: "badge-unknown" }
   };
 
   /* 菌盖颜色归一化：由 features.capColor 派生（支持全部菌种） */
@@ -41,8 +42,8 @@
     return out;
   }
 
-  /* 真实照片路径（存于 images/ 目录，文件名与 id 一致） */
-  function imageOf(m) { return "images/" + m.id + ".jpg"; }
+  /* 真实照片路径（存于 images/ 目录，文件名与 id 一致；WebP 优化版） */
+  function imageOf(m) { return "images/" + m.id + ".webp"; }
 
   /* 图片 + SVG 兜底：图片加载失败时自动回退到手绘插图 */
   function artInner(m) {
@@ -272,15 +273,33 @@
   /* ------------------------------------------------------------------
    * 图鉴：渲染 + 搜索 + 分类筛选
    * ------------------------------------------------------------------ */
-  var state = { category: "all", query: "" };
+  var state = { category: "all", query: "", sort: "default" };
   var grid = $("#mushroomGrid");
   var searchInput = $("#searchInput");
 
+  /* 收藏夹（localStorage） */
+  function getFavs() {
+    try { return JSON.parse(localStorage.getItem("junjun_favs") || "[]") || []; } catch (e) { return []; }
+  }
+  function saveFavs(f) { try { localStorage.setItem("junjun_favs", JSON.stringify(f)); } catch (e) {} }
+  function isFav(id) { return getFavs().indexOf(id) !== -1; }
+  function toggleFav(id) {
+    var f = getFavs();
+    var i = f.indexOf(id);
+    if (i >= 0) f.splice(i, 1); else f.push(id);
+    saveFavs(f);
+    return i < 0;
+  }
+
   function matchesFilters(m) {
-    if (state.category !== "all" && m.category !== state.category) return false;
+    if (state.category === "fav") {
+      if (!isFav(m.id)) return false;
+    } else if (state.category !== "all" && m.category !== state.category) {
+      return false;
+    }
     var q = state.query.trim().toLowerCase();
     if (!q) return true;
-    var hay = (m.name + " " + m.latin + " " + (m.aliases || []).join(" ")).toLowerCase();
+    var hay = (m.name + " " + m.latin + " " + (m.aliases || []).join(" ") + " " + ((m.features && m.features.habitat) || "")).toLowerCase();
     return hay.indexOf(q) !== -1;
   }
 
@@ -295,8 +314,19 @@
       "</article>";
   }
 
+  function rankCat(m) { return m.category === "edible" ? 0 : m.category === "caution" ? 1 : 2; }
+
+  function sortList(list) {
+    var s = state.sort;
+    if (s === "name") return list.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "zh"); });
+    if (s === "latin") return list.slice().sort(function (a, b) { return a.latin.localeCompare(b.latin); });
+    if (s === "safe") return list.slice().sort(function (a, b) { return rankCat(a) - rankCat(b) || a.name.localeCompare(b.name, "zh"); });
+    if (s === "toxic") return list.slice().sort(function (a, b) { return rankCat(b) - rankCat(a) || a.name.localeCompare(b.name, "zh"); });
+    return list;
+  }
+
   function renderGallery() {
-    var list = MUSHROOMS.filter(matchesFilters);
+    var list = sortList(MUSHROOMS.filter(matchesFilters));
     grid.innerHTML = list.map(cardHTML).join("");
     $("#emptyTip").hidden = list.length > 0;
   }
@@ -304,6 +334,11 @@
   function bindGallery() {
     searchInput.addEventListener("input", function () {
       state.query = searchInput.value;
+      renderGallery();
+    });
+    var sortSelect = $("#sortSelect");
+    if (sortSelect) sortSelect.addEventListener("change", function () {
+      state.sort = sortSelect.value;
       renderGallery();
     });
     $("#categoryChips").addEventListener("click", function (e) {
@@ -337,8 +372,8 @@
     var c = CATEGORY[m.category];
     var f = m.features || {};
     var yesNo = function (b) { return b ? "有" : "无"; };
-    var cautionCls = m.category === "toxic" ? "" : m.category === "caution" ? "caution-amber" : "caution-safe";
-    var cautionTitle = m.category === "toxic" ? "⚠️ 毒性警示" : m.category === "caution" ? "⚠️ 食用注意" : "✅ 食用安全";
+    var cautionCls = m.category === "toxic" ? "" : (m.category === "caution" || m.category === "unknown") ? "caution-amber" : "caution-safe";
+    var cautionTitle = m.category === "toxic" ? "⚠️ 毒性警示" : m.category === "caution" ? "⚠️ 食用注意" : m.category === "unknown" ? "ℹ️ 待核实" : "✅ 食用安全";
 
     modalBody.innerHTML =
       '<div class="modal-top">' +
@@ -362,19 +397,46 @@
         fItem("菌环", yesNo(f.ring)) +
         fItem("菌托", yesNo(f.volva)) +
         fItem("受伤变色", f.bruise) +
+        fItem("孢子印", f.sporePrint) +
+        fItem("乳汁", f.milk) +
+        fItem("菌盖质地", f.capTexture) +
+        fItem("菌盖形状", f.capForm) +
       "</div></div>" +
       '<div class="detail-block"><div class="caution-box ' + cautionCls + '"><strong>' + cautionTitle + "：</strong>" + esc(m.caution) + "</div></div>" +
-      '<div class="detail-block"><h4>易混淆种</h4><ul>' + (m.similar || []).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul></div>";
+      '<div class="detail-block"><h4>易混淆种</h4><ul>' + (m.similar || []).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul></div>" +
+      '<div class="modal-actions">' +
+        '<button class="btn btn-ghost btn-sm" id="btnCompare" type="button">🆚 对比</button>' +
+        '<button class="btn btn-ghost btn-sm" id="btnFav" type="button">' + (isFav(m.id) ? "★ 已收藏" : "☆ 收藏") + "</button>" +
+        '<button class="btn btn-ghost btn-sm" id="btnShare" type="button">📤 分享</button>' +
+      "</div>";
 
     modalBackdrop.hidden = false;
     document.body.style.overflow = "hidden";
+    lastFocus = document.activeElement;
+    var closeBtn = $("#modalClose");
+    if (closeBtn) closeBtn.focus();
+
+    var btnCompare = $("#btnCompare");
+    if (btnCompare) btnCompare.addEventListener("click", function () { openCompare(m.id); });
+    var btnFav = $("#btnFav");
+    if (btnFav) btnFav.addEventListener("click", function () {
+      var on = toggleFav(m.id);
+      btnFav.textContent = on ? "★ 已收藏" : "☆ 收藏";
+      btnFav.classList.toggle("fav-on", on);
+      renderGallery();
+    });
+    var btnShare = $("#btnShare");
+    if (btnShare) btnShare.addEventListener("click", function () { shareMushroom(m); });
   }
   function fItem(k, v) {
     return '<div class="f-item"><b>' + esc(k) + "</b>" + esc(v) + "</div>";
   }
+  var lastFocus = null;
   function closeModal() {
     modalBackdrop.hidden = true;
     document.body.style.overflow = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    lastFocus = null;
   }
   function bindModal() {
     $("#modalClose").addEventListener("click", closeModal);
@@ -385,16 +447,238 @@
   }
 
   /* ------------------------------------------------------------------
+   * 分享 / Toast / 对比 / 今日一菌
+   * ------------------------------------------------------------------ */
+  function shareMushroom(m) {
+    var text = "🍄 " + m.name + "（" + m.latin + "）· " + CATEGORY[m.category].label + " — 菌物志·菌菌有神";
+    var url = location.href.split("#")[0] + "#/species/" + m.id;
+    if (navigator.share) {
+      navigator.share({ title: m.name, text: text, url: url }).catch(function () {});
+    } else {
+      var done = function () { toast("已复制菌种信息 📋"); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text + "\n" + url).then(done).catch(function () { fallbackCopy(text + "\n" + url); done(); });
+      } else { fallbackCopy(text + "\n" + url); done(); }
+    }
+  }
+  function fallbackCopy(t) {
+    var ta = document.createElement("textarea");
+    ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "toast"; el.className = "toast";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove("show"); }, 1900);
+  }
+
+  function compareOptions(selId) {
+    return '<select id="' + selId + '" class="compare-select">' +
+      MUSHROOMS.map(function (m) { return '<option value="' + esc(m.id) + '">' + esc(m.name) + "</option>"; }).join("") +
+      "</select>";
+  }
+
+  function openCompare(idA) {
+    var firstOther = MUSHROOMS[0].id === idA ? (MUSHROOMS[1] ? MUSHROOMS[1].id : idA) : MUSHROOMS[0].id;
+    modalBody.innerHTML =
+      '<div class="compare-head"><h2>🆚 菌种对比</h2>' +
+      '<p class="compare-sub">选择两种菌并排对比关键特征，辅助鉴别易混淆种。</p></div>' +
+      '<div class="compare-picker"><span class="cmp-tag">A</span>' + compareOptions("cmpA") +
+      '<span class="vs">VS</span><span class="cmp-tag">B</span>' + compareOptions("cmpB") + "</div>" +
+      '<div id="compareBody"></div>' +
+      '<div class="compare-note">对比仅供参考，鉴定请以专业复核为准。</div>';
+    $("#cmpA").value = idA;
+    $("#cmpB").value = firstOther;
+    renderCompareBody(idA, firstOther);
+    $("#cmpA").addEventListener("change", function () { renderCompareBody($("#cmpA").value, $("#cmpB").value); });
+    $("#cmpB").addEventListener("change", function () { renderCompareBody($("#cmpA").value, $("#cmpB").value); });
+  }
+
+  function renderCompareBody(idA, idB) {
+    var mA = mushroomById(idA), mB = mushroomById(idB);
+    if (!mA || !mB) return;
+    $("#compareBody").innerHTML = '<div class="compare-grid">' + compareCol(mA) + compareCol(mB) + "</div>";
+    Array.prototype.slice.call(document.querySelectorAll(".compare-col")).forEach(function (col) {
+      col.addEventListener("click", function () { openModal(col.getAttribute("data-id")); });
+    });
+  }
+
+  function compareCol(m) {
+    var c = CATEGORY[m.category];
+    var f = m.features || {};
+    return '<div class="compare-col" data-id="' + esc(m.id) + '">' +
+      '<div class="compare-art">' + artInner(m) + "</div>" +
+      '<div class="compare-name">' + esc(m.name) + ' <span class="badge ' + c.cls + '">' + c.label + "</span></div>" +
+      '<div class="compare-latin">' + esc(m.latin) + "</div>" +
+      '<div class="feature-grid">' +
+        fItem("菌盖颜色", f.capColor) +
+        fItem("菌盖下方", f.hymeniumType + " · " + f.hymenium) +
+        fItem("菌柄", f.stem) +
+        fItem("菌环", f.ring ? "有" : "无") +
+        fItem("菌托", f.volva ? "有" : "无") +
+        fItem("受伤变色", f.bruise) +
+        fItem("孢子印", f.sporePrint) +
+        fItem("乳汁", f.milk) +
+        fItem("菌盖质地", f.capTexture) +
+        fItem("菌盖形状", f.capForm) +
+        fItem("生境", f.habitat) +
+        fItem("季节", (m.seasons || []).join("、")) +
+      "</div>" +
+      '<p class="compare-desc">' + esc(m.description) + "</p>" +
+      '<div class="compare-caution"><strong>' + c.label + "：</strong>" + esc(m.caution) + "</div>" +
+      "</div>";
+  }
+
+  function renderDailyPick() {
+    var el = $("#dailyPick");
+    if (!el) return;
+    var d = new Date();
+    var seed = "" + d.getFullYear() + (d.getMonth() + 1) + d.getDate();
+    var h = 0;
+    for (var i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    var m = MUSHROOMS[h % MUSHROOMS.length];
+    var c = CATEGORY[m.category];
+    el.hidden = false;
+    el.innerHTML =
+      '<div class="daily-head">🌅 今日一菌 · ' + (d.getMonth() + 1) + "月" + d.getDate() + "日</div>" +
+      '<div class="daily-body" data-id="' + esc(m.id) + '">' +
+        '<div class="daily-art">' + artInner(m) + "</div>" +
+        '<div class="daily-info">' +
+          '<div class="daily-name">' + esc(m.name) + ' <span class="badge ' + c.cls + '">' + c.label + "</span></div>" +
+          '<div class="daily-latin">' + esc(m.latin) + "</div>" +
+          '<p class="daily-desc">' + esc(m.description) + "</p>" +
+          '<span class="daily-link">查看详情 →</span>' +
+        "</div>" +
+      "</div>";
+    el.querySelector(".daily-body").addEventListener("click", function () {
+      openModal(this.getAttribute("data-id"));
+    });
+  }
+
+  /* ------------------------------------------------------------------
+   * 图片大图预览（鼠标指向真实图片时显示放大面板）
+   * ------------------------------------------------------------------ */
+  var previewEl = null, previewImg = null;
+
+  function ensurePreview() {
+    if (previewEl) return;
+    previewEl = document.createElement("div");
+    previewEl.className = "img-preview";
+    previewImg = document.createElement("img");
+    previewImg.alt = "大图预览";
+    previewEl.appendChild(previewImg);
+    document.body.appendChild(previewEl);
+  }
+
+  function showImagePreview(img, e) {
+    ensurePreview();
+    previewImg.src = img.currentSrc || img.src;
+    previewEl.classList.add("show");
+    moveImagePreview(e);
+  }
+
+  function moveImagePreview(e) {
+    if (!previewEl || !previewEl.classList.contains("show")) return;
+    var pad = 18;
+    var pw = previewEl.offsetWidth || 320;
+    var ph = previewEl.offsetHeight || 240;
+    var x = e.clientX + pad, y = e.clientY + pad;
+    if (x + pw > window.innerWidth - pad) x = e.clientX - pw - pad;
+    if (y + ph > window.innerHeight - pad) y = Math.max(pad, window.innerHeight - ph - pad);
+    previewEl.style.left = x + "px";
+    previewEl.style.top = y + "px";
+  }
+
+  function hideImagePreview() {
+    if (previewEl) previewEl.classList.remove("show");
+  }
+
+  function bindImagePreview() {
+    document.addEventListener("mouseover", function (e) {
+      var img = e.target.closest ? e.target.closest(".art-img") : null;
+      if (img && !img.hidden) showImagePreview(img, e);
+    });
+    document.addEventListener("mousemove", moveImagePreview);
+    document.addEventListener("mouseout", function (e) {
+      var from = e.target.closest ? e.target.closest(".art-img") : null;
+      var to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest(".art-img") : null;
+      if (from && from !== to) hideImagePreview();
+    });
+  }
+
+  /* ------------------------------------------------------------------
+   * 毒菌红名单 / 深链接 / 数据导出
+   * ------------------------------------------------------------------ */
+  var REDLIST = ["zhiming-egao", "huihuawen-egao", "huanggai-egao", "linbingbai-egao", "baidu-egao", "yaxizhe-honggu", "dugou", "duhuojun", "rouhe-linbing", "qiukuipao", "tiaogaikui", "zheluhua"];
+
+  function renderRedlist() {
+    var el = $("#redlistBody");
+    if (!el) return;
+    el.innerHTML = REDLIST.map(function (id) {
+      var m = mushroomById(id);
+      if (!m) return "";
+      var c = CATEGORY[m.category];
+      return '<article class="redlist-card" data-id="' + esc(m.id) + '" tabindex="0" role="button">' +
+        '<div class="redlist-art">' + artInner(m) + "</div>" +
+        '<div class="redlist-info">' +
+          '<div class="redlist-name">' + esc(m.name) + ' <span class="badge ' + c.cls + '">' + c.label + "</span></div>" +
+          '<div class="redlist-latin">' + esc(m.latin) + "</div>" +
+          '<p class="redlist-desc">' + esc(m.caution) + "</p>" +
+          '<span class="redlist-link">查看详情 →</span>' +
+        "</div>" +
+      "</article>";
+    }).join("");
+    el.querySelectorAll(".redlist-card").forEach(function (card) {
+      card.addEventListener("click", function () { openModal(card.getAttribute("data-id")); });
+      card.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(card.getAttribute("data-id")); }
+      });
+    });
+  }
+
+  function handleDeepLink() {
+    var m = location.hash.match(/^#\/species\/([A-Za-z0-9_-]+)/);
+    if (m && mushroomById(m[1])) {
+      setTimeout(function () { openModal(m[1]); }, 120);
+    }
+  }
+
+  function bindExport() {
+    var btn = $("#exportBtn");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var blob = new Blob([JSON.stringify(MUSHROOMS, null, 1)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "菌物志-图鉴数据.json";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+      toast("已导出图鉴数据 ⬇");
+    });
+  }
+
+  /* ------------------------------------------------------------------
    * 首页：统计 + 装饰菌
    * ------------------------------------------------------------------ */
   function renderHero() {
-    var stats = { total: MUSHROOMS.length, edible: 0, caution: 0, toxic: 0 };
+    var stats = { total: MUSHROOMS.length, edible: 0, caution: 0, toxic: 0, unknown: 0 };
     MUSHROOMS.forEach(function (m) { stats[m.category]++; });
     $("#heroStats").innerHTML =
       "<span><b>" + stats.total + "</b>种常见菌</span>" +
       "<span><b>" + stats.edible + "</b>种可食用</span>" +
       "<span><b>" + stats.caution + "</b>种慎食</span>" +
-      "<span><b>" + stats.toxic + "</b>种有毒/剧毒</span>";
+      "<span><b>" + stats.toxic + "</b>种有毒/剧毒</span>" +
+      "<span><b>" + stats.unknown + "</b>种待核实</span>";
 
     var picks = ["songrong", "qingtoujun", "jianshouqing", "jizong", "duying-san"];
     var dy = [0, 18, 40, 8, 26];
@@ -719,6 +1003,45 @@
         { label: "夏季", icon: "☀️", match: function (m) { return m.features.seasons.indexOf("夏") !== -1; } },
         { label: "秋季", icon: "🍂", match: function (m) { return m.features.seasons.indexOf("秋") !== -1; } }
       ]
+    },
+    {
+      title: "孢子印（成熟菌褶印在白纸上的颜色）是什么色？",
+      options: [
+        { label: "白色 / 奶油色", swatch: "#f2efe6", match: function (m) { return /白|奶油/.test(m.features.sporePrint || ""); } },
+        { label: "粉红色", swatch: "#e8a0a0", match: function (m) { return /粉/.test(m.features.sporePrint || ""); } },
+        { label: "褐色 / 橄榄褐 / 锈褐", swatch: "#8b6a44", match: function (m) { var s = m.features.sporePrint || ""; return /褐|橄榄|锈/.test(s); } },
+        { label: "黑色 / 黑褐色", swatch: "#3a3a38", match: function (m) { return /^黑/.test(m.features.sporePrint || ""); } },
+        { label: "黄色系", swatch: "#e8c84e", match: function (m) { var s = m.features.sporePrint || ""; return /黄/.test(s) && !/褐/.test(s); } },
+        { label: "无孢子印（胶质菌/地衣等）", swatch: "#c8c4b6", match: function (m) { return /^无/.test(m.features.sporePrint || ""); } }
+      ]
+    },
+    {
+      title: "菌肉受伤后是否流出乳汁？什么颜色？",
+      options: [
+        { label: "白色乳汁", swatch: "#f2efe6", match: function (m) { return m.features.milk === "白色乳汁"; } },
+        { label: "橙红色乳汁", swatch: "#e08a5a", match: function (m) { return m.features.milk === "橙红色乳汁"; } },
+        { label: "黄色乳汁", swatch: "#e8c84e", match: function (m) { return m.features.milk === "黄色乳汁"; } },
+        { label: "无乳汁", icon: "🚫", match: function (m) { return m.features.milk === "无乳汁"; } }
+      ]
+    },
+    {
+      title: "菌盖表面是什么质地？",
+      options: [
+        { label: "光滑（干燥）", swatch: "#d8d8c8", match: function (m) { return /光滑/.test(m.features.capTexture || ""); } },
+        { label: "粘滑（湿时粘）", swatch: "#a8c8d8", match: function (m) { return /粘滑/.test(m.features.capTexture || ""); } },
+        { label: "被鳞片 / 疣状", swatch: "#b8a888", match: function (m) { return /鳞片|疣/.test(m.features.capTexture || ""); } },
+        { label: "纤维质 / 绒毛", swatch: "#c8b8a0", match: function (m) { return /纤维|绒毛|粗糙/.test(m.features.capTexture || ""); } },
+        { label: "胶质 / 革质 / 木质", swatch: "#9aa0a3", match: function (m) { return /胶质|革质|木栓|海绵|炭质/.test(m.features.capTexture || ""); } }
+      ]
+    },
+    {
+      title: "菌盖大致是什么形状？",
+      options: [
+        { label: "半球形 / 平展", icon: "🍄", match: function (m) { return /半球形|平展/.test(m.features.capForm || ""); } },
+        { label: "中央凹陷 / 漏斗状", icon: "🥣", match: function (m) { return /凹陷|漏斗/.test(m.features.capForm || ""); } },
+        { label: "钟形 / 圆锥形 / 尖凸", icon: "🔔", match: function (m) { return /钟形|圆锥|尖凸|斗笠/.test(m.features.capForm || ""); } },
+        { label: "珊瑚状 / 脑状 / 特殊形态", icon: "🪸", match: function (m) { return /珊瑚|脑状|棒状|块状|耳状|平伏|扇形|马鞍/.test(m.features.capForm || ""); } }
+      ]
     }
   ];
 
@@ -904,7 +1227,7 @@
 
   function refPathsFor(m) {
     var paths = [imageOf(m)];
-    for (var i = 1; i <= 3; i++) paths.push("images/refs/" + m.id + "/" + i + ".jpg");
+    for (var i = 1; i <= 3; i++) paths.push("images/refs/" + m.id + "/" + i + ".webp");
     return paths;
   }
 
@@ -927,37 +1250,80 @@
     return canvas;
   }
 
+  /* IndexedDB 键值存取（持久化参考图库） */
+  var REFS_KEY = "refs_v2"; // 模型/数据/图片变化时递增版本
+  function idbOpen() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) return reject(new Error("no-idb"));
+      var req = indexedDB.open("junjun", 1);
+      req.onupgradeneeded = function (e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function idbGet(key) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction("kv", "readonly");
+        var r = tx.objectStore("kv").get(key);
+        r.onsuccess = function () { resolve(r.result); };
+        r.onerror = function () { reject(r.error); };
+      });
+    }).catch(function () { return null; });
+  }
+  function idbPut(key, val) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(val, key);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    }).catch(function () {});
+  }
+
   function getReferences(model, onProgress) {
     if (aiState.refs) return Promise.resolve(aiState.refs);
     if (aiState.refsPromise) return aiState.refsPromise;
-    var total = MUSHROOMS.length * 4;
-    var done = 0;
-    var tasks = [];
-    MUSHROOMS.forEach(function (m) {
-      refPathsFor(m).forEach(function (path) {
-        tasks.push(
-          loadImage(path)
-            .then(function (img) {
-              return model.infer(makeSquareCanvas(img, 1, 0, 0, false), true).data();
-            })
-            .then(function (emb) { return { id: m.id, emb: emb }; })
-            .catch(function () { return null; }) // 缺失的参考图跳过
-            .then(function (r) {
-              done++;
-              if (onProgress) onProgress(done, total);
-              return r;
-            })
-        );
+    aiState.refsPromise = idbGet(REFS_KEY).then(function (cached) {
+      // 缓存覆盖到绝大多数菌种即视为有效（少数无图物种不在缓存中）
+      if (cached && cached.map && cached.n >= MUSHROOMS.length - 8) {
+        aiState.refs = cached.map;
+        return cached.map;
+      }
+      var total = MUSHROOMS.length * 4;
+      var done = 0;
+      var tasks = [];
+      MUSHROOMS.forEach(function (m) {
+        refPathsFor(m).forEach(function (path) {
+          tasks.push(
+            loadImage(path)
+              .then(function (img) {
+                return model.infer(makeSquareCanvas(img, 1, 0, 0, false), true).data();
+              })
+              .then(function (emb) { return { id: m.id, emb: emb }; })
+              .catch(function () { return null; }) // 缺失的参考图跳过
+              .then(function (r) {
+                done++;
+                if (onProgress) onProgress(done, total);
+                return r;
+              })
+          );
+        });
       });
-    });
-    aiState.refsPromise = Promise.all(tasks).then(function (list) {
-      var map = {};
-      list.forEach(function (x) {
-        if (!x) return;
-        (map[x.id] = map[x.id] || []).push(x.emb);
+      return Promise.all(tasks).then(function (list) {
+        var map = {};
+        list.forEach(function (x) {
+          if (!x) return;
+          (map[x.id] = map[x.id] || []).push(x.emb);
+        });
+        aiState.refs = map;
+        idbPut(REFS_KEY, { map: map, n: Object.keys(map).length });
+        return map;
       });
-      aiState.refs = map;
-      return map;
     });
     return aiState.refsPromise;
   }
@@ -1268,14 +1634,23 @@
     bindCursorSpores();
     bindThemeSwitcher();
     bindMobileNav();
+    bindImagePreview();
     renderHero();
     renderGallery();
+    renderDailyPick();
+    renderRedlist();
     renderWizard();
     bindGallery();
     bindModal();
     bindWizard();
     bindPhoto();
     bindSettings();
+    bindExport();
+    handleDeepLink();
+    window.addEventListener("hashchange", handleDeepLink);
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
   }
 
   if (document.readyState === "loading") {

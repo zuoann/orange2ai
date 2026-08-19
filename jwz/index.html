@@ -4,14 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>菌物志 · 菌菌有神 · 云南野生菌识别</title>
-  <meta name="description" content="菌物志 · 菌菌有神——收录 100 种云南常见野生菌的图鉴与识别助手：按菌盖颜色、菌褶、菌环、菌托、生境、季节等特征逐步识别，附食用/毒性安全提示。" />
+  <meta name="description" content="菌物志 · 菌菌有神——收录 313 种真菌的图鉴与识别助手：按菌盖颜色、菌褶、菌环、菌托、生境、季节等特征逐步识别，附食用/毒性安全提示。" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <meta name="theme-color" content="#0d1912" />
   <script>
     // 提前应用主题，避免闪烁
     try { document.documentElement.dataset.theme = localStorage.getItem("junjun_theme") || "forest"; } catch (e) { document.documentElement.dataset.theme = "forest"; }
   </script>
 </head>
 <body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
   <div class="grain" aria-hidden="true"></div>
   <div class="spore-field" id="sporeField" aria-hidden="true"></div>
 
@@ -26,6 +31,7 @@
           <a href="#gallery">图鉴</a>
           <a href="#identify">特征识别</a>
           <a href="#photo">拍照识别</a>
+          <a href="#redlist">红名单</a>
           <a href="#safety">安全指南</a>
         </nav>
         <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="主题切换">
@@ -50,12 +56,12 @@
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <!-- ===================== 首页 / Hero ===================== -->
     <section class="hero" id="home">
       <div class="hero-bg" aria-hidden="true"></div>
       <div class="hero-inner">
-        <p class="hero-kicker">🍄 云南 · 野生菌王国 · 100 种图鉴</p>
+        <p class="hero-kicker">🍄 云南 · 野生菌王国 · 313 种图鉴</p>
         <h1>山野有菌，<br /><span class="grad-text">万物有神。</span></h1>
         <p class="hero-sub">
           收录云南常见野生菌的图鉴与关键识别特征，支持按菌盖颜色、菌褶、菌环、菌托、
@@ -67,6 +73,7 @@
         </div>
         <div class="hero-stats" id="heroStats"></div>
         <p class="hero-quote" id="heroQuote" aria-live="polite"></p>
+        <div class="daily-pick" id="dailyPick" hidden></div>
       </div>
       <div class="hero-mushrooms" id="heroMushrooms" aria-hidden="true"></div>
     </section>
@@ -82,11 +89,22 @@
         <div class="search-box">
           <input type="search" id="searchInput" placeholder="搜索名称 / 学名 / 别名…" autocomplete="off" />
         </div>
-        <div class="chip-row" id="categoryChips" role="group" aria-label="按安全性筛选">
-          <button class="chip active" data-cat="all">全部</button>
-          <button class="chip" data-cat="edible">可食用</button>
-          <button class="chip" data-cat="caution">慎食（需彻底加工）</button>
-          <button class="chip" data-cat="toxic">有毒 / 剧毒</button>
+        <div class="gallery-tools-row">
+          <div class="chip-row" id="categoryChips" role="group" aria-label="按安全性筛选">
+            <button class="chip active" data-cat="all">全部</button>
+            <button class="chip" data-cat="edible">可食用</button>
+            <button class="chip" data-cat="caution">慎食（需彻底加工）</button>
+            <button class="chip" data-cat="toxic">有毒 / 剧毒</button>
+            <button class="chip" data-cat="fav">⭐ 收藏</button>
+          </div>
+          <select id="sortSelect" class="sort-select" aria-label="排序">
+            <option value="default">默认排序</option>
+            <option value="name">按名称</option>
+            <option value="latin">按学名</option>
+            <option value="safe">可食优先</option>
+            <option value="toxic">毒性优先</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="exportBtn" type="button">⬇ 导出数据</button>
         </div>
       </div>
 
@@ -234,6 +252,24 @@
         <strong>郑重声明：</strong>本网站内容仅用于科普教育，所有「可食用」判断均基于成熟、
         无污染的野生菌个体，且必须以正确、彻底的加工为前提。本网站不对任何实际采食行为负责。
       </div>
+    </section>
+
+    <!-- ===================== 毒菌红名单 ===================== -->
+    <section class="section" id="redlist">
+      <div class="section-head">
+        <h2>☠️ 毒菌红名单</h2>
+        <p class="section-sub">最容易致命的 12 种毒菌，务必牢记，遇到即远离。</p>
+      </div>
+
+      <div class="emergency-box" role="note">
+        <div class="emergency-icon" aria-hidden="true">🚑</div>
+        <div>
+          <strong>误食中毒怎么办？</strong> 立即拨打 <a class="tel-link" href="tel:120">120</a> 急救，
+          保留剩余菌样/照片供鉴定，多人同食者无论有无症状都应就医观察。
+        </div>
+      </div>
+
+      <div class="redlist-grid" id="redlistBody"></div>
     </section>
   </main>
 
