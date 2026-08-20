@@ -404,7 +404,15 @@
       "</div></div>" +
       '<div class="detail-block"><div class="caution-box ' + cautionCls + '"><strong>' + cautionTitle + "：</strong>" + esc(m.caution) + "</div></div>" +
       '<div class="detail-block"><h4>易混淆种</h4><ul>' + (m.similar || []).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul></div>" +
+      (m.scanImgs && m.scanImgs.length ?
+        '<div class="detail-block"><h4>📷 实物多角度照片</h4>' +
+        '<div class="scan-imgs">' + m.scanImgs.map(function (u, idx) {
+          return '<button class="scan-img" type="button" data-idx="' + idx + '" title="大图浏览">' +
+            '<img src="' + esc(u) + '" alt="' + esc(m.name) + " 实物照片 " + (idx + 1) + '" loading="lazy" /></button>';
+        }).join("") + "</div>" +
+        '<p class="scan-img-note">实物照片来自 <a href="https://mushroom.iflora.cn" target="_blank" rel="noopener">mushroom.iflora.cn</a>（中国科学院昆明植物研究所），点击图片大图浏览。</p></div>' : "") +
       '<div class="modal-actions">' +
+        '<button class="btn btn-ghost btn-sm" id="btn3D" type="button">🧊 3D 查看</button>' +
         '<button class="btn btn-ghost btn-sm" id="btnCompare" type="button">🆚 对比</button>' +
         '<button class="btn btn-ghost btn-sm" id="btnFav" type="button">' + (isFav(m.id) ? "★ 已收藏" : "☆ 收藏") + "</button>" +
         '<button class="btn btn-ghost btn-sm" id="btnShare" type="button">📤 分享</button>' +
@@ -418,6 +426,8 @@
 
     var btnCompare = $("#btnCompare");
     if (btnCompare) btnCompare.addEventListener("click", function () { openCompare(m.id); });
+    var btn3D = $("#btn3D");
+    if (btn3D) btn3D.addEventListener("click", function () { open3DViewer(m); });
     var btnFav = $("#btnFav");
     if (btnFav) btnFav.addEventListener("click", function () {
       var on = toggleFav(m.id);
@@ -427,6 +437,10 @@
     });
     var btnShare = $("#btnShare");
     if (btnShare) btnShare.addEventListener("click", function () { shareMushroom(m); });
+    var scanImgs = m.scanImgs || [];
+    modalBody.querySelectorAll(".scan-img").forEach(function (btn, idx) {
+      btn.addEventListener("click", function () { openLightbox(scanImgs, idx, m.name); });
+    });
   }
   function fItem(k, v) {
     return '<div class="f-item"><b>' + esc(k) + "</b>" + esc(v) + "</div>";
@@ -613,6 +627,163 @@
       var to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest(".art-img") : null;
       if (from && from !== to) hideImagePreview();
     });
+  }
+
+  /* 3D 查看（按需加载 three.js + 生成器） */
+  function open3DViewer(m) {
+    loadScript("mushroom3d.js").then(function () {
+      if (window.Mushroom3D) window.Mushroom3D.open(m);
+      else toast("3D 查看器加载失败");
+    }).catch(function () {
+      toast("3D 查看器加载失败，请检查网络");
+    });
+  }
+
+  /* 灯箱大图浏览（照片图集） */
+  function openLightbox(imgs, index, title) {
+    if (!imgs || !imgs.length) return;
+    var lb = document.createElement("div");
+    lb.className = "lightbox";
+    lb.setAttribute("role", "dialog");
+    lb.setAttribute("aria-label", "大图浏览");
+    lb.innerHTML =
+      '<button class="lb-close" type="button" aria-label="关闭">×</button>' +
+      '<button class="lb-nav lb-prev" type="button" aria-label="上一张">‹</button>' +
+      '<div class="lb-stage"><img alt="" /></div>' +
+      '<button class="lb-nav lb-next" type="button" aria-label="下一张">›</button>' +
+      '<div class="lb-counter"></div>' +
+      '<div class="lb-caption"></div>';
+    document.body.appendChild(lb);
+    document.body.style.overflow = "hidden";
+
+    var img = lb.querySelector("img");
+    var counter = lb.querySelector(".lb-counter");
+    var caption = lb.querySelector(".lb-caption");
+    var cur = Math.max(0, Math.min(index, imgs.length - 1));
+
+    // 缩放/平移状态
+    var scale = 1, tx = 0, ty = 0, MAXS = 6;
+    function applyTransform() {
+      img.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
+    }
+    function clampT() {
+      var w = img.offsetWidth || 400, h = img.offsetHeight || 300;
+      var mx = (w * (scale - 1)) / 2, my = (h * (scale - 1)) / 2;
+      tx = Math.max(-mx, Math.min(mx, tx));
+      ty = Math.max(-my, Math.min(my, ty));
+    }
+    function resetZoom() { scale = 1; tx = 0; ty = 0; applyTransform(); }
+    function distT(t) {
+      var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function midT(t) { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
+
+    function show() {
+      img.src = imgs[cur];
+      counter.textContent = (cur + 1) + " / " + imgs.length;
+      caption.textContent = title + " · 实物照片 " + (cur + 1) + " / " + imgs.length + "（双指缩放 · 拖动平移 · 双击复位）";
+      resetZoom();
+    }
+    function next() { cur = (cur + 1) % imgs.length; show(); }
+    function prev() { cur = (cur - 1 + imgs.length) % imgs.length; show(); }
+    function close() {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      if (lb.parentNode) lb.parentNode.removeChild(lb);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+    }
+
+    lb.querySelector(".lb-close").addEventListener("click", close);
+    lb.querySelector(".lb-prev").addEventListener("click", function (e) { e.stopPropagation(); prev(); });
+    lb.querySelector(".lb-next").addEventListener("click", function (e) { e.stopPropagation(); next(); });
+    lb.addEventListener("click", function (e) { if (e.target === lb) close(); });
+    document.addEventListener("keydown", onKey);
+
+    // ---- 触屏：双指缩放 + 单指平移/滑动 ----
+    var pinch = null, pan = null, swipeStart = null;
+    lb.addEventListener("touchstart", function (e) {
+      if (e.touches.length === 2) {
+        pinch = { d0: distT(e.touches), mx0: midT(e.touches).x, my0: midT(e.touches).y, s0: scale, tx0: tx, ty0: ty };
+        pan = null; swipeStart = null;
+      } else if (e.touches.length === 1) {
+        if (scale > 1) {
+          pan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          swipeStart = null;
+        } else {
+          swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        pinch = null;
+      }
+    }, { passive: true });
+    lb.addEventListener("touchmove", function (e) {
+      if (e.touches.length === 2 && pinch) {
+        e.preventDefault();
+        var d = distT(e.touches), m = midT(e.touches);
+        scale = Math.max(1, Math.min(MAXS, pinch.s0 * (d / pinch.d0)));
+        tx = pinch.tx0 + (m.x - pinch.mx0);
+        ty = pinch.ty0 + (m.y - pinch.my0);
+        clampT(); applyTransform();
+      } else if (e.touches.length === 1 && pan) {
+        e.preventDefault();
+        var t = e.touches[0];
+        tx += t.clientX - pan.x;
+        ty += t.clientY - pan.y;
+        pan = { x: t.clientX, y: t.clientY };
+        clampT(); applyTransform();
+      }
+    }, { passive: false });
+    lb.addEventListener("touchend", function (e) {
+      if (e.touches.length === 0) {
+        if (swipeStart && scale === 1) {
+          var dx = e.changedTouches[0].clientX - swipeStart.x;
+          if (dx < -40) next();
+          else if (dx > 40) prev();
+        }
+        swipeStart = null; pan = null; pinch = null;
+      } else if (e.touches.length === 1) {
+        // 缩放中抬起一指 → 转为单指平移
+        var t = e.touches[0];
+        pan = { x: t.clientX, y: t.clientY };
+        swipeStart = null; pinch = null;
+      }
+    }, { passive: true });
+
+    // ---- 鼠标：滚轮缩放 + 缩放时拖动平移 + 双击复位 ----
+    lb.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      var factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      scale = Math.max(1, Math.min(MAXS, scale * factor));
+      clampT(); applyTransform();
+    }, { passive: false });
+    var mdown = null;
+    function onMouseDown(e) {
+      if (scale > 1) { mdown = { x: e.clientX, y: e.clientY }; e.preventDefault(); }
+    }
+    function onMouseMove(e) {
+      if (!mdown) return;
+      tx += e.clientX - mdown.x;
+      ty += e.clientY - mdown.y;
+      mdown = { x: e.clientX, y: e.clientY };
+      clampT(); applyTransform();
+    }
+    function onMouseUp() { mdown = null; }
+    img.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    img.addEventListener("dblclick", function (e) {
+      e.preventDefault();
+      if (scale > 1) resetZoom();
+      else { scale = 2.5; tx = 0; ty = 0; applyTransform(); }
+    });
+
+    show();
   }
 
   /* ------------------------------------------------------------------
